@@ -112,7 +112,7 @@ let state = "menu"; // menu | playing | paused | levelclear | gameover | win
 let level = 1;
 let lives = 3;
 let score = 0;
-let map = []; // GRID x GRID 二维数组
+let map = [];
 let player = null;
 let enemies = [];
 let bullets = [];
@@ -146,8 +146,8 @@ const LEVELS = [
     "..S...BB..S..",
     "..S.......S..",
     ".............",
-    ".BB.BB.BB.BB.",
-    ".BB.B...B.BB.",
+    ".BB.BBBBB.BB.",
+    ".BB.BBBBB.BB.",
     "....BBEBB....",
     "....B.E.B....",
   ],
@@ -240,7 +240,6 @@ class Tank {
       this.mark = stats.mark;
     }
 
-    // 敌人 AI
     this.aiTimer = 0;
     this.aiDir = dir;
   }
@@ -412,7 +411,6 @@ class Bullet {
       return;
     }
 
-    // 子弹互相抵消
     for (const o of bullets) {
       if (o !== this && o.alive && o.fromPlayer !== this.fromPlayer) {
         const ob = {
@@ -439,7 +437,7 @@ class PowerUp {
     this.type = type;
     this.size = 28;
     this.alive = true;
-    this.lifeTimer = 900; // 约15秒后消失
+    this.lifeTimer = 900;
   }
 
   rect() {
@@ -495,7 +493,6 @@ function applyPowerUp(powerUp) {
       lives++;
       break;
     case "bomb":
-      // 炸弹对当前屏幕所有敌人造成2点伤害
       for (const e of enemies) {
         if (e.alive) e.takeDamage(2, true);
       }
@@ -714,7 +711,6 @@ function drawTank(tank, color) {
   const { x, y, size } = tank;
   ctx.save();
 
-  // 护盾视觉效果
   if (tank.isPlayer && tank.shieldTimer > 0) {
     ctx.strokeStyle = "#5dade2";
     ctx.lineWidth = 3;
@@ -745,7 +741,6 @@ function drawTank(tank, color) {
     v.y !== 0 ? size / 2 : bw
   );
 
-  // 敌人类型标记
   if (!tank.isPlayer) {
     ctx.fillStyle = "#fff";
     ctx.font = "bold 10px sans-serif";
@@ -753,7 +748,6 @@ function drawTank(tank, color) {
     ctx.textBaseline = "middle";
     ctx.fillText(tank.mark, cx, cy);
 
-    // 多血量坦克显示血条
     if (tank.maxHp > 1) {
       ctx.fillStyle = "rgba(0,0,0,0.75)";
       ctx.fillRect(x, y - 5, size, 3);
