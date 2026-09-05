@@ -149,7 +149,7 @@ const LEVELS = [
     ".BB.BBBBB.BB.",
     ".BB.BBBBB.BB.",
     "....BBEBB....",
-    "....B.E.B....",
+    "....BBEBB....",
   ],
   [
     "....SSSSS....",
