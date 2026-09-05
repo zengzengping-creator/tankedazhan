@@ -31,6 +31,9 @@ const DIR_VEC = {
 // 瓦片类型
 const T = { EMPTY: 0, BRICK: 1, STEEL: 2, BASE: 3 };
 
+// 玩家出生点：底部左侧空地，避开基地砖墙
+const PLAYER_SPAWN = { col: 2, row: 12 };
+
 // 敌人类型：掉落概率严格按约定设置
 const ENEMY_TYPES = {
   normal: {
@@ -502,6 +505,17 @@ function applyPowerUp(powerUp) {
   updateHUD();
 }
 
+function createPlayerAtSpawn() {
+  // 确保出生格始终为空，后续即使改地图也不会把玩家卡进墙里
+  map[PLAYER_SPAWN.row][PLAYER_SPAWN.col] = T.EMPTY;
+  return new Tank(
+    PLAYER_SPAWN.col * TILE + 3,
+    PLAYER_SPAWN.row * TILE + 3,
+    DIR.UP,
+    true
+  );
+}
+
 // ------------------- 关卡管理 -------------------
 function startLevel(n) {
   map = buildMap(LEVELS[n - 1]);
@@ -510,7 +524,7 @@ function startLevel(n) {
   enemies = [];
   powerUps = [];
   enemySpawnIndex = 0;
-  player = new Tank(4 * TILE + 3, 12 * TILE + 3, DIR.UP, true);
+  player = createPlayerAtSpawn();
   enemiesToSpawn = 4 + n * 2;
   spawnTimer = 0;
   updateHUD();
@@ -548,7 +562,7 @@ function killPlayer() {
   } else {
     setTimeout(() => {
       if (state === "playing") {
-        player = new Tank(4 * TILE + 3, 12 * TILE + 3, DIR.UP, true);
+        player = createPlayerAtSpawn();
       }
     }, 600);
   }
