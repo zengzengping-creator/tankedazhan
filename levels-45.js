@@ -87,7 +87,7 @@ ENEMY_SPAWN_PLANS.push(
   ]
 );
 
-// ------------------- 让敌人子弹携带伤害值 -------------------
+// ------------------- 让子弹携带伤害值 -------------------
 Tank.prototype.shoot = function () {
   if (this.cooldown > 0) return;
 
@@ -105,7 +105,7 @@ Tank.prototype.shoot = function () {
   const bullet = new Bullet(bx, by, this.dir, this.isPlayer, bulletSpeed);
 
   bullet.damage = this.isPlayer
-    ? 1
+    ? (this.damage || 1)
     : (this.damage || ENEMY_TYPES[this.type]?.damage || 1);
 
   bullets.push(bullet);
@@ -125,7 +125,7 @@ spawnEnemy = function () {
 };
 
 // ------------------- 子弹伤害逻辑 -------------------
-// 与原版碰撞逻辑一致，只增加 damage 参数传给玩家血量系统。
+// 玩家和敌方子弹都按 bullet.damage 结算伤害。
 Bullet.prototype.update = function () {
   const v = DIR_VEC[this.dir];
   this.x += v.x * this.speed;
@@ -165,7 +165,7 @@ Bullet.prototype.update = function () {
   if (this.fromPlayer) {
     for (const e of enemies) {
       if (e.alive && rectsOverlap(b, e.rect())) {
-        e.takeDamage(1, true);
+        e.takeDamage(this.damage || 1, true);
         this.alive = false;
         return;
       }
