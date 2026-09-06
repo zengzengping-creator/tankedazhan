@@ -28,11 +28,12 @@ startLevel = function (n) {
   updateHUD();
 };
 
-// 玩家每被敌方子弹命中一次只掉1滴血，不再一枪直接死亡/重生。
-killPlayer = function () {
+// 玩家受伤：普通子弹扣1滴，毁灭坦克子弹可一次扣2滴。
+killPlayer = function (damage = 1) {
   if (!player || !player.alive) return;
 
-  player.hp = Math.max(0, (player.hp ?? PLAYER_MAX_HP) - 1);
+  const actualDamage = Math.max(1, damage || 1);
+  player.hp = Math.max(0, (player.hp ?? PLAYER_MAX_HP) - actualDamage);
   lives = player.hp;
 
   if (player.hp <= 0) {
@@ -43,7 +44,7 @@ killPlayer = function () {
   updateHUD();
 };
 
-// ❤️ 道具现在恢复1滴玩家血量，最多恢复到5滴。
+// ❤️ 道具恢复1滴玩家血量，最多恢复到5滴。
 const originalApplyPowerUp = applyPowerUp;
 applyPowerUp = function (powerUp) {
   if (powerUp.type === "life") {
@@ -58,7 +59,7 @@ applyPowerUp = function (powerUp) {
   originalApplyPowerUp(powerUp);
 };
 
-// 基地共有3滴血。前两次被击中只扣血，第三次才真正被摧毁。
+// 基地共有3滴血。普通子弹扣1滴；高伤害子弹按 bullet.damage 扣血。
 const originalBulletUpdate = Bullet.prototype.update;
 Bullet.prototype.update = function () {
   const v = DIR_VEC[this.dir];
@@ -72,7 +73,8 @@ Bullet.prototype.update = function () {
   originalBulletUpdate.call(this);
 
   if (willHitBase) {
-    baseHP = Math.max(0, baseHP - 1);
+    const damage = Math.max(1, this.damage || 1);
+    baseHP = Math.max(0, baseHP - damage);
 
     if (baseHP > 0) {
       baseAlive = true;
