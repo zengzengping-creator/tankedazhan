@@ -8,11 +8,11 @@ PLAYER_TANK_CLASSES.omni = {
   speed: 3.0,
   maxHp: 10,
   baseMaxHp: 5,
-  damage: 2,
+  damage: 5,
   shotCooldown: 15,
   bulletSpeed: 6.4,
   skillName: "五能合一",
-  skillDesc: "同时发动五种坦克技能",
+  skillDesc: "五种能力同时发动10秒",
   cooldown: 18 * 60,
 };
 
@@ -27,30 +27,30 @@ activatePlayerSkill = function () {
 
   const cfg = PLAYER_TANK_CLASSES.omni;
   player.skillCooldown = cfg.cooldown;
-  player.skillActiveTimer = 5 * 60;
+  player.skillActiveTimer = 10 * 60;
 
-  // 普通坦克：4秒无敌护盾
-  player.shieldTimer = Math.max(player.shieldTimer || 0, 4 * 60);
+  // 普通坦克能力：10秒无敌护盾。
+  player.shieldTimer = Math.max(player.shieldTimer || 0, 10 * 60);
 
-  // 快速坦克：3秒极速冲刺（基础速度提升70%）
-  player.omniSpeedTimer = 3 * 60;
+  // 快速坦克能力：10秒极速冲刺，基础速度提升70%。
+  player.omniSpeedTimer = 10 * 60;
   player.baseSpeed = cfg.speed * 1.7;
 
-  // 精英坦克：5秒高速连射
-  player.fireTimer = Math.max(player.fireTimer || 0, 5 * 60);
+  // 精英坦克能力：10秒高速连射。
+  player.fireTimer = Math.max(player.fireTimer || 0, 10 * 60);
 
-  // 重甲坦克：自己恢复2滴，最多10滴
-  player.hp = Math.min(cfg.maxHp, player.hp + 2);
+  // 重甲坦克能力：自己一次直接恢复满血到10滴。
+  player.hp = cfg.maxHp;
   lives = player.hp;
 
-  // 基地坦克：基地恢复2滴，最多5滴
-  baseHP = Math.min(cfg.baseMaxHp, baseHP + 2);
-  if (baseHP > 0) baseAlive = true;
+  // 基地坦克能力：基地一次直接恢复满血到5滴。
+  baseHP = cfg.baseMaxHp;
+  baseAlive = true;
 
   updateHUD();
 };
 
-// 冲刺3秒结束后恢复全能坦克正常速度。
+// 全能坦克10秒冲刺结束后恢复正常速度。
 const tankUpdateBeforeOmni = Tank.prototype.update;
 Tank.prototype.update = function () {
   tankUpdateBeforeOmni.call(this);
