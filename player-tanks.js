@@ -51,7 +51,7 @@ const PLAYER_TANK_CLASSES = {
     shotCooldown: 26,
     bulletSpeed: 5.0,
     skillName: "紧急维修",
-    skillDesc: "立即恢复2滴血",
+    skillDesc: "立即恢复满血",
     cooldown: 12 * 60,
   },
   base: {
@@ -61,11 +61,11 @@ const PLAYER_TANK_CLASSES = {
     speed: 2.75,
     maxHp: 5,
     baseMaxHp: 5,
-    damage: 2,
+    damage: 5,
     shotCooldown: 15,
     bulletSpeed: 6.2,
     skillName: "基地维修",
-    skillDesc: "基地恢复2滴血",
+    skillDesc: "基地立即恢复满血",
     cooldown: 12 * 60,
   },
 };
@@ -152,7 +152,8 @@ function activatePlayerSkill() {
 
   const cfg = PLAYER_TANK_CLASSES[player.playerClass] || PLAYER_TANK_CLASSES.normal;
 
-  // 基地已经满血时不浪费技能冷却。
+  // 满血时不浪费对应恢复技能的冷却。
+  if (player.playerClass === "armor" && player.hp >= cfg.maxHp) return;
   if (player.playerClass === "base" && baseHP >= (cfg.baseMaxHp || 5)) return;
 
   player.skillCooldown = cfg.cooldown;
@@ -170,14 +171,14 @@ function activatePlayerSkill() {
     player.fireTimer = Math.max(player.fireTimer || 0, 5 * 60);
     player.skillActiveTimer = 5 * 60;
   } else if (player.playerClass === "armor") {
-    // 重甲坦克：立即恢复2滴血，最多恢复到10滴。
-    player.hp = Math.min(cfg.maxHp, player.hp + 2);
+    // 重甲坦克：一次直接恢复满血到10滴。
+    player.hp = cfg.maxHp;
     lives = player.hp;
     updateHUD();
   } else if (player.playerClass === "base") {
-    // 基地坦克：自身血量不变，专门给基地恢复2滴，最多5滴。
-    baseHP = Math.min(cfg.baseMaxHp || 5, baseHP + 2);
-    if (baseHP > 0) baseAlive = true;
+    // 基地坦克：一次把基地直接恢复满血到5滴，自身血量不变。
+    baseHP = cfg.baseMaxHp || 5;
+    baseAlive = true;
     updateHUD();
   }
 }
