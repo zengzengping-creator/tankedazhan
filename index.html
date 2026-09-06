@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>坦克大战 Tank Battle</title>
-  <link rel="stylesheet" href="style.css?v=20260906-6">
+  <link rel="stylesheet" href="style.css?v=20260906-7">
 </head>
 <body>
   <div id="game-container">
@@ -53,12 +53,17 @@
             <button type="button" class="tank-choice" data-player-tank="base">
               <span class="tank-choice-title">🟩 基地坦克</span>
               <span>较快移动/射速 · 5滴血 · 5伤害</span>
-              <small>基地5滴血；技能：基地一次回满</small>
+              <small>基地10滴血；技能：基地一次回满</small>
+            </button>
+            <button type="button" class="tank-choice" data-player-tank="weaken">
+              <span class="tank-choice-title">🩵 削弱坦克</span>
+              <span>5滴血 · 控制型</span>
+              <small>技能：敌军变1血、减速50%、10秒禁火</small>
             </button>
             <button type="button" class="tank-choice" data-player-tank="omni">
               <span class="tank-choice-title">🟧 全能坦克</span>
-              <span>10滴血 · 基地5滴 · 5伤害</span>
-              <small>技能：五能合一，强化效果持续10秒</small>
+              <span>10滴血 · 基地10滴 · 5伤害</span>
+              <small>六能合一：强化+削弱效果持续20秒</small>
             </button>
           </div>
           <div class="free-note">当前全部免费选择，暂不需要金币。</div>
@@ -73,14 +78,15 @@
     </div>
   </div>
 
-  <script src="game.js?v=20260906-6"></script>
-  <script src="spawn-fix.js?v=20260906-6"></script>
-  <script src="drop-rates.js?v=20260906-6"></script>
-  <script src="levels-45.js?v=20260906-6"></script>
-  <script src="levels-610.js?v=20260906-6"></script>
-  <script src="health.js?v=20260906-6"></script>
-  <script src="boss-mechanics.js?v=20260906-6"></script>
-  <script src="player-tanks.js?v=20260906-6"></script>
-  <script src="omni-tank.js?v=20260906-6"></script>
+  <script src="game.js?v=20260906-7"></script>
+  <script src="spawn-fix.js?v=20260906-7"></script>
+  <script src="drop-rates.js?v=20260906-7"></script>
+  <script src="levels-45.js?v=20260906-7"></script>
+  <script src="levels-610.js?v=20260906-7"></script>
+  <script src="health.js?v=20260906-7"></script>
+  <script src="boss-mechanics.js?v=20260906-7"></script>
+  <script src="player-tanks.js?v=20260906-7"></script>
+  <script src="omni-tank.js?v=20260906-7"></script>
+  <script src="balance-upgrade.js?v=20260906-7"></script>
 </body>
 </html>
