@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>坦克大战 Tank Battle</title>
-  <link rel="stylesheet" href="style.css?v=20260906-3">
+  <link rel="stylesheet" href="style.css?v=20260906-4">
 </head>
 <body>
   <div id="game-container">
@@ -55,6 +55,11 @@
               <span>较快移动/射速 · 5滴血 · 2伤害</span>
               <small>基地变5滴血；技能：基地恢复2滴</small>
             </button>
+            <button type="button" class="tank-choice" data-player-tank="omni">
+              <span class="tank-choice-title">🟧 全能坦克</span>
+              <span>10滴血 · 基地5滴 · 2伤害</span>
+              <small>技能：五种能力同时发动</small>
+            </button>
           </div>
           <div class="free-note">当前全部免费选择，暂不需要金币。</div>
 
@@ -68,13 +73,14 @@
     </div>
   </div>
 
-  <script src="game.js?v=20260906-3"></script>
-  <script src="spawn-fix.js?v=20260906-3"></script>
-  <script src="drop-rates.js?v=20260906-3"></script>
-  <script src="levels-45.js?v=20260906-3"></script>
-  <script src="levels-610.js?v=20260906-3"></script>
-  <script src="health.js?v=20260906-3"></script>
-  <script src="boss-mechanics.js?v=20260906-3"></script>
-  <script src="player-tanks.js?v=20260906-3"></script>
+  <script src="game.js?v=20260906-4"></script>
+  <script src="spawn-fix.js?v=20260906-4"></script>
+  <script src="drop-rates.js?v=20260906-4"></script>
+  <script src="levels-45.js?v=20260906-4"></script>
+  <script src="levels-610.js?v=20260906-4"></script>
+  <script src="health.js?v=20260906-4"></script>
+  <script src="boss-mechanics.js?v=20260906-4"></script>
+  <script src="player-tanks.js?v=20260906-4"></script>
+  <script src="omni-tank.js?v=20260906-4"></script>
 </body>
 </html>
