@@ -14,6 +14,8 @@
         <span>关卡: <b id="level">1</b></span>
         <span>玩家血量: <b id="lives">5</b></span>
         <span>基地血量: <b id="base-hp">3</b></span>
+        <span>坦克: <b id="player-tank-name">普通坦克</b></span>
+        <span>技能: <b id="skill-status">Q 钢铁护盾</b></span>
         <span>得分: <b id="score">0</b></span>
         <span>剩余敌人: <b id="enemies-left">0</b></span>
       </div>
@@ -25,14 +27,34 @@
       <div id="overlay" class="overlay">
         <div class="panel">
           <h2 id="overlay-title">坦克大战</h2>
-          <p id="overlay-text">用方向键移动，空格键开火。<br>消灭所有敌方坦克，保护底部的基地 🦅！</p>
+          <p id="overlay-text">选择你的坦克，然后开始游戏。<br>方向键移动，空格开火，Q键释放坦克技能。</p>
+
+          <div id="tank-select" class="tank-select">
+            <button class="tank-choice selected" data-player-tank="normal">
+              <span class="tank-choice-title">🟨 普通坦克</span>
+              <span>均衡型</span>
+              <small>技能：4秒无敌护盾</small>
+            </button>
+            <button class="tank-choice" data-player-tank="fast">
+              <span class="tank-choice-title">🟦 快速坦克</span>
+              <span>高速移动</span>
+              <small>技能：3秒极速冲刺</small>
+            </button>
+            <button class="tank-choice" data-player-tank="elite">
+              <span class="tank-choice-title">🟪 精英坦克</span>
+              <span>射速更快</span>
+              <small>技能：5秒火力爆发</small>
+            </button>
+          </div>
+          <div class="free-note">当前全部免费选择，暂不需要金币。</div>
+
           <button id="start-btn">开始游戏</button>
         </div>
       </div>
     </div>
 
     <div id="controls">
-      <p>⬆️⬇️⬅️➡️ 移动 &nbsp;|&nbsp; <b>空格</b> 开火 &nbsp;|&nbsp; <b>P</b> 暂停</p>
+      <p>⬆️⬇️⬅️➡️ 移动 &nbsp;|&nbsp; <b>空格</b> 开火 &nbsp;|&nbsp; <b>Q</b> 技能 &nbsp;|&nbsp; <b>P</b> 暂停</p>
     </div>
   </div>
 
@@ -43,5 +65,6 @@
   <script src="levels-610.js"></script>
   <script src="health.js"></script>
   <script src="boss-mechanics.js"></script>
+  <script src="player-tanks.js"></script>
 </body>
 </html>
