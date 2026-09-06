@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>坦克大战 Tank Battle</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20260906-3">
 </head>
 <body>
   <div id="game-container">
@@ -30,27 +30,27 @@
           <p id="overlay-text">选择你的坦克，然后开始游戏。<br>方向键移动，空格开火，Q键释放坦克技能。</p>
 
           <div id="tank-select" class="tank-select">
-            <button class="tank-choice selected" data-player-tank="normal">
+            <button type="button" class="tank-choice selected" data-player-tank="normal">
               <span class="tank-choice-title">🟨 普通坦克</span>
               <span>均衡型 · 5滴血</span>
               <small>技能：4秒无敌护盾</small>
             </button>
-            <button class="tank-choice" data-player-tank="fast">
+            <button type="button" class="tank-choice" data-player-tank="fast">
               <span class="tank-choice-title">🟦 快速坦克</span>
               <span>高速移动 · 5滴血</span>
               <small>技能：3秒极速冲刺</small>
             </button>
-            <button class="tank-choice" data-player-tank="elite">
+            <button type="button" class="tank-choice" data-player-tank="elite">
               <span class="tank-choice-title">🟪 精英坦克</span>
               <span>射速更快 · 5滴血</span>
               <small>技能：5秒火力爆发</small>
             </button>
-            <button class="tank-choice" data-player-tank="armor">
+            <button type="button" class="tank-choice" data-player-tank="armor">
               <span class="tank-choice-title">⬜ 重甲坦克</span>
               <span>速度较慢 · 10滴血</span>
               <small>技能：立即恢复2滴血</small>
             </button>
-            <button class="tank-choice" data-player-tank="base">
+            <button type="button" class="tank-choice" data-player-tank="base">
               <span class="tank-choice-title">🟩 基地坦克</span>
               <span>较快移动/射速 · 5滴血 · 2伤害</span>
               <small>基地变5滴血；技能：基地恢复2滴</small>
@@ -58,7 +58,7 @@
           </div>
           <div class="free-note">当前全部免费选择，暂不需要金币。</div>
 
-          <button id="start-btn">开始游戏</button>
+          <button type="button" id="start-btn">开始游戏</button>
         </div>
       </div>
     </div>
@@ -68,13 +68,13 @@
     </div>
   </div>
 
-  <script src="game.js"></script>
-  <script src="spawn-fix.js"></script>
-  <script src="drop-rates.js"></script>
-  <script src="levels-45.js"></script>
-  <script src="levels-610.js"></script>
-  <script src="health.js"></script>
-  <script src="boss-mechanics.js"></script>
-  <script src="player-tanks.js"></script>
+  <script src="game.js?v=20260906-3"></script>
+  <script src="spawn-fix.js?v=20260906-3"></script>
+  <script src="drop-rates.js?v=20260906-3"></script>
+  <script src="levels-45.js?v=20260906-3"></script>
+  <script src="levels-610.js?v=20260906-3"></script>
+  <script src="health.js?v=20260906-3"></script>
+  <script src="boss-mechanics.js?v=20260906-3"></script>
+  <script src="player-tanks.js?v=20260906-3"></script>
 </body>
 </html>
