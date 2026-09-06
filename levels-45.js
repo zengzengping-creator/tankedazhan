@@ -1,6 +1,6 @@
 // 第4、5关与高级敌人扩展
 // 第4关：新增5滴血“堡垒坦克”
-// 第5关：新增5滴血“毁灭坦克”，射速更快，每发造成2滴伤害
+// 第5关：新增5滴血“毁灭坦克”，射速更快，每发造成1滴伤害
 
 const EXTENDED_MAX_LEVEL = 5;
 
@@ -29,7 +29,7 @@ ENEMY_TYPES.destroyer = {
   bulletSpeed: 7.0,
   score: 700,
   dropChance: 1.00,
-  damage: 2,
+  damage: 1,
   mark: "毁",
 };
 
