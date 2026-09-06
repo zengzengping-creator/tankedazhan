@@ -1,5 +1,5 @@
 // 玩家坦克选择与技能系统
-// 当前免费开放：普通 / 快速 / 精英 / 重甲。未来可接金币购买系统。
+// 当前免费开放：普通 / 快速 / 精英 / 重甲 / 基地。未来可接金币购买系统。
 
 const PLAYER_TANK_CLASSES = {
   normal: {
@@ -8,6 +8,7 @@ const PLAYER_TANK_CLASSES = {
     mark: "普",
     speed: 2.2,
     maxHp: 5,
+    damage: 1,
     shotCooldown: 22,
     bulletSpeed: 5.0,
     skillName: "钢铁护盾",
@@ -20,6 +21,7 @@ const PLAYER_TANK_CLASSES = {
     mark: "快",
     speed: 3.0,
     maxHp: 5,
+    damage: 1,
     shotCooldown: 20,
     bulletSpeed: 5.6,
     skillName: "极速冲刺",
@@ -32,6 +34,7 @@ const PLAYER_TANK_CLASSES = {
     mark: "精",
     speed: 2.5,
     maxHp: 5,
+    damage: 1,
     shotCooldown: 16,
     bulletSpeed: 6.4,
     skillName: "火力爆发",
@@ -44,10 +47,25 @@ const PLAYER_TANK_CLASSES = {
     mark: "甲",
     speed: 1.55,
     maxHp: 10,
+    damage: 1,
     shotCooldown: 26,
     bulletSpeed: 5.0,
     skillName: "紧急维修",
     skillDesc: "立即恢复2滴血",
+    cooldown: 12 * 60,
+  },
+  base: {
+    name: "基地坦克",
+    color: "#1abc9c",
+    mark: "基",
+    speed: 2.75,
+    maxHp: 5,
+    baseMaxHp: 5,
+    damage: 2,
+    shotCooldown: 15,
+    bulletSpeed: 6.2,
+    skillName: "基地维修",
+    skillDesc: "基地恢复2滴血",
     cooldown: 12 * 60,
   },
 };
@@ -63,6 +81,11 @@ function getSelectedPlayerConfig() {
   return PLAYER_TANK_CLASSES[selectedPlayerTank] || PLAYER_TANK_CLASSES.normal;
 }
 
+function getBaseMaxHpForClass(type = selectedPlayerTank) {
+  const cfg = PLAYER_TANK_CLASSES[type] || PLAYER_TANK_CLASSES.normal;
+  return cfg.baseMaxHp || 3;
+}
+
 function applyPlayerClass(tank) {
   if (!tank) return tank;
 
@@ -72,6 +95,7 @@ function applyPlayerClass(tank) {
   tank.baseSpeed = cfg.speed;
   tank.shotCooldown = cfg.shotCooldown;
   tank.bulletSpeed = cfg.bulletSpeed;
+  tank.damage = cfg.damage || 1;
   tank.skillCooldown = 0;
   tank.skillActiveTimer = 0;
   tank.maxHp = cfg.maxHp;
@@ -87,11 +111,15 @@ createPlayerAtSpawn = function () {
   return applyPlayerClass(createPlayerAtSpawnBeforeClasses());
 };
 
-// 血量系统每关默认会回到5滴；这里再次按所选坦克恢复正确最大血量。
+// 血量系统每关默认会把基地恢复到3滴；基地坦克选择后改成5滴。
 const startLevelBeforePlayerClasses = startLevel;
 startLevel = function (n) {
   startLevelBeforePlayerClasses(n);
   if (player) applyPlayerClass(player);
+
+  const baseMaxHp = getBaseMaxHpForClass();
+  baseHP = baseMaxHp;
+  baseAlive = true;
   updateHUD();
 };
 
@@ -104,6 +132,13 @@ function selectPlayerTank(type) {
   }
 
   if (elPlayerTankName) elPlayerTankName.textContent = PLAYER_TANK_CLASSES[type].name;
+
+  // 开始游戏前切换角色时，顶部基地血量立即显示该角色对应的初始值。
+  if (state === "menu" || state === "gameover" || state === "win") {
+    baseHP = getBaseMaxHpForClass(type);
+    baseAlive = true;
+    updateHUD();
+  }
 }
 
 for (const btn of tankChoiceButtons) {
@@ -116,6 +151,10 @@ function activatePlayerSkill() {
   if (player.skillCooldown > 0) return;
 
   const cfg = PLAYER_TANK_CLASSES[player.playerClass] || PLAYER_TANK_CLASSES.normal;
+
+  // 基地已经满血时不浪费技能冷却。
+  if (player.playerClass === "base" && baseHP >= (cfg.baseMaxHp || 5)) return;
+
   player.skillCooldown = cfg.cooldown;
 
   if (player.playerClass === "normal") {
@@ -134,6 +173,11 @@ function activatePlayerSkill() {
     // 重甲坦克：立即恢复2滴血，最多恢复到10滴。
     player.hp = Math.min(cfg.maxHp, player.hp + 2);
     lives = player.hp;
+    updateHUD();
+  } else if (player.playerClass === "base") {
+    // 基地坦克：自身血量不变，专门给基地恢复2滴，最多5滴。
+    baseHP = Math.min(cfg.baseMaxHp || 5, baseHP + 2);
+    if (baseHP > 0) baseAlive = true;
     updateHUD();
   }
 }
