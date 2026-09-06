@@ -28,7 +28,7 @@ startLevel = function (n) {
   updateHUD();
 };
 
-// 玩家受伤：普通子弹扣1滴，毁灭坦克子弹可一次扣2滴。
+// 玩家受伤：按敌方子弹的 damage 扣血。
 killPlayer = function (damage = 1) {
   if (!player || !player.alive) return;
 
@@ -59,7 +59,9 @@ applyPowerUp = function (powerUp) {
   originalApplyPowerUp(powerUp);
 };
 
-// 基地共有3滴血。普通子弹扣1滴；高伤害子弹按 bullet.damage 扣血。
+// 基地血量系统：
+// 1. 我方子弹碰到自己的基地时直接穿过去，不扣血、不消失。
+// 2. 敌方子弹正常伤害基地，按 bullet.damage 扣血。
 const originalBulletUpdate = Bullet.prototype.update;
 Bullet.prototype.update = function () {
   const v = DIR_VEC[this.dir];
@@ -67,9 +69,22 @@ Bullet.prototype.update = function () {
   const nextY = this.y + v.y * this.speed;
   const c = Math.floor(nextX / TILE);
   const r = Math.floor(nextY / TILE);
-  const willHitBase =
+  const nextIsBase =
     r >= 0 && r < GRID && c >= 0 && c < GRID && map[r][c] === T.BASE;
 
+  // 我方子弹：临时把基地格当作空地，让原子弹逻辑继续运行，随后恢复基地。
+  if (this.fromPlayer && nextIsBase) {
+    map[r][c] = T.EMPTY;
+    originalBulletUpdate.call(this);
+
+    // 只要基地还活着，就恢复基地格。子弹本身会继续飞行。
+    if (baseHP > 0 && baseAlive) {
+      map[r][c] = T.BASE;
+    }
+    return;
+  }
+
+  const willHitBase = !this.fromPlayer && nextIsBase;
   originalBulletUpdate.call(this);
 
   if (willHitBase) {
