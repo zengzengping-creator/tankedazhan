@@ -1,5 +1,5 @@
 // 玩家坦克选择与技能系统
-// 当前免费开放：普通 / 快速 / 精英。未来可接金币购买系统。
+// 当前免费开放：普通 / 快速 / 精英 / 重甲。未来可接金币购买系统。
 
 const PLAYER_TANK_CLASSES = {
   normal: {
@@ -7,6 +7,7 @@ const PLAYER_TANK_CLASSES = {
     color: "#f1c40f",
     mark: "普",
     speed: 2.2,
+    maxHp: 5,
     shotCooldown: 22,
     bulletSpeed: 5.0,
     skillName: "钢铁护盾",
@@ -18,6 +19,7 @@ const PLAYER_TANK_CLASSES = {
     color: "#3498db",
     mark: "快",
     speed: 3.0,
+    maxHp: 5,
     shotCooldown: 20,
     bulletSpeed: 5.6,
     skillName: "极速冲刺",
@@ -29,11 +31,24 @@ const PLAYER_TANK_CLASSES = {
     color: "#9b59b6",
     mark: "精",
     speed: 2.5,
+    maxHp: 5,
     shotCooldown: 16,
     bulletSpeed: 6.4,
     skillName: "火力爆发",
     skillDesc: "5秒高速连射",
     cooldown: 18 * 60,
+  },
+  armor: {
+    name: "重甲坦克",
+    color: "#95a5a6",
+    mark: "甲",
+    speed: 1.55,
+    maxHp: 10,
+    shotCooldown: 26,
+    bulletSpeed: 5.0,
+    skillName: "紧急维修",
+    skillDesc: "立即恢复2滴血",
+    cooldown: 12 * 60,
   },
 };
 
@@ -59,10 +74,8 @@ function applyPlayerClass(tank) {
   tank.bulletSpeed = cfg.bulletSpeed;
   tank.skillCooldown = 0;
   tank.skillActiveTimer = 0;
-
-  // 保留之前约定的玩家5滴血。
-  tank.maxHp = typeof PLAYER_MAX_HP !== "undefined" ? PLAYER_MAX_HP : 5;
-  tank.hp = tank.maxHp;
+  tank.maxHp = cfg.maxHp;
+  tank.hp = cfg.maxHp;
   lives = tank.hp;
 
   return tank;
@@ -72,6 +85,14 @@ function applyPlayerClass(tank) {
 const createPlayerAtSpawnBeforeClasses = createPlayerAtSpawn;
 createPlayerAtSpawn = function () {
   return applyPlayerClass(createPlayerAtSpawnBeforeClasses());
+};
+
+// 血量系统每关默认会回到5滴；这里再次按所选坦克恢复正确最大血量。
+const startLevelBeforePlayerClasses = startLevel;
+startLevel = function (n) {
+  startLevelBeforePlayerClasses(n);
+  if (player) applyPlayerClass(player);
+  updateHUD();
 };
 
 function selectPlayerTank(type) {
@@ -109,6 +130,11 @@ function activatePlayerSkill() {
     // 精英坦克：复用现有火力强化机制，5秒高速连射。
     player.fireTimer = Math.max(player.fireTimer || 0, 5 * 60);
     player.skillActiveTimer = 5 * 60;
+  } else if (player.playerClass === "armor") {
+    // 重甲坦克：立即恢复2滴血，最多恢复到10滴。
+    player.hp = Math.min(cfg.maxHp, player.hp + 2);
+    lives = player.hp;
+    updateHUD();
   }
 }
 
@@ -135,6 +161,20 @@ Tank.prototype.update = function () {
       this.baseSpeed = cfg.speed;
     }
   }
+};
+
+// ❤️ 道具也按当前角色的最大血量恢复，重甲坦克可恢复到10滴。
+const applyPowerUpBeforePlayerClasses = applyPowerUp;
+applyPowerUp = function (powerUp) {
+  if (powerUp && powerUp.type === "life" && player && player.alive) {
+    const cfg = PLAYER_TANK_CLASSES[player.playerClass] || PLAYER_TANK_CLASSES.normal;
+    player.hp = Math.min(cfg.maxHp, player.hp + 1);
+    lives = player.hp;
+    updateHUD();
+    return;
+  }
+
+  applyPowerUpBeforePlayerClasses(powerUp);
 };
 
 // 玩家坦克显示自己的类型标记。
