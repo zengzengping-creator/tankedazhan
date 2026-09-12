@@ -708,3 +708,71 @@ button:disabled {
   padding: 6px 10px;
   font-size: 11px;
 }
+
+
+/* 真正 WebGL 3D 视图 */
+.real3d-host {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #101c24;
+}
+
+.real3d-host.real3d-hidden {
+  display: none !important;
+}
+
+.real3d-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+}
+
+.real3d-canvas:active {
+  cursor: grabbing;
+}
+
+.real3d-source-hidden {
+  visibility: hidden !important;
+}
+
+#overlay {
+  z-index: 10;
+}
+
+.island-world-screen {
+  position: relative;
+}
+
+.real3d-island-host {
+  position: relative;
+  inset: auto;
+  width: min(500px, 100%);
+  height: min(450px, calc(100% - 66px));
+  min-height: 390px;
+  flex: 1 1 auto;
+  border: 2px solid #3da88e;
+  border-radius: 8px;
+  background: #6eb5d9;
+}
+
+.camera-help {
+  margin-top: 3px;
+  font-size: 11px !important;
+  color: #9ecfe4 !important;
+}
+
+.real3d-failed .camera-help::after {
+  content: " · 3D引擎加载失败，已自动使用2D回退";
+  color: #ffb067;
+}
+
+@media (max-width: 540px) {
+  .real3d-island-host {
+    min-height: 355px;
+  }
+}
