@@ -1676,3 +1676,237 @@ button:disabled {
   color: #86f0a0;
   font-weight: 700;
 }
+
+
+/* 手机APP触控布局 */
+#mobile-controls {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.touch-device #mobile-controls {
+  display: block;
+}
+
+.mobile-dpad {
+  position: absolute;
+  left: 10px;
+  bottom: 12px;
+  width: 144px;
+  height: 144px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 4px;
+  pointer-events: auto;
+}
+
+.mobile-dpad > div,
+.mobile-actions-top,
+.mobile-actions-bottom {
+  min-width: 0;
+  min-height: 0;
+}
+
+.dpad-center {
+  border-radius: 50%;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.mobile-actions {
+  position: absolute;
+  right: 10px;
+  bottom: 12px;
+  width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  pointer-events: auto;
+}
+
+.mobile-actions-top,
+.mobile-actions-bottom {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 6px;
+}
+
+.touch-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 3px;
+  border-radius: 13px;
+  border: 1px solid rgba(255,255,255,.32);
+  background: rgba(8,20,28,.72);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(0,0,0,.32);
+  font-size: 11px;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mobile-dpad .touch-btn {
+  min-height: 44px;
+  font-size: 18px;
+}
+
+.touch-btn.pressed {
+  transform: scale(.93);
+  background: rgba(75,199,165,.88);
+}
+
+.mobile-actions-bottom .touch-btn:last-child {
+  min-height: 58px;
+  border-radius: 50%;
+  background: rgba(214,82,67,.84);
+}
+
+.install-app-btn {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2000;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+  box-shadow: 0 5px 18px rgba(0,0,0,.35);
+}
+
+.install-app-btn.hidden {
+  display: none;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  body {
+    padding: 0;
+    min-height: 100svh;
+    overflow: hidden;
+  }
+
+  #game-container {
+    width: 100vw;
+    height: 100svh;
+    gap: 0;
+  }
+
+  header {
+    position: absolute;
+    top: env(safe-area-inset-top, 0);
+    left: 0;
+    z-index: 85;
+    pointer-events: none;
+  }
+
+  header h1 {
+    display: none;
+  }
+
+  #hud {
+    max-width: none;
+    padding: 4px 8px;
+    gap: 7px;
+    font-size: 9px;
+    background: linear-gradient(180deg, rgba(0,0,0,.62), transparent);
+  }
+
+  #canvas-wrap {
+    width: 100vw;
+    height: 100svh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: hidden;
+  }
+
+  #game,
+  .real3d-main-host,
+  .island-world-modal,
+  .tank-tower-world,
+  .party-special-modal {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .real3d-island-host {
+    width: 100% !important;
+    height: calc(100% - 58px) !important;
+    min-height: 0 !important;
+    border: 0;
+    border-radius: 0;
+  }
+
+  #controls {
+    display: none;
+  }
+
+  .overlay .panel {
+    padding-top: max(38px, env(safe-area-inset-top));
+    padding-bottom: 170px;
+  }
+
+  .overlay {
+    align-items: flex-start;
+  }
+
+  .tank-select {
+    max-width: 96vw;
+  }
+
+  .tank-choice {
+    width: 30%;
+    min-width: 108px;
+    min-height: 82px;
+    font-size: 10px;
+  }
+
+  .tank-choice-title {
+    font-size: 12px;
+  }
+
+  #meta-topbar {
+    top: max(28px, env(safe-area-inset-top));
+  }
+
+  #meta-rightbar {
+    top: max(72px, calc(env(safe-area-inset-top) + 52px));
+  }
+
+  .island-world-topbar {
+    min-height: 42px;
+    padding-right: 52px;
+  }
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  body::before {
+    content: "建议横屏游玩，操作和3D视野更好";
+    position: fixed;
+    left: 50%;
+    top: 6px;
+    transform: translateX(-50%);
+    z-index: 3000;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.72);
+    color: #ffe17a;
+    font-size: 10px;
+    pointer-events: none;
+  }
+
+  .mobile-dpad {
+    transform: scale(.82);
+    transform-origin: left bottom;
+  }
+
+  .mobile-actions {
+    transform: scale(.82);
+    transform-origin: right bottom;
+  }
+}
