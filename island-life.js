@@ -389,6 +389,14 @@ handleIslandWorldInteraction = function () {
     if (hint) hint.textContent="🎡 摩天轮缓慢旋转中，这里可以俯瞰整个3D坦克岛。";
   } else if (b.id==="parkour") {
     if (hint) hint.textContent="🗼 跑酷塔：按J跳跃，依次踩亮1-6号平台，到顶获得80金币。";
+  } else if (b.id==="cafe") {
+    if (hint) hint.textContent="☕ 海景咖啡馆：休闲区域，后续可加入饮品和社交互动。";
+  } else if (b.id==="garage") {
+    if (hint) hint.textContent="🔧 改装车库：后续可用于坦克外观与配件改装。";
+  } else if (b.id==="museum") {
+    if (hint) hint.textContent="🏛️ 坦克博物馆：展示已收集坦克和稀有皮肤。";
+  } else if (b.id==="park") {
+    if (hint) hint.textContent="🌳 中央草坪：可以下坦克散步和使用人物动作。";
   }
 };
 
