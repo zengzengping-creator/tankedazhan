@@ -1430,3 +1430,183 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* 坦克岛派对主城：模式 / 排位 / 景点 / 联机 / 背包 */
+.party-mode-hero,
+.party-rank-card,
+.party-online-card {
+  padding: 10px;
+  border-radius: 9px;
+  background: rgba(255,255,255,.055);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.party-mode-hero small,
+.party-rank-card small,
+.party-online-card small,
+.party-info-note {
+  color: #a9c3cf;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.party-mode-grid,
+.party-ranked-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.party-mode-grid button,
+.party-ranked-grid button {
+  min-height: 74px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #315a6c;
+  background: #15313d;
+  color: #eefaff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.party-mode-grid strong {
+  font-size: 24px;
+}
+
+.party-mode-grid small,
+.party-ranked-grid small {
+  color: #abc1cb;
+  font-size: 9px;
+}
+
+.party-rank-icon {
+  font-size: 38px;
+}
+
+.party-rank-card > b {
+  font-size: 17px;
+  color: #ffd66a;
+}
+
+.party-rank-card > strong {
+  color: #d8f4ff;
+  font-size: 13px;
+}
+
+.party-info-note {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 7px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.09);
+}
+
+.party-scenic-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 7px;
+}
+
+.party-scenic-grid > div {
+  min-height: 76px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.055);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.party-scenic-grid strong {
+  font-size: 25px;
+}
+
+.party-scenic-grid small {
+  color: #aac0c9;
+  font-size: 9px;
+}
+
+.party-online-icon {
+  font-size: 42px;
+}
+
+.party-online-card button {
+  width: min(280px,92%);
+  padding: 7px;
+  font-size: 10px;
+}
+
+.party-tabs {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.party-tabs button {
+  padding: 7px 4px;
+  font-size: 10px;
+  background: #163641;
+  color: #fff;
+  border: 1px solid #396070;
+}
+
+.party-bag-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 6px;
+}
+
+.party-bag-grid button {
+  min-height: 84px;
+  padding: 7px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.055);
+  border: 1px solid #334f5c;
+  color: #eefaff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.party-bag-grid button.selected {
+  border-color: #65dfb8;
+  background: rgba(75,171,143,.16);
+}
+
+.party-bag-grid i {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  display: block;
+}
+
+.party-bag-grid strong {
+  font-size: 24px;
+}
+
+.party-bag-grid small {
+  color: #a8c0ca;
+  font-size: 9px;
+  text-align: center;
+}
+
+@media (max-width:540px) {
+  .party-mode-grid,
+  .party-ranked-grid,
+  .party-scenic-grid,
+  .party-bag-grid {
+    grid-template-columns: 1fr;
+  }
+}
