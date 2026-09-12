@@ -1,0 +1,21 @@
+{
+  "name": "坦克派对",
+  "short_name": "坦克派对",
+  "description": "3D坦克岛、坦克战斗与派对模式",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#071b25",
+  "theme_color": "#0d6f73",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
