@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>坦克大战 Tank Battle</title>
-  <link rel="stylesheet" href="style.css?v=20260912-5">
+  <link rel="stylesheet" href="style.css?v=20260912-6">
 </head>
 <body>
   <div id="game-container">
@@ -66,10 +66,20 @@
               <span>5滴血 · 控制型</span>
               <small>技能：敌军变1血、减速50%、10秒禁火</small>
             </button>
+            <button type="button" class="tank-choice" data-player-tank="flight">
+              <span class="tank-choice-title">✈️ 飞行坦克</span>
+              <span>6滴血 · 2伤害 · 空中单位</span>
+              <small>技能：升空3格，20秒无视障碍和地面炮火</small>
+            </button>
+            <button type="button" class="tank-choice" data-player-tank="evolution">
+              <span class="tank-choice-title">🧬 进化坦克</span>
+              <span>7滴血 · 2伤害 · 强化型</span>
+              <small>技能：双人进化队友；单人进化自己并增加连击</small>
+            </button>
             <button type="button" class="tank-choice" data-player-tank="omni">
               <span class="tank-choice-title">🟧 全能坦克</span>
               <span>10滴血 · 基地10滴 · 5伤害</span>
-              <small>六能合一：强化+削弱效果持续20秒</small>
+              <small>八能合一：原六能 + 飞行 + 进化连击</small>
             </button>
           </div>
 
@@ -86,20 +96,22 @@
     </div>
   </div>
 
-  <script src="game.js?v=20260912-5"></script>
-  <script src="spawn-fix.js?v=20260912-5"></script>
-  <script src="drop-rates.js?v=20260912-5"></script>
-  <script src="levels-45.js?v=20260912-5"></script>
-  <script src="levels-610.js?v=20260912-5"></script>
-  <script src="health.js?v=20260912-5"></script>
-  <script src="boss-mechanics.js?v=20260912-5"></script>
-  <script src="player-tanks.js?v=20260912-5"></script>
-  <script src="omni-tank.js?v=20260912-5"></script>
-  <script src="balance-upgrade.js?v=20260912-5"></script>
-  <script src="suicide-tank.js?v=20260912-5"></script>
-  <script src="island-system.js?v=20260912-5"></script>
-  <script src="island-games.js?v=20260912-5"></script>
-  <script src="vertical-3d.js?v=20260912-5"></script>
-  <script src="island-life.js?v=20260912-5"></script>
+  <script src="game.js?v=20260912-6"></script>
+  <script src="spawn-fix.js?v=20260912-6"></script>
+  <script src="drop-rates.js?v=20260912-6"></script>
+  <script src="levels-45.js?v=20260912-6"></script>
+  <script src="levels-610.js?v=20260912-6"></script>
+  <script src="health.js?v=20260912-6"></script>
+  <script src="boss-mechanics.js?v=20260912-6"></script>
+  <script src="player-tanks.js?v=20260912-6"></script>
+  <script src="omni-tank.js?v=20260912-6"></script>
+  <script src="balance-upgrade.js?v=20260912-6"></script>
+  <script src="advanced-player-tanks.js?v=20260912-6"></script>
+  <script src="suicide-tank.js?v=20260912-6"></script>
+  <script src="island-system.js?v=20260912-6"></script>
+  <script src="island-games.js?v=20260912-6"></script>
+  <script src="vertical-3d.js?v=20260912-6"></script>
+  <script src="island-life.js?v=20260912-6"></script>
+  <script src="full-3d-visuals.js?v=20260912-6"></script>
 </body>
 </html>
