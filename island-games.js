@@ -372,6 +372,12 @@ const ISLAND_WORLD_BUILDINGS = [
   { id: "garage", name: "改装车库", icon: "🔧", x: 335, y: 82, w: 82, h: 52, color: "#52606b" },
   { id: "museum", name: "坦克博物馆", icon: "🏛️", x: 80, y: 250, w: 88, h: 64, color: "#8a7b63" },
   { id: "park", name: "中央草坪", icon: "🌳", x: 250, y: 255, w: 90, h: 72, color: "#4b9d52" },
+  { id: "grandplaza", name: "主岛广场", icon: "⛲", x: 735, y: 250, w: 120, h: 92, color: "#7894a6" },
+  { id: "warehouse", name: "岛屿仓库", icon: "📦", x: 600, y: 150, w: 100, h: 70, color: "#806245" },
+  { id: "seasonhall", name: "赛季大厅", icon: "🏆", x: 820, y: 130, w: 100, h: 72, color: "#9a7539" },
+  { id: "eventhall", name: "活动中心", icon: "📋", x: 890, y: 300, w: 105, h: 75, color: "#4d7596" },
+  { id: "socialpark", name: "社交草坪", icon: "😀", x: 690, y: 390, w: 118, h: 86, color: "#4e9e5a" },
+  { id: "rechargehall", name: "金币中心", icon: "💎", x: 535, y: 330, w: 95, h: 68, color: "#6c58a5" },
 ];
 
 const ISLAND_PARKOUR_PADS = [
@@ -404,8 +410,8 @@ function ensureIslandWorldModal() {
         <span>🪙 <b id="island-world-coins">0</b></span>
         <button type="button" id="island-world-exit">离开岛屿</button>
       </div>
-      <canvas id="island-world-canvas" width="500" height="500"></canvas>
-      <div id="island-world-hint" class="island-world-hint">方向键移动 · J跳跃 · 靠近建筑按E互动</div>
+      <canvas id="island-world-canvas" width="1100" height="600"></canvas>
+      <div id="island-world-hint" class="island-world-hint">方向键移动 · J跳跃 · E互动 · 两座岛直接步行/驾驶互通</div>
     </div>`;
 
   document.querySelector("#canvas-wrap")?.appendChild(modal);
@@ -476,7 +482,7 @@ function startIslandWorld() {
   islandWorldActive = true;
   islandWorldKeys = {};
   islandWorldState = {
-    player: { x: 250, y: 430, r: 15, z: 0, vz: 0 },
+    player: { x: 250, y: 455, r: 15, z: 0, vz: 0 },
     nearBuilding: null,
     parkourStage: 0,
     parkourRewardLock: false,
@@ -506,14 +512,28 @@ function islandWorldTankSpeed() {
 }
 
 function clampPlayerToIsland(p) {
-  const cx = 250, cy = 250, maxR = 238;
-  const dx = p.x - cx;
-  const dy = p.y - cy;
-  const d = Math.hypot(dx, dy);
-  if (d > maxR) {
-    p.x = cx + (dx / d) * maxR;
-    p.y = cy + (dy / d) * maxR;
-  }
+  // 8字形双岛：左侧保留旧岛，右侧新增更大的主岛。
+  const small = { x: 250, y: 300, r: 238 };
+  const large = { x: 760, y: 250, r: 350 };
+  const bridge = { x1: 430, x2: 520, y1: 205, y2: 350 };
+
+  const insideCircle = (c) => Math.hypot(p.x - c.x, p.y - c.y) <= c.r;
+  const insideBridge = p.x >= bridge.x1 && p.x <= bridge.x2 && p.y >= bridge.y1 && p.y <= bridge.y2;
+
+  if (insideCircle(small) || insideCircle(large) || insideBridge) return;
+
+  // 超出双岛范围时，吸附到最近岛屿边缘。
+  const clampToCircle = (c) => {
+    const dx = p.x - c.x;
+    const dy = p.y - c.y;
+    const d = Math.hypot(dx, dy) || 1;
+    return { x: c.x + (dx / d) * c.r, y: c.y + (dy / d) * c.r, dist: Math.abs(d - c.r) };
+  };
+  const a = clampToCircle(small);
+  const b = clampToCircle(large);
+  const best = a.dist <= b.dist ? a : b;
+  p.x = best.x;
+  p.y = best.y;
 }
 
 function getNearestIslandBuilding(p) {
@@ -690,31 +710,34 @@ function drawIslandWorld() {
   const s = islandWorldState;
   if (!ctx2 || !s) return;
 
-  ctx2.clearRect(0, 0, 500, 500);
+  ctx2.clearRect(0, 0, 1100, 600);
 
   // 海水
-  const sea = ctx2.createLinearGradient(0, 0, 0, 500);
+  const sea = ctx2.createLinearGradient(0, 0, 0, 600);
   sea.addColorStop(0, "#0f6682");
   sea.addColorStop(1, "#073d5b");
   ctx2.fillStyle = sea;
-  ctx2.fillRect(0, 0, 500, 500);
+  ctx2.fillRect(0, 0, 1100, 600);
 
-  // 圆形大岛：沙滩边缘 + 草地
+  // 8字形双岛：旧岛 + 旁边更大的新主岛，中间陆地直接连接。
   ctx2.fillStyle = "#e3cf87";
-  ctx2.beginPath();
-  ctx2.arc(250, 250, 230, 0, Math.PI * 2);
-  ctx2.fill();
-  ctx2.fillStyle = "#4f9f52";
-  ctx2.beginPath();
-  ctx2.arc(250, 250, 215, 0, Math.PI * 2);
-  ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(250, 300, 238, 0, Math.PI * 2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(760, 250, 350, 0, Math.PI * 2); ctx2.fill();
+  ctx2.fillRect(430, 205, 90, 145);
 
-  // 岛上主路
+  ctx2.fillStyle = "#4f9f52";
+  ctx2.beginPath(); ctx2.arc(250, 300, 222, 0, Math.PI * 2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(760, 250, 332, 0, Math.PI * 2); ctx2.fill();
+  ctx2.fillRect(435, 215, 85, 125);
+
+  // 双岛主路与连接路
   ctx2.strokeStyle = "#c7b580";
-  ctx2.lineWidth = 18;
+  ctx2.lineWidth = 20;
   ctx2.beginPath();
-  ctx2.moveTo(85, 250); ctx2.lineTo(415, 250);
-  ctx2.moveTo(250, 78); ctx2.lineTo(250, 425);
+  ctx2.moveTo(90, 300); ctx2.lineTo(510, 300);
+  ctx2.moveTo(250, 90); ctx2.lineTo(250, 500);
+  ctx2.moveTo(470, 280); ctx2.lineTo(950, 280);
+  ctx2.moveTo(760, 55); ctx2.lineTo(760, 500);
   ctx2.stroke();
 
   // 建筑
