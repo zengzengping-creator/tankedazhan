@@ -378,6 +378,11 @@ const ISLAND_WORLD_BUILDINGS = [
   { id: "eventhall", name: "活动中心", icon: "📋", x: 890, y: 300, w: 105, h: 75, color: "#4d7596" },
   { id: "socialpark", name: "社交草坪", icon: "😀", x: 690, y: 390, w: 118, h: 86, color: "#4e9e5a" },
   { id: "rechargehall", name: "金币中心", icon: "💎", x: 535, y: 330, w: 95, h: 68, color: "#6c58a5" },
+  { id: "modehall", name: "模式大厅", icon: "🎮", x: 1010, y: 165, w: 118, h: 82, color: "#3f6fa8" },
+  { id: "rankhall", name: "排位竞技场", icon: "🏅", x: 1015, y: 350, w: 122, h: 88, color: "#9a6637" },
+  { id: "onlinehub", name: "联机中心", icon: "🌐", x: 890, y: 475, w: 112, h: 76, color: "#456f8c" },
+  { id: "backpackhub", name: "背包站", icon: "🎒", x: 610, y: 475, w: 100, h: 72, color: "#6c7451" },
+  { id: "scenic", name: "景点中心", icon: "📍", x: 760, y: 505, w: 108, h: 74, color: "#5c8d62" },
 ];
 
 const ISLAND_PARKOUR_PADS = [
