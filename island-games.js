@@ -361,13 +361,17 @@ let islandWorldTankType = "normal";
 let islandLoadingTimer = 0;
 
 const ISLAND_WORLD_BUILDINGS = [
-  { id: "mall", name: "商场", icon: "🛍️", x: 112, y: 185, w: 82, h: 58, color: "#8b5fbf" },
-  { id: "blindbox", name: "盲盒店", icon: "🎁", x: 105, y: 315, w: 88, h: 58, color: "#d35b77" },
-  { id: "tower", name: "坦克大楼", icon: "🏢", x: 250, y: 150, w: 94, h: 72, color: "#5b657f" },
-  { id: "soccer", name: "足球场", icon: "⚽", x: 355, y: 165, w: 96, h: 64, color: "#2c8f4d" },
-  { id: "wheel", name: "摩天轮", icon: "🎡", x: 250, y: 355, w: 74, h: 74, color: "#d9a72e" },
-  { id: "range", name: "射击靶场", icon: "🎯", x: 355, y: 355, w: 92, h: 62, color: "#885d3c" },
-  { id: "parkour", name: "跑酷塔", icon: "🗼", x: 425, y: 280, w: 58, h: 112, color: "#73737f" },
+  { id: "mall", name: "商场", icon: "🛍️", x: 105, y: 165, w: 82, h: 58, color: "#8b5fbf" },
+  { id: "blindbox", name: "盲盒店", icon: "🎁", x: 92, y: 320, w: 88, h: 58, color: "#d35b77" },
+  { id: "tower", name: "坦克大楼", icon: "🏢", x: 250, y: 135, w: 94, h: 72, color: "#5b657f" },
+  { id: "soccer", name: "足球场", icon: "⚽", x: 368, y: 150, w: 100, h: 66, color: "#2c8f4d" },
+  { id: "wheel", name: "摩天轮", icon: "🎡", x: 250, y: 375, w: 78, h: 78, color: "#d9a72e" },
+  { id: "range", name: "射击靶场", icon: "🎯", x: 370, y: 355, w: 92, h: 62, color: "#885d3c" },
+  { id: "parkour", name: "跑酷塔", icon: "🗼", x: 440, y: 265, w: 58, h: 112, color: "#73737f" },
+  { id: "cafe", name: "海景咖啡馆", icon: "☕", x: 160, y: 90, w: 78, h: 50, color: "#8a6546" },
+  { id: "garage", name: "改装车库", icon: "🔧", x: 335, y: 82, w: 82, h: 52, color: "#52606b" },
+  { id: "museum", name: "坦克博物馆", icon: "🏛️", x: 80, y: 250, w: 88, h: 64, color: "#8a7b63" },
+  { id: "park", name: "中央草坪", icon: "🌳", x: 250, y: 255, w: 90, h: 72, color: "#4b9d52" },
 ];
 
 const ISLAND_PARKOUR_PADS = [
@@ -502,7 +506,7 @@ function islandWorldTankSpeed() {
 }
 
 function clampPlayerToIsland(p) {
-  const cx = 250, cy = 250, maxR = 211;
+  const cx = 250, cy = 250, maxR = 238;
   const dx = p.x - cx;
   const dy = p.y - cy;
   const d = Math.hypot(dx, dy);
