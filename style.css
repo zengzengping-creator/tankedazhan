@@ -678,3 +678,33 @@ button:disabled {
 @media (max-width: 540px) {
   .island-skin-owned { grid-template-columns: 1fr; }
 }
+
+
+/* 坦克大楼内部训练入口 */
+.island-tower-training-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border: 1px solid #6aa6c8;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(84,120,148,.28), rgba(33,53,66,.38));
+  text-align: center;
+}
+
+.island-tower-training-card b {
+  color: #bfe7ff;
+  font-size: 13px;
+}
+
+.island-tower-training-card small {
+  color: #c9dbe5;
+  font-size: 10px;
+}
+
+.island-tower-training-card button {
+  padding: 6px 10px;
+  font-size: 11px;
+}
