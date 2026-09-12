@@ -352,50 +352,440 @@ window.addEventListener("keyup", (e) => {
   }
 }, true);
 
-// ------------------- 独立娱乐区入口 -------------------
-function ensureIslandEntertainmentHub() {
-  let hub = document.getElementById("island-entertainment-hub");
-  if (hub) return hub;
+// ------------------- V1：可自由移动的坦克岛世界 -------------------
+let islandWorldActive = false;
+let islandWorldAnimation = 0;
+let islandWorldKeys = {};
+let islandWorldState = null;
+let islandWorldTankType = "normal";
+let islandLoadingTimer = 0;
 
-  hub = document.createElement("div");
-  hub.id = "island-entertainment-hub";
-  hub.className = "island-game-modal hidden";
-  hub.innerHTML = `
-    <div class="island-game-card">
-      <div class="island-game-topbar">
-        <b>🎡 坦克岛娱乐区</b>
-        <button type="button" id="island-entertainment-close">返回坦克岛</button>
+const ISLAND_WORLD_BUILDINGS = [
+  { id: "mall", name: "商场", icon: "🛍️", x: 112, y: 185, w: 82, h: 58, color: "#8b5fbf" },
+  { id: "blindbox", name: "盲盒店", icon: "🎁", x: 105, y: 315, w: 88, h: 58, color: "#d35b77" },
+  { id: "tower", name: "坦克大楼", icon: "🏢", x: 250, y: 150, w: 94, h: 72, color: "#5b657f" },
+  { id: "soccer", name: "足球场", icon: "⚽", x: 355, y: 165, w: 96, h: 64, color: "#2c8f4d" },
+  { id: "wheel", name: "摩天轮", icon: "🎡", x: 250, y: 355, w: 74, h: 74, color: "#d9a72e" },
+  { id: "range", name: "射击靶场", icon: "🎯", x: 355, y: 355, w: 92, h: 62, color: "#885d3c" },
+  { id: "parkour", name: "跑酷塔", icon: "🗼", x: 425, y: 280, w: 58, h: 112, color: "#73737f" },
+];
+
+const ISLAND_PARKOUR_PADS = [
+  { x: 388, y: 365 },
+  { x: 408, y: 340 },
+  { x: 430, y: 315 },
+  { x: 407, y: 288 },
+  { x: 430, y: 260 },
+  { x: 410, y: 232 },
+];
+
+function ensureIslandWorldModal() {
+  let modal = document.getElementById("island-world-modal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "island-world-modal";
+  modal.className = "island-world-modal hidden";
+  modal.innerHTML = `
+    <div id="island-loading-screen" class="island-loading-screen">
+      <img src="island-loading.svg?v=20260912-3" alt="坦克岛地形加载图">
+      <div class="island-loading-title">🏝️ 正在加载坦克岛地形...</div>
+      <div class="island-loading-track"><div id="island-loading-bar" class="island-loading-bar"></div></div>
+      <div id="island-loading-text" class="island-loading-text">0%</div>
+    </div>
+    <div id="island-world-screen" class="island-world-screen hidden">
+      <div class="island-world-topbar">
+        <b>🏝️ 坦克岛</b>
+        <label>岛上坦克：<select id="island-world-tank"></select></label>
+        <span>🪙 <b id="island-world-coins">0</b></span>
+        <button type="button" id="island-world-exit">离开岛屿</button>
       </div>
-      <div class="island-owned-note">进入项目前可选择你已经拥有的坦克。</div>
-      <div class="island-game-grid">
-        <button class="island-game-entry" data-island-game="soccer">⚽<b>坦克足球</b><small>进3球 · 奖励35金币</small></button>
-        <button class="island-game-entry" data-island-game="range">🎯<b>靶场挑战</b><small>击中10靶 · 奖励30金币</small></button>
-        <button class="island-game-entry" data-island-game="race">🏁<b>竞速挑战</b><small>过5点 · 奖励30金币</small></button>
-      </div>
+      <canvas id="island-world-canvas" width="500" height="500"></canvas>
+      <div id="island-world-hint" class="island-world-hint">方向键移动 · J跳跃 · 靠近建筑按E互动</div>
     </div>`;
 
-  document.querySelector("#canvas-wrap")?.appendChild(hub);
-  hub.querySelector("#island-entertainment-close")?.addEventListener("click", () => {
-    hub.classList.add("hidden");
+  document.querySelector("#canvas-wrap")?.appendChild(modal);
+
+  modal.querySelector("#island-world-exit")?.addEventListener("click", closeIslandWorld);
+  modal.querySelector("#island-world-tank")?.addEventListener("change", (e) => {
+    islandWorldTankType = e.target.value;
   });
 
-  hub.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-island-game]");
-    if (!btn) return;
-    hub.classList.add("hidden");
-    openIslandGame(btn.dataset.islandGame);
+  return modal;
+}
+
+function populateIslandWorldTankPicker() {
+  const select = document.getElementById("island-world-tank");
+  if (!select) return;
+
+  const owned = getOwnedIslandTankTypes();
+  if (!owned.includes(islandWorldTankType)) {
+    islandWorldTankType = owned.includes(selectedPlayerTank) ? selectedPlayerTank : (owned[0] || "normal");
+  }
+
+  select.innerHTML = owned.map((type) => {
+    const cfg = PLAYER_TANK_CLASSES[type] || PLAYER_TANK_CLASSES.normal;
+    return `<option value="${type}" ${type === islandWorldTankType ? "selected" : ""}>${cfg.name}</option>`;
+  }).join("");
+}
+
+function openIslandWorld() {
+  const modal = ensureIslandWorldModal();
+  const loading = document.getElementById("island-loading-screen");
+  const world = document.getElementById("island-world-screen");
+  const bar = document.getElementById("island-loading-bar");
+  const textEl = document.getElementById("island-loading-text");
+
+  if (islandOpen && typeof closeTankIsland === "function") closeTankIsland();
+
+  modal.classList.remove("hidden");
+  loading?.classList.remove("hidden");
+  world?.classList.add("hidden");
+  if (bar) bar.style.width = "0%";
+  if (textEl) textEl.textContent = "0%";
+
+  clearInterval(islandLoadingTimer);
+  let progress = 0;
+  islandLoadingTimer = setInterval(() => {
+    progress += 4 + Math.floor(Math.random() * 8);
+    if (progress >= 100) {
+      progress = 100;
+      clearInterval(islandLoadingTimer);
+      islandLoadingTimer = 0;
+      if (bar) bar.style.width = "100%";
+      if (textEl) textEl.textContent = "100%";
+      setTimeout(startIslandWorld, 260);
+      return;
+    }
+    if (bar) bar.style.width = `${progress}%`;
+    if (textEl) textEl.textContent = `${progress}%`;
+  }, 95);
+}
+
+function startIslandWorld() {
+  const loading = document.getElementById("island-loading-screen");
+  const world = document.getElementById("island-world-screen");
+  loading?.classList.add("hidden");
+  world?.classList.remove("hidden");
+
+  populateIslandWorldTankPicker();
+  islandWorldActive = true;
+  islandWorldKeys = {};
+  islandWorldState = {
+    player: { x: 250, y: 430, r: 15, z: 0, vz: 0 },
+    nearBuilding: null,
+    parkourStage: 0,
+    parkourRewardLock: false,
+    wheelAngle: 0,
+  };
+
+  const coinEl = document.getElementById("island-world-coins");
+  if (coinEl) coinEl.textContent = islandData?.coins || 0;
+
+  if (islandWorldAnimation) cancelAnimationFrame(islandWorldAnimation);
+  islandWorldAnimation = requestAnimationFrame(islandWorldLoop);
+}
+
+function closeIslandWorld() {
+  islandWorldActive = false;
+  islandWorldKeys = {};
+  clearInterval(islandLoadingTimer);
+  islandLoadingTimer = 0;
+  if (islandWorldAnimation) cancelAnimationFrame(islandWorldAnimation);
+  islandWorldAnimation = 0;
+  document.getElementById("island-world-modal")?.classList.add("hidden");
+}
+
+function islandWorldTankSpeed() {
+  const cfg = PLAYER_TANK_CLASSES[islandWorldTankType] || PLAYER_TANK_CLASSES.normal;
+  return Math.max(1.7, Math.min(3.6, cfg.speed || 2.2)) * 1.15;
+}
+
+function clampPlayerToIsland(p) {
+  const cx = 250, cy = 250, maxR = 211;
+  const dx = p.x - cx;
+  const dy = p.y - cy;
+  const d = Math.hypot(dx, dy);
+  if (d > maxR) {
+    p.x = cx + (dx / d) * maxR;
+    p.y = cy + (dy / d) * maxR;
+  }
+}
+
+function getNearestIslandBuilding(p) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const b of ISLAND_WORLD_BUILDINGS) {
+    const d = Math.hypot(p.x - b.x, p.y - b.y);
+    if (d < 58 && d < bestDist) {
+      best = b;
+      bestDist = d;
+    }
+  }
+  return best;
+}
+
+function handleIslandWorldInteraction() {
+  if (!islandWorldActive || !islandWorldState) return;
+  const b = islandWorldState.nearBuilding;
+  if (!b) return;
+
+  const hint = document.getElementById("island-world-hint");
+
+  if (b.id === "mall") {
+    closeIslandWorld();
+    if (typeof openTankIsland === "function") openTankIsland("🛍️ 欢迎来到坦克岛商场，可购买和解锁坦克。");
+  } else if (b.id === "blindbox") {
+    if (hint) hint.textContent = "🎁 盲盒店正在装修，后续版本开放盲盒玩法。";
+  } else if (b.id === "tower") {
+    if (hint) hint.textContent = "🏢 坦克大楼：这里以后会成为坦克收藏、展示和换装中心。";
+  } else if (b.id === "soccer") {
+    closeIslandWorld();
+    openIslandGame("soccer");
+  } else if (b.id === "wheel") {
+    if (hint) hint.textContent = "🎡 摩天轮正在运行。靠近这里可以欣赏坦克岛全景。";
+  } else if (b.id === "range") {
+    closeIslandWorld();
+    openIslandGame("range");
+  } else if (b.id === "parkour") {
+    if (hint) hint.textContent = "🗼 跑酷塔：按J跳跃，依次踩亮1-6号平台，到塔顶获得80金币！";
+  }
+}
+
+function updateIslandWorldParkour(s) {
+  if (s.parkourRewardLock) return;
+  const next = ISLAND_PARKOUR_PADS[s.parkourStage];
+  if (!next) return;
+
+  const p = s.player;
+  const d = Math.hypot(p.x - next.x, p.y - next.y);
+  if (p.z > 7 && d < 18) {
+    s.parkourStage++;
+    const hint = document.getElementById("island-world-hint");
+    if (s.parkourStage >= ISLAND_PARKOUR_PADS.length) {
+      s.parkourRewardLock = true;
+      addIslandCoins(80, "🗼 登顶跑酷塔");
+      const coinEl = document.getElementById("island-world-coins");
+      if (coinEl) coinEl.textContent = islandData?.coins || 0;
+      if (hint) hint.textContent = "🏆 成功登顶跑酷塔！获得80金币。";
+      setTimeout(() => {
+        if (!islandWorldState) return;
+        islandWorldState.parkourStage = 0;
+        islandWorldState.parkourRewardLock = false;
+      }, 2500);
+    } else if (hint) {
+      hint.textContent = `🗼 跑酷进度：${s.parkourStage}/${ISLAND_PARKOUR_PADS.length}，继续按J跳到下一个平台！`;
+    }
+  }
+}
+
+function updateIslandWorld() {
+  const s = islandWorldState;
+  if (!s) return;
+  const p = s.player;
+  const speed = islandWorldTankSpeed();
+
+  let dx = 0, dy = 0;
+  if (islandWorldKeys.ArrowLeft) dx -= speed;
+  if (islandWorldKeys.ArrowRight) dx += speed;
+  if (islandWorldKeys.ArrowUp) dy -= speed;
+  if (islandWorldKeys.ArrowDown) dy += speed;
+  p.x += dx;
+  p.y += dy;
+  clampPlayerToIsland(p);
+
+  p.z += p.vz;
+  p.vz -= 0.34;
+  if (p.z <= 0) {
+    p.z = 0;
+    p.vz = 0;
+  }
+
+  s.wheelAngle += 0.012;
+  s.nearBuilding = getNearestIslandBuilding(p);
+  updateIslandWorldParkour(s);
+
+  const hint = document.getElementById("island-world-hint");
+  if (hint && s.nearBuilding && !s.parkourRewardLock) {
+    hint.textContent = `靠近 ${s.nearBuilding.icon} ${s.nearBuilding.name} · 按 E 互动 · J 跳跃`;
+  } else if (hint && !s.nearBuilding && s.parkourStage === 0 && !s.parkourRewardLock) {
+    hint.textContent = "方向键移动 · J跳跃 · 靠近建筑按E互动";
+  }
+}
+
+function drawIslandWorldBuilding(ctx2, b) {
+  if (b.id === "wheel") {
+    ctx2.save();
+    ctx2.translate(b.x, b.y);
+    ctx2.strokeStyle = "#ffd75b";
+    ctx2.lineWidth = 5;
+    ctx2.beginPath();
+    ctx2.arc(0, 0, 32, 0, Math.PI * 2);
+    ctx2.stroke();
+    for (let i = 0; i < 8; i++) {
+      const a = islandWorldState.wheelAngle + i * Math.PI / 4;
+      ctx2.beginPath();
+      ctx2.moveTo(0, 0);
+      ctx2.lineTo(Math.cos(a) * 32, Math.sin(a) * 32);
+      ctx2.stroke();
+    }
+    ctx2.restore();
+  } else if (b.id === "soccer") {
+    ctx2.fillStyle = b.color;
+    ctx2.fillRect(b.x - b.w/2, b.y - b.h/2, b.w, b.h);
+    ctx2.strokeStyle = "#dfffe9";
+    ctx2.strokeRect(b.x - b.w/2 + 5, b.y - b.h/2 + 5, b.w - 10, b.h - 10);
+    ctx2.beginPath(); ctx2.moveTo(b.x, b.y - b.h/2 + 5); ctx2.lineTo(b.x, b.y + b.h/2 - 5); ctx2.stroke();
+  } else if (b.id === "parkour") {
+    ctx2.fillStyle = b.color;
+    ctx2.fillRect(b.x - b.w/2, b.y - b.h/2, b.w, b.h);
+    ctx2.fillStyle = "#a9b0ba";
+    for (let i = 0; i < 5; i++) ctx2.fillRect(b.x - 18, b.y + 35 - i*20, 36, 6);
+  } else {
+    ctx2.fillStyle = b.color;
+    ctx2.fillRect(b.x - b.w/2, b.y - b.h/2, b.w, b.h);
+    ctx2.fillStyle = "rgba(255,255,255,.16)";
+    ctx2.fillRect(b.x - b.w/2 + 7, b.y - b.h/2 + 7, b.w - 14, 12);
+  }
+
+  ctx2.fillStyle = "#fff";
+  ctx2.font = "bold 11px sans-serif";
+  ctx2.textAlign = "center";
+  ctx2.textBaseline = "middle";
+  ctx2.fillText(`${b.icon} ${b.name}`, b.x, b.y + b.h/2 + 12);
+}
+
+function drawIslandWorldTank(ctx2, p) {
+  const cfg = PLAYER_TANK_CLASSES[islandWorldTankType] || PLAYER_TANK_CLASSES.normal;
+  const y = p.y - p.z;
+  if (p.z > 0) {
+    ctx2.fillStyle = "rgba(0,0,0,.28)";
+    ctx2.beginPath();
+    ctx2.ellipse(p.x, p.y + 10, 16, 7, 0, 0, Math.PI*2);
+    ctx2.fill();
+  }
+
+  ctx2.save();
+  ctx2.translate(p.x, y);
+  ctx2.fillStyle = cfg.color || "#ffd23f";
+  ctx2.fillRect(-14, -14, 28, 28);
+  ctx2.fillStyle = "#252525";
+  ctx2.fillRect(-18, -12, 4, 24);
+  ctx2.fillRect(14, -12, 4, 24);
+  ctx2.fillStyle = "#fff";
+  ctx2.font = "bold 11px sans-serif";
+  ctx2.textAlign = "center";
+  ctx2.textBaseline = "middle";
+  ctx2.fillText(cfg.mark || "坦", 0, 0);
+  ctx2.restore();
+}
+
+function drawIslandWorld() {
+  const canvas = document.getElementById("island-world-canvas");
+  const ctx2 = canvas?.getContext("2d");
+  const s = islandWorldState;
+  if (!ctx2 || !s) return;
+
+  ctx2.clearRect(0, 0, 500, 500);
+
+  // 海水
+  const sea = ctx2.createLinearGradient(0, 0, 0, 500);
+  sea.addColorStop(0, "#0f6682");
+  sea.addColorStop(1, "#073d5b");
+  ctx2.fillStyle = sea;
+  ctx2.fillRect(0, 0, 500, 500);
+
+  // 圆形大岛：沙滩边缘 + 草地
+  ctx2.fillStyle = "#e3cf87";
+  ctx2.beginPath();
+  ctx2.arc(250, 250, 230, 0, Math.PI * 2);
+  ctx2.fill();
+  ctx2.fillStyle = "#4f9f52";
+  ctx2.beginPath();
+  ctx2.arc(250, 250, 215, 0, Math.PI * 2);
+  ctx2.fill();
+
+  // 岛上主路
+  ctx2.strokeStyle = "#c7b580";
+  ctx2.lineWidth = 18;
+  ctx2.beginPath();
+  ctx2.moveTo(85, 250); ctx2.lineTo(415, 250);
+  ctx2.moveTo(250, 78); ctx2.lineTo(250, 425);
+  ctx2.stroke();
+
+  // 建筑
+  for (const b of ISLAND_WORLD_BUILDINGS) drawIslandWorldBuilding(ctx2, b);
+
+  // 跑酷平台
+  ISLAND_PARKOUR_PADS.forEach((pad, i) => {
+    const reached = i < s.parkourStage;
+    const current = i === s.parkourStage;
+    ctx2.fillStyle = reached ? "#65ef83" : (current ? "#ffd23f" : "#b9bdc7");
+    ctx2.beginPath();
+    ctx2.arc(pad.x, pad.y, 10, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.fillStyle = "#182118";
+    ctx2.font = "bold 9px sans-serif";
+    ctx2.textAlign = "center";
+    ctx2.textBaseline = "middle";
+    ctx2.fillText(String(i + 1), pad.x, pad.y);
   });
 
-  return hub;
+  drawIslandWorldTank(ctx2, s.player);
+
+  ctx2.fillStyle = "rgba(0,0,0,.42)";
+  ctx2.fillRect(8, 8, 180, 28);
+  ctx2.fillStyle = "#fff";
+  ctx2.font = "bold 12px sans-serif";
+  ctx2.textAlign = "left";
+  ctx2.fillText(`跑酷：${s.parkourStage}/6   跳跃高度：${Math.round(s.player.z)}`, 16, 26);
 }
 
-function openIslandEntertainmentHub() {
-  const hub = ensureIslandEntertainmentHub();
-  hub.classList.remove("hidden");
+function islandWorldLoop() {
+  if (!islandWorldActive || !islandWorldState) return;
+  updateIslandWorld();
+  drawIslandWorld();
+  islandWorldAnimation = requestAnimationFrame(islandWorldLoop);
 }
 
+window.addEventListener("keydown", (e) => {
+  if (!islandWorldActive) return;
+
+  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.code)) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    islandWorldKeys[e.code] = true;
+    return;
+  }
+
+  if (e.code === "KeyJ" && !e.repeat) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (islandWorldState?.player && islandWorldState.player.z <= 0) {
+      islandWorldState.player.vz = 6.2;
+    }
+    return;
+  }
+
+  if (e.code === "KeyE" && !e.repeat) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    handleIslandWorldInteraction();
+  }
+}, true);
+
+window.addEventListener("keyup", (e) => {
+  if (!islandWorldActive) return;
+  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.code)) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    islandWorldKeys[e.code] = false;
+  }
+}, true);
+
+// 坦克岛旧菜单里的“进入坦克岛世界”按钮也使用同一个V1入口。
 islandPanel?.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-enter-entertainment]");
   if (!btn) return;
-  openIslandEntertainmentHub();
+  openIslandWorld();
 });
