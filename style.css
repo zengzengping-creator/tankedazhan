@@ -400,3 +400,153 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* V1 坦克岛世界 */
+.island-world-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: #06131a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.island-world-modal.hidden,
+.island-loading-screen.hidden,
+.island-world-screen.hidden {
+  display: none;
+}
+
+.island-loading-screen {
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, #071d28, #092f40);
+}
+
+.island-loading-screen img {
+  width: min(460px, 92%);
+  max-height: 310px;
+  object-fit: cover;
+  border: 2px solid #5cccb0;
+  border-radius: 10px;
+  box-shadow: 0 0 24px rgba(66, 219, 183, .25);
+}
+
+.island-loading-title {
+  color: #8df7dd;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.island-loading-track {
+  width: min(420px, 84%);
+  height: 14px;
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid #4b9d8c;
+  background: rgba(255,255,255,.08);
+}
+
+.island-loading-bar {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #45c99f, #ffd23f);
+  transition: width .08s linear;
+}
+
+.island-loading-text {
+  color: #fff;
+  font-size: 12px;
+}
+
+.island-world-screen {
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  background: #071b25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.island-world-topbar {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #dffdf5;
+}
+
+.island-world-topbar > b {
+  color: #75f0d2;
+  font-size: 14px;
+}
+
+.island-world-topbar select {
+  background: #173b35;
+  color: #fff;
+  border: 1px solid #55c9a7;
+  border-radius: 4px;
+  padding: 3px 5px;
+}
+
+.island-world-topbar button {
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+#island-world-canvas {
+  width: min(500px, 100%);
+  height: auto;
+  max-height: 450px;
+  border: 2px solid #3da88e;
+  border-radius: 8px;
+  background: #0f6682;
+}
+
+.island-world-hint {
+  width: 100%;
+  min-height: 24px;
+  padding: 5px 6px;
+  text-align: center;
+  color: #ffe37e;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.island-entertainment-enter {
+  display: block;
+  width: min(320px, 94%);
+  margin: 8px auto;
+  padding: 10px 12px;
+  font-size: 13px;
+  background: #53d2ad;
+  color: #06221a;
+}
+
+@media (max-width: 540px) {
+  .island-world-topbar {
+    gap: 5px;
+  }
+
+  .island-world-topbar label {
+    font-size: 10px;
+  }
+
+  #island-world-canvas {
+    max-height: 405px;
+  }
+}
