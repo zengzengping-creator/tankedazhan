@@ -90,6 +90,9 @@ function renderPartyModes(title, body) {
       <button data-party-mode="range"><strong>🎯</strong><b>射击靶场</b><small>命中10个靶</small></button>
       <button data-party-mode="race"><strong>🏁</strong><b>坦克竞速</b><small>检查点竞速</small></button>
       <button data-party-mode="parkour"><strong>🗼</strong><b>跑酷挑战</b><small>前往跑酷塔</small></button>
+      <button data-party-mode="treasure"><strong>🗺️</strong><b>寻宝争夺</b><small>抢夺地图宝箱</small></button>
+      <button data-party-mode="capture"><strong>🚩</strong><b>据点抢占</b><small>占领中央据点</small></button>
+      <button data-party-mode="chaos"><strong>⚡</strong><b>技能大乱斗</b><small>随机技能混战</small></button>
       <button data-meta-panel="rank"><strong>🏅</strong><b>排位模式</b><small>赢取排位积分</small></button>
     </div>`;
 
@@ -109,6 +112,9 @@ function renderPartyModes(title, body) {
           }
         }
         metaToast("🗼 已来到跑酷塔附近");
+      } else if (["treasure","capture","chaos"].includes(mode)) {
+        document.getElementById("meta-modal")?.classList.add("hidden");
+        if (typeof openPartySpecialMode === "function") openPartySpecialMode(mode);
       } else {
         startPartyMiniMode(mode, false);
       }
