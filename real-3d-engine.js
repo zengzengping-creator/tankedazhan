@@ -646,7 +646,9 @@
       const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f8e45, roughness: .92 });
       const grassPatches = [
         [-7.5,-4.5,2.3,1.5],[-5.5,5.8,2.6,1.7],[5.8,-5.5,2.4,1.6],[7.2,4.6,2.1,1.5],
-        [-1.6,6.6,2.8,1.5],[2.4,-6.8,2.5,1.4]
+        [-1.6,6.6,2.8,1.5],[2.4,-6.8,2.5,1.4],
+        [14,-7,3.8,2.2],[18,7,4.5,2.5],[23,-9,4.2,2.2],[28,6,4.8,2.7],
+        [32,-3,3.6,2.0],[22,10,3.8,2.1],[12,3,3.2,2.0]
       ];
       for (const [x,z,w,d] of grassPatches) {
         const patch = new THREE.Mesh(new THREE.BoxGeometry(w,.05,d), grassMat);
@@ -654,7 +656,10 @@
         patch.receiveShadow = true;
         islandScene.add(patch);
       }
-      const treeSpots = [[-8,-1.5],[-7,3.8],[-3.5,-7],[6.8,-2],[7,6],[1.5,7.5]];
+      const treeSpots = [
+        [-8,-1.5],[-7,3.8],[-3.5,-7],[6.8,-2],[7,6],[1.5,7.5],
+        [13,-8],[15,7],[19,-10],[21,9],[25,-8],[28,8],[31,-4],[33,3],[18,1],[27,1]
+      ];
       for (const [x,z] of treeSpots) {
         const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,.9,10),trunkMat);
         trunk.position.set(x,.68,z); trunk.castShadow=true; islandScene.add(trunk);
