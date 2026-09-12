@@ -513,9 +513,9 @@ function islandWorldTankSpeed() {
 
 function clampPlayerToIsland(p) {
   // 8字形双岛：左侧保留旧岛，右侧新增更大的主岛。
-  const small = { x: 250, y: 300, r: 238 };
-  const large = { x: 760, y: 250, r: 350 };
-  const bridge = { x1: 430, x2: 520, y1: 205, y2: 350 };
+  const small = { x: 250, y: 300, r: 260 };
+  const large = { x: 830, y: 260, r: 430 };
+  const bridge = { x1: 455, x2: 545, y1: 205, y2: 355 };
 
   const insideCircle = (c) => Math.hypot(p.x - c.x, p.y - c.y) <= c.r;
   const insideBridge = p.x >= bridge.x1 && p.x <= bridge.x2 && p.y >= bridge.y1 && p.y <= bridge.y2;
@@ -721,14 +721,14 @@ function drawIslandWorld() {
 
   // 8字形双岛：旧岛 + 旁边更大的新主岛，中间陆地直接连接。
   ctx2.fillStyle = "#e3cf87";
-  ctx2.beginPath(); ctx2.arc(250, 300, 238, 0, Math.PI * 2); ctx2.fill();
-  ctx2.beginPath(); ctx2.arc(760, 250, 350, 0, Math.PI * 2); ctx2.fill();
-  ctx2.fillRect(430, 205, 90, 145);
+  ctx2.beginPath(); ctx2.arc(250, 300, 260, 0, Math.PI * 2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(830, 260, 430, 0, Math.PI * 2); ctx2.fill();
+  ctx2.fillRect(455, 205, 90, 150);
 
   ctx2.fillStyle = "#4f9f52";
-  ctx2.beginPath(); ctx2.arc(250, 300, 222, 0, Math.PI * 2); ctx2.fill();
-  ctx2.beginPath(); ctx2.arc(760, 250, 332, 0, Math.PI * 2); ctx2.fill();
-  ctx2.fillRect(435, 215, 85, 125);
+  ctx2.beginPath(); ctx2.arc(250, 300, 242, 0, Math.PI * 2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(830, 260, 408, 0, Math.PI * 2); ctx2.fill();
+  ctx2.fillRect(460, 215, 85, 130);
 
   // 双岛主路与连接路
   ctx2.strokeStyle = "#c7b580";
@@ -736,8 +736,8 @@ function drawIslandWorld() {
   ctx2.beginPath();
   ctx2.moveTo(90, 300); ctx2.lineTo(510, 300);
   ctx2.moveTo(250, 90); ctx2.lineTo(250, 500);
-  ctx2.moveTo(470, 280); ctx2.lineTo(950, 280);
-  ctx2.moveTo(760, 55); ctx2.lineTo(760, 500);
+  ctx2.moveTo(470, 300); ctx2.lineTo(1160, 300);
+  ctx2.moveTo(830, -120); ctx2.lineTo(830, 650);
   ctx2.stroke();
 
   // 建筑
