@@ -1142,3 +1142,219 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* 坦克大厦真正3D室内 */
+.tank-tower-world {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: #111820;
+}
+
+.tank-tower-world.hidden {
+  display: none;
+}
+
+.tank-tower-topbar {
+  min-height: 40px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #e8f6ff;
+  background: rgba(10, 18, 24, .96);
+  border-bottom: 1px solid #39505f;
+  font-size: 11px;
+}
+
+.tank-tower-topbar > b {
+  color: #8bdcff;
+  font-size: 14px;
+}
+
+.tank-tower-topbar button {
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+#tank-tower-3d-host {
+  flex: 1 1 auto;
+  min-height: 410px;
+  position: relative;
+  overflow: hidden;
+}
+
+#tank-tower-3d-host canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+
+#tank-tower-3d-host canvas:active {
+  cursor: grabbing;
+}
+
+#tank-tower-hint {
+  min-height: 28px;
+  padding: 6px 8px;
+  color: #ffd86b;
+  background: #10171d;
+  font-size: 11px;
+  text-align: center;
+}
+
+.tank-tower-panel {
+  position: absolute;
+  inset: 54px 42px 44px 42px;
+  z-index: 65;
+  padding: 10px;
+  overflow-y: auto;
+  border: 2px solid #579ab8;
+  border-radius: 10px;
+  background: rgba(9, 20, 27, .97);
+  color: #eef9ff;
+}
+
+.tank-tower-panel.hidden {
+  display: none;
+}
+
+.tank-tower-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.tank-tower-panel-head b {
+  color: #8bdcff;
+  font-size: 14px;
+}
+
+.tank-tower-panel-head button,
+.tank-tower-row button {
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+.tank-tower-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 5px;
+  border-radius: 7px;
+  background: rgba(255,255,255,.055);
+}
+
+.tank-tower-row span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tank-tower-row small {
+  color: #a9c5d2;
+  font-size: 9px;
+}
+
+.tank-tower-warehouse {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+
+.tank-tower-warehouse > div {
+  padding: 9px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.055);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  text-align: center;
+}
+
+.tank-tower-warehouse strong {
+  font-size: 25px;
+}
+
+.tank-tower-warehouse small {
+  color: #abc2cd;
+  font-size: 9px;
+}
+
+/* 局内仓库补给栏 */
+#battle-supply-bar {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 17;
+  display: flex;
+  gap: 4px;
+}
+
+#battle-supply-bar.hidden {
+  display: none;
+}
+
+.battle-supply-slot {
+  width: 44px;
+  min-height: 42px;
+  padding: 3px;
+  border-radius: 6px;
+  background: rgba(6, 15, 20, .82);
+  border: 1px solid rgba(255,255,255,.18);
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  grid-template-rows: 1fr 12px;
+  align-items: center;
+  justify-items: center;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+
+.battle-supply-slot.empty {
+  opacity: .42;
+}
+
+.battle-supply-slot kbd {
+  grid-row: 1 / span 2;
+  font-size: 9px;
+  color: #ffd76a;
+  background: transparent;
+}
+
+.battle-supply-slot span {
+  font-size: 18px;
+}
+
+.battle-supply-slot small {
+  font-size: 8px;
+  color: #c8d8df;
+}
+
+@media (max-width: 540px) {
+  #tank-tower-3d-host {
+    min-height: 370px;
+  }
+
+  .tank-tower-panel {
+    inset: 50px 12px 40px 12px;
+  }
+
+  .tank-tower-warehouse {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-supply-slot {
+    width: 39px;
+  }
+}
