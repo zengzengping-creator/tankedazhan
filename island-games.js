@@ -761,8 +761,12 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "KeyJ" && !e.repeat) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    if (islandWorldState?.player && islandWorldState.player.z <= 0) {
-      islandWorldState.player.vz = 6.2;
+    const jumper =
+      typeof islandCurrentMover === "function"
+        ? islandCurrentMover(islandWorldState)
+        : islandWorldState?.player;
+    if (jumper && jumper.z <= 0) {
+      jumper.vz = 6.2;
     }
     return;
   }
