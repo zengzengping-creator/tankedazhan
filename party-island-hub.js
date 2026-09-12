@@ -82,7 +82,7 @@ function renderPartyModes(title, body) {
   body.innerHTML = `
     <div class="party-mode-hero">
       <b>选择玩法</b>
-      <small>从坦克岛直接进入各种模式。</small>
+      <small>从坦克岛直接进入各种模式 · 每个任务首通500金币，重复通关300金币。</small>
     </div>
     <div class="party-mode-grid">
       <button data-party-mode="story"><strong>💥</strong><b>经典闯关</b><small>主线坦克战斗</small></button>
