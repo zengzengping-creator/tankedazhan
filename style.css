@@ -1610,3 +1610,69 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* 坦克派对特殊模式 */
+.party-special-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3,10,14,.92);
+  padding: 10px;
+}
+
+.party-special-modal.hidden { display: none; }
+
+.party-special-card {
+  width: min(760px, 98%);
+  max-height: 96%;
+  overflow: auto;
+  border: 2px solid #65d5c1;
+  border-radius: 12px;
+  background: #0d2028;
+  padding: 9px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.4);
+}
+
+.party-special-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: #8df0dc;
+}
+
+.party-special-head b { font-size: 15px; }
+
+.party-special-head button {
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+.party-special-info,
+.party-special-msg {
+  min-height: 24px;
+  padding: 4px 6px;
+  text-align: center;
+  color: #ffe17a;
+  font-size: 11px;
+}
+
+#party-special-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  border: 1px solid #3d7a73;
+  image-rendering: auto;
+  background: #245c69;
+}
+
+.party-special-msg {
+  color: #86f0a0;
+  font-weight: 700;
+}
