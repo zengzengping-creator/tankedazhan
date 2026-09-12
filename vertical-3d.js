@@ -140,7 +140,7 @@ Bullet.prototype.update = function () {
           return;
         }
       }
-    } else if (player && player.alive && rectsOverlap(b, player.rect())) {
+    } else if (player && player.alive && !player.isFlying && rectsOverlap(b, player.rect())) {
       this.alive = false;
       if ((player.shieldTimer || 0) <= 0) killPlayer(this.damage || 1);
       return;
