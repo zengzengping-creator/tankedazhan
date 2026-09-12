@@ -4,12 +4,12 @@
 const TANK_ISLAND_STORAGE_KEY = "tankBattleIsland_v1";
 const INITIAL_UNLOCKED_TANKS = ["normal", "fast", "armor"];
 const TANK_SHOP_PRICES = {
-  elite: 500,
-  base: 1000,
-  weaken: 1500,
-  flight: 1800,
-  evolution: 2200,
-  omni: 3000,
+  elite: 200,
+  base: 300,
+  weaken: 400,
+  flight: 500,
+  evolution: 600,
+  omni: 800,
 };
 
 function islandDefaultData() {
