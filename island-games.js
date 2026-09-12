@@ -352,32 +352,50 @@ window.addEventListener("keyup", (e) => {
   }
 }, true);
 
-// 把娱乐区插入现有坦克岛页面。
-const renderTankIslandBeforeGames = renderTankIsland;
-renderTankIsland = function () {
-  renderTankIslandBeforeGames();
-  if (!islandPanel) return;
+// ------------------- 独立娱乐区入口 -------------------
+function ensureIslandEntertainmentHub() {
+  let hub = document.getElementById("island-entertainment-hub");
+  if (hub) return hub;
 
-  const existing = islandPanel.querySelector(".island-entertainment");
-  if (existing) return;
-
-  const section = document.createElement("div");
-  section.className = "island-section island-entertainment";
-  section.innerHTML = `
-    <h3>🎡 岛屿娱乐</h3>
-    <div class="island-owned-note">选择已拥有的坦克参加小游戏，可获得少量金币。</div>
-    <div class="island-game-grid">
-      <button class="island-game-entry" data-island-game="soccer">⚽<b>坦克足球</b><small>进3球 · 奖励35金币</small></button>
-      <button class="island-game-entry" data-island-game="range">🎯<b>靶场挑战</b><small>击中10靶 · 奖励30金币</small></button>
-      <button class="island-game-entry" data-island-game="race">🏁<b>竞速挑战</b><small>过5点 · 奖励30金币</small></button>
+  hub = document.createElement("div");
+  hub.id = "island-entertainment-hub";
+  hub.className = "island-game-modal hidden";
+  hub.innerHTML = `
+    <div class="island-game-card">
+      <div class="island-game-topbar">
+        <b>🎡 坦克岛娱乐区</b>
+        <button type="button" id="island-entertainment-close">返回坦克岛</button>
+      </div>
+      <div class="island-owned-note">进入项目前可选择你已经拥有的坦克。</div>
+      <div class="island-game-grid">
+        <button class="island-game-entry" data-island-game="soccer">⚽<b>坦克足球</b><small>进3球 · 奖励35金币</small></button>
+        <button class="island-game-entry" data-island-game="range">🎯<b>靶场挑战</b><small>击中10靶 · 奖励30金币</small></button>
+        <button class="island-game-entry" data-island-game="race">🏁<b>竞速挑战</b><small>过5点 · 奖励30金币</small></button>
+      </div>
     </div>`;
-  islandPanel.prepend(section);
-};
+
+  document.querySelector("#canvas-wrap")?.appendChild(hub);
+  hub.querySelector("#island-entertainment-close")?.addEventListener("click", () => {
+    hub.classList.add("hidden");
+  });
+
+  hub.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-island-game]");
+    if (!btn) return;
+    hub.classList.add("hidden");
+    openIslandGame(btn.dataset.islandGame);
+  });
+
+  return hub;
+}
+
+function openIslandEntertainmentHub() {
+  const hub = ensureIslandEntertainmentHub();
+  hub.classList.remove("hidden");
+}
 
 islandPanel?.addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-island-game]");
+  const btn = e.target.closest("[data-enter-entertainment]");
   if (!btn) return;
-  openIslandGame(btn.dataset.islandGame);
+  openIslandEntertainmentHub();
 });
-
-renderTankIsland();
