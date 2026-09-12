@@ -31,11 +31,11 @@
   }
 
   function addLights(scene) {
-    scene.add(new THREE.HemisphereLight(0xcfefff, 0x34452f, 1.75));
-    const sun = new THREE.DirectionalLight(0xffffff, 2.1);
+    scene.add(new THREE.HemisphereLight(0xdaf3ff, 0x34452f, 1.95));
+    const sun = new THREE.DirectionalLight(0xffffff, 2.35);
     sun.position.set(8, 15, 6);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.left = -12;
     sun.shadow.camera.right = 12;
     sun.shadow.camera.top = 12;
@@ -44,12 +44,14 @@
   }
 
   function makeRenderer(parent, className) {
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.75));
     renderer.setSize(520, 520, false);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.12;
     renderer.domElement.className = className;
     renderer.domElement.tabIndex = 0;
     parent.appendChild(renderer.domElement);
