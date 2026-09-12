@@ -195,6 +195,8 @@
     new THREE.Vector3(10.5, 11.5, 13.5),
     new THREE.Vector3(0, 0.8, 0)
   );
+  const mainFollowTarget = new THREE.Vector3(0, 0.8, 0);
+  const mainFollowPrev = new THREE.Vector3(0, 0.8, 0);
 
   const staticGroup = new THREE.Group();
   const dynamicGroup = new THREE.Group();
@@ -299,6 +301,17 @@
     }
   }
 
+  function followCameraWithTarget(setup, desiredTarget, prevTarget, smoothing = 0.16) {
+    if (!setup || !desiredTarget || !prevTarget) return;
+
+    // 让相机和观察点一起移动，保留玩家鼠标手动调整后的相机角度与距离。
+    const smoothed = prevTarget.clone().lerp(desiredTarget, smoothing);
+    const delta = smoothed.clone().sub(prevTarget);
+    setup.camera.position.add(delta);
+    setup.controls.target.add(delta);
+    prevTarget.copy(smoothed);
+  }
+
   function syncMainDynamics() {
     if (player && player.alive) {
       if (!playerMesh) {
@@ -311,6 +324,8 @@
         if (idx === 0 && child.material?.color) child.material.color.set(bodyColor);
       });
       playerMesh.visible = true;
+      mainFollowTarget.copy(playerMesh.position);
+      mainFollowTarget.y += player.isFlying ? 0.8 : 0.7;
     } else if (playerMesh) {
       playerMesh.visible = false;
     }
@@ -552,6 +567,7 @@
         new THREE.Vector3(15, 14, 18),
         new THREE.Vector3(0, 1.1, 0)
       );
+      islandCameraSetup.followPrev = new THREE.Vector3(0, 1.1, 0);
     }
 
     if (!islandStaticBuilt) {
@@ -771,11 +787,28 @@
       buildMainStaticScene();
       syncMainDynamics();
       resizeRenderer(mainRenderer, mainCameraSetup.camera, mainHost);
+      if (player && player.alive && playerMesh) {
+        followCameraWithTarget(mainCameraSetup, mainFollowTarget, mainFollowPrev, 0.18);
+      }
       mainCameraSetup.controls.update();
       mainRenderer.render(mainScene, mainCameraSetup.camera);
     } else if (ensureIsland3D()) {
       syncIsland3D();
       resizeRenderer(islandRenderer, islandCameraSetup.camera, islandHost);
+      if (islandWorldState) {
+        const s = islandWorldState;
+        const mover = s.mounted ? s.player : s.human;
+        if (mover) {
+          const followPos = islandCoord(mover.x, mover.y, 0);
+          followPos.y = s.mounted ? 0.95 + (mover.z || 0) / 24 : 1.15 + (mover.z || 0) / 24;
+          followCameraWithTarget(
+            islandCameraSetup,
+            followPos,
+            islandCameraSetup.followPrev || (islandCameraSetup.followPrev = followPos.clone()),
+            0.16
+          );
+        }
+      }
       islandCameraSetup.controls.update();
 
       // 摩天轮真正3D旋转
@@ -790,8 +823,29 @@
 
   window.addEventListener("keydown", (e) => {
     if (e.code !== "KeyC" || e.repeat) return;
-    if (islandWorldActive && islandCameraSetup) islandCameraSetup.reset();
-    else mainCameraSetup.reset();
+    if (islandWorldActive && islandCameraSetup) {
+      const s = islandWorldState;
+      const mover = s ? (s.mounted ? s.player : s.human) : null;
+      if (mover) {
+        const p = islandCoord(mover.x, mover.y, 0);
+        p.y = s.mounted ? 0.95 : 1.15;
+        islandCameraSetup.controls.target.copy(p);
+        islandCameraSetup.camera.position.set(p.x + 7.5, p.y + 7.5, p.z + 9);
+        islandCameraSetup.followPrev = p.clone();
+        islandCameraSetup.controls.update();
+      } else {
+        islandCameraSetup.reset();
+      }
+    } else if (player && player.alive && playerMesh) {
+      const p = playerMesh.position.clone();
+      p.y += player.isFlying ? 0.8 : 0.7;
+      mainCameraSetup.controls.target.copy(p);
+      mainCameraSetup.camera.position.set(p.x + 6.5, p.y + 6.8, p.z + 8.2);
+      mainFollowPrev.copy(p);
+      mainCameraSetup.controls.update();
+    } else {
+      mainCameraSetup.reset();
+    }
   }, true);
 
   // 阻止右键菜单，右键拖动专门用于相机平移。
