@@ -302,9 +302,9 @@ function renderRecharge(title, body) {
   title.textContent = "💎 金币充值中心";
   const packs=[1,6,18,30,68,128];
   body.innerHTML = `
-    <div class="meta-recharge-rate"><b>固定兑换比例：1元 = 100金币</b><small>当前项目运行在 GitHub Pages，尚未接入真实支付服务器。</small></div>
+    <div class="meta-recharge-rate"><b>固定兑换比例：1元 = 300金币</b><small>当前项目运行在 GitHub Pages，尚未接入真实支付服务器。</small></div>
     <div class="meta-recharge-grid">
-      ${packs.map(y=>`<div class="meta-recharge-card"><b>¥${y}</b><strong>🪙 ${y*100}</strong><button disabled>待接支付渠道</button></div>`).join("")}
+      ${packs.map(y=>`<div class="meta-recharge-card"><b>¥${y}</b><strong>🪙 ${y*300}</strong><button disabled>待接支付渠道</button></div>`).join("")}
     </div>
     <div class="meta-payment-warning">真实充值需要接入支付服务商、订单服务器和支付回调验证；当前不会假装扣款或直接发放付费金币。</div>`;
 }
