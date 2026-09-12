@@ -97,6 +97,7 @@ function createMetaHud() {
   const right = document.createElement("div");
   right.id = "meta-rightbar";
   right.innerHTML = `
+    <button data-meta-panel="warehouse">📦<span>仓库</span></button>
     <button data-meta-panel="tasks">📋<span>活动任务</span></button>
     <button data-meta-panel="social">😀<span>表情动作</span></button>
     <button data-meta-panel="boxes">🎁<span>盲盒</span></button>
@@ -145,6 +146,7 @@ function openMetaPanel(type) {
   if (type === "profile") renderProfile(title, body);
   else if (type === "season") renderSeason(title, body);
   else if (type === "manual") renderManual(title, body);
+  else if (type === "warehouse") renderWarehouse(title, body);
   else if (type === "tasks") renderTasks(title, body);
   else if (type === "social") renderSocial(title, body);
   else if (type === "boxes") renderBoxes(title, body);
@@ -201,6 +203,41 @@ function renderManual(title, body) {
       <div><b>✈️ 飞行</b><small>升空3格后无视地面障碍和普通地面炮火。</small></div>
       <div><b>🎁 皮肤</b><small>皮肤可通过不同盲盒获得并永久保存。</small></div>
     </div>`;
+}
+
+function renderWarehouse(title, body) {
+  title.textContent = "📦 坦克岛仓库";
+  islandData.supplies = islandData.supplies || {};
+  if (!islandData.selectedSupply) islandData.selectedSupply = "fuel";
+
+  const items = typeof ISLAND_TANK_FOOD !== "undefined" ? ISLAND_TANK_FOOD : [];
+  body.innerHTML = `
+    <div class="meta-recharge-rate">
+      <b>选择局内F键道具技能</b>
+      <small>在这里选好后，进入关卡直接按 F 使用。</small>
+    </div>
+    <div class="meta-warehouse-grid">
+      ${items.map(item => {
+        const count = islandData.supplies[item.id] || 0;
+        const selected = islandData.selectedSupply === item.id;
+        return `<button class="meta-warehouse-item ${selected ? "selected" : ""}" data-select-supply="${item.id}">
+          <strong>${item.icon}</strong>
+          <b>${item.name}</b>
+          <small>库存 x${count}</small>
+          <small>${item.desc || ""}</small>
+          <span>${selected ? "✅ F键已选择" : "设为F键道具"}</span>
+        </button>`;
+      }).join("")}
+    </div>`;
+
+  body.querySelectorAll("[data-select-supply]").forEach(btn => {
+    btn.onclick = () => {
+      islandData.selectedSupply = btn.dataset.selectSupply;
+      saveIslandData();
+      if (typeof renderBattleSupplyBar === "function") renderBattleSupplyBar();
+      renderWarehouse(title, body);
+    };
+  });
 }
 
 function renderTasks(title, body) {
@@ -344,6 +381,20 @@ if (typeof nextLevelOrWin === "function") {
   };
 }
 
+function updateMetaHudLocation() {
+  const top = document.getElementById("meta-topbar");
+  const right = document.getElementById("meta-rightbar");
+  const modal = document.getElementById("meta-modal");
+  const onIsland = typeof islandWorldActive !== "undefined" && islandWorldActive;
+  if (top) top.classList.toggle("island-only-hidden", !onIsland);
+  if (right) right.classList.toggle("island-only-hidden", !onIsland);
+  if (!onIsland && modal && !modal.classList.contains("hidden")) modal.classList.add("hidden");
+}
+
 createMetaHud();
 refreshMetaHud();
-setInterval(refreshMetaHud,1000);
+updateMetaHudLocation();
+setInterval(() => {
+  refreshMetaHud();
+  updateMetaHudLocation();
+}, 300);
