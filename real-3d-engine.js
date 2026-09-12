@@ -513,7 +513,7 @@
       addLights(islandScene);
 
       const sea = new THREE.Mesh(
-        new THREE.PlaneGeometry(26, 26),
+        new THREE.PlaneGeometry(34, 34),
         new THREE.MeshStandardMaterial({ color: 0x176d91, roughness: 0.55, metalness: 0.08 })
       );
       sea.rotation.x = -Math.PI / 2;
@@ -522,7 +522,7 @@
       islandScene.add(sea);
 
       const island = new THREE.Mesh(
-        new THREE.CylinderGeometry(8.7, 9.0, 0.42, 64),
+        new THREE.CylinderGeometry(11.1, 11.5, 0.42, 72),
         new THREE.MeshStandardMaterial({ color: 0x55a653, roughness: 0.98 })
       );
       island.position.y = 0;
@@ -531,7 +531,7 @@
       islandScene.add(island);
 
       const beach = new THREE.Mesh(
-        new THREE.TorusGeometry(8.86, 0.34, 10, 64),
+        new THREE.TorusGeometry(11.32, 0.38, 10, 72),
         new THREE.MeshStandardMaterial({ color: 0xe2cf89, roughness: 1 })
       );
       beach.rotation.x = Math.PI / 2;
@@ -540,16 +540,16 @@
 
       // 十字道路
       const roadMat = new THREE.MeshStandardMaterial({ color: 0xc6b483, roughness: 1 });
-      const road1 = new THREE.Mesh(new THREE.BoxGeometry(12.8, 0.05, 0.72), roadMat);
+      const road1 = new THREE.Mesh(new THREE.BoxGeometry(17.2, 0.05, 0.78), roadMat);
       road1.position.y = 0.25;
       islandScene.add(road1);
-      const road2 = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.05, 12.8), roadMat);
+      const road2 = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.05, 17.2), roadMat);
       road2.position.y = 0.25;
       islandScene.add(road2);
 
       islandCameraSetup = makeCamera(
         islandRenderer,
-        new THREE.Vector3(12, 12, 15),
+        new THREE.Vector3(15, 14, 18),
         new THREE.Vector3(0, 1.1, 0)
       );
     }
@@ -575,6 +575,31 @@
         platform.castShadow = true;
         islandScene.add(platform);
       });
+
+      // 草坪、灌木和树木，让扩大的岛屿更像完整休闲区域。
+      const grassMat = new THREE.MeshStandardMaterial({ color: 0x3f8f45, roughness: 1 });
+      const bushMat = new THREE.MeshStandardMaterial({ color: 0x2f7339, roughness: 1 });
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x725239, roughness: 1 });
+      const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f8e45, roughness: .92 });
+      const grassPatches = [
+        [-7.5,-4.5,2.3,1.5],[-5.5,5.8,2.6,1.7],[5.8,-5.5,2.4,1.6],[7.2,4.6,2.1,1.5],
+        [-1.6,6.6,2.8,1.5],[2.4,-6.8,2.5,1.4]
+      ];
+      for (const [x,z,w,d] of grassPatches) {
+        const patch = new THREE.Mesh(new THREE.BoxGeometry(w,.05,d), grassMat);
+        patch.position.set(x,.24,z);
+        patch.receiveShadow = true;
+        islandScene.add(patch);
+      }
+      const treeSpots = [[-8,-1.5],[-7,3.8],[-3.5,-7],[6.8,-2],[7,6],[1.5,7.5]];
+      for (const [x,z] of treeSpots) {
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,.9,10),trunkMat);
+        trunk.position.set(x,.68,z); trunk.castShadow=true; islandScene.add(trunk);
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(.55,14,10),leafMat);
+        crown.position.set(x,1.35,z); crown.castShadow=true; islandScene.add(crown);
+        const bush = new THREE.Mesh(new THREE.SphereGeometry(.28,12,8),bushMat);
+        bush.position.set(x+.55,.46,z+.35); bush.castShadow=true; islandScene.add(bush);
+      }
 
       islandStaticBuilt = true;
     }
