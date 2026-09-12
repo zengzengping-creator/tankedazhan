@@ -201,9 +201,9 @@ function openIslandTankFoodShop() {
   const body = document.getElementById("island-shop-v2-body");
   body.innerHTML = `
     <div class="island-tower-training-card">
-      <b>🪖 坦克大楼内部训练场</b>
-      <small>进入后使用坦克进行射击训练。</small>
-      <button type="button" data-tower-training="1">进入训练场</button>
+      <b>🏢 坦克大楼3D实景</b>
+      <small>进入后可自由走动，里面有补给商店、仓库和独立训练场。</small>
+      <button type="button" data-tower-enter="1">进入坦克大楼</button>
     </div>` + ISLAND_TANK_FOOD.map((item) => {
     const count = islandData.supplies[item.id] || 0;
     return `<div class="island-shop-v2-row">
