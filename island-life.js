@@ -342,7 +342,7 @@ updateIslandWorld = function () {
       }
     }
   }
-  s.islandBullets = s.islandBullets.filter((b)=>b.life>0 && b.x>0&&b.x<500&&b.y>0&&b.y<500);
+  s.islandBullets = s.islandBullets.filter((b)=>b.life>0 && b.x>-120&&b.x<1160&&b.y>-120&&b.y<720);
 
   s.wheelAngle += .012;
   s.nearBuilding = getNearestIslandBuilding(mover);
@@ -397,6 +397,18 @@ handleIslandWorldInteraction = function () {
     if (hint) hint.textContent="🏛️ 坦克博物馆：展示已收集坦克和稀有皮肤。";
   } else if (b.id==="park") {
     if (hint) hint.textContent="🌳 中央草坪：可以下坦克散步和使用人物动作。";
+  } else if (b.id==="warehouse") {
+    if (typeof openMetaPanel === "function") openMetaPanel("warehouse");
+  } else if (b.id==="seasonhall") {
+    if (typeof openMetaPanel === "function") openMetaPanel("season");
+  } else if (b.id==="eventhall") {
+    if (typeof openMetaPanel === "function") openMetaPanel("tasks");
+  } else if (b.id==="socialpark") {
+    if (typeof openMetaPanel === "function") openMetaPanel("social");
+  } else if (b.id==="rechargehall") {
+    if (typeof openMetaPanel === "function") openMetaPanel("recharge");
+  } else if (b.id==="grandplaza") {
+    if (hint) hint.textContent="⛲ 主岛广场：这里是大型坦克岛的新中心区域。";
   }
 };
 
