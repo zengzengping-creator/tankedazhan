@@ -7,6 +7,8 @@ const TANK_SHOP_PRICES = {
   elite: 500,
   base: 1000,
   weaken: 1500,
+  flight: 1800,
+  evolution: 2200,
   omni: 3000,
 };
 
