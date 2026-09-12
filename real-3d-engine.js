@@ -422,7 +422,7 @@
   }
 
   function buildingHeight(id) {
-    if (id === "tower") return 4.2;
+    if (id === "tower") return 5.4;
     if (id === "parkour") return 5.5;
     if (id === "mall" || id === "blindbox") return 2.5;
     if (id === "range") return 1.2;
@@ -497,13 +497,32 @@
 
     if (b.id === "tower") {
       const glassMat = new THREE.MeshStandardMaterial({ color: 0x80c9ef, emissive: 0x163a50, emissiveIntensity: 0.25, roughness: 0.25 });
-      for (let floor = 0; floor < 4; floor++) {
+      for (let floor = 0; floor < 6; floor++) {
         for (const side of [-1, 1]) {
-          const win = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.04), glassMat);
-          win.position.set(side * 0.55, 1.15 + floor * 0.68, d / 2 + 0.04);
+          const win = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.30, 0.05), glassMat);
+          win.position.set(side * 0.62, 1.0 + floor * 0.67, d / 2 + 0.04);
           group.add(win);
         }
       }
+
+      // 原创派对主城风格：彩色环形屋檐 + 巨型坦克屋顶地标。
+      const crownMat = new THREE.MeshStandardMaterial({ color: 0xf0c94d, roughness: 0.45, metalness: 0.18 });
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.62, w * 0.62, 0.22, 24), crownMat);
+      crown.position.y = h + 0.28;
+      crown.castShadow = true;
+      group.add(crown);
+
+      const giantTank = makeTankMesh("#f5b82e", 3.15);
+      giantTank.position.set(0, h + 0.58, 0);
+      giantTank.rotation.y = Math.PI / 2;
+      giantTank.userData.giantRooftopTank = true;
+      group.add(giantTank);
+
+      const beaconMat = new THREE.MeshStandardMaterial({ color: 0x66e0ff, emissive: 0x164f68, emissiveIntensity: 0.75 });
+      const beacon = new THREE.Mesh(new THREE.TorusGeometry(w * 0.72, 0.07, 10, 36), beaconMat);
+      beacon.rotation.x = Math.PI / 2;
+      beacon.position.y = h + 0.72;
+      group.add(beacon);
     }
     return group;
   }
@@ -668,6 +687,42 @@
         const bush = new THREE.Mesh(new THREE.SphereGeometry(.28,12,8),bushMat);
         bush.position.set(x+.55,.46,z+.35); bush.castShadow=true; islandScene.add(bush);
       }
+
+      // 原创欢乐派对主城装饰：彩色拱门、气球柱、圆形跳台和灯柱。
+      const partyColors = [0xff7b7b,0xffd85a,0x63d6ff,0x8b7cff,0x72e58c,0xff8bd1];
+      const archSpots = [[9.5,1.2],[15.5,-5.5],[21,6.5],[28,-4.5]];
+      for (let i=0;i<archSpots.length;i++) {
+        const [x,z]=archSpots[i];
+        const mat=new THREE.MeshStandardMaterial({color:partyColors[i%partyColors.length],roughness:.55});
+        const left=new THREE.Mesh(new THREE.CylinderGeometry(.11,.15,1.9,12),mat);
+        const right=left.clone();
+        left.position.set(x-.72,1.05,z); right.position.set(x+.72,1.05,z);
+        const top=new THREE.Mesh(new THREE.TorusGeometry(.72,.11,10,24,Math.PI),mat);
+        top.rotation.z=Math.PI; top.position.set(x,1.98,z);
+        islandScene.add(left,right,top);
+      }
+
+      const balloonSpots=[[11,-6],[16,5],[24,-7],[29,7],[34,-1],[5,8],[-6,7]];
+      for(let i=0;i<balloonSpots.length;i++){
+        const [x,z]=balloonSpots[i];
+        const mat=new THREE.MeshStandardMaterial({color:partyColors[i%partyColors.length],roughness:.4});
+        const pole=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,1.6,8),new THREE.MeshStandardMaterial({color:0xe6eef2,roughness:.8}));
+        pole.position.set(x,.95,z);
+        const ball=new THREE.Mesh(new THREE.SphereGeometry(.28,14,10),mat);
+        ball.position.set(x,1.9,z);
+        islandScene.add(pole,ball);
+      }
+
+      const jumpSpots=[[12,2.8],[13.3,3.8],[14.8,4.7],[19,-1.5],[20.5,-.6],[22,.3]];
+      jumpSpots.forEach((p,i)=>{
+        const pad=new THREE.Mesh(
+          new THREE.CylinderGeometry(.42,.48,.16,20),
+          new THREE.MeshStandardMaterial({color:partyColors[i%partyColors.length],roughness:.62})
+        );
+        pad.position.set(p[0],.32,p[1]);
+        pad.castShadow=true;
+        islandScene.add(pad);
+      });
 
       islandStaticBuilt = true;
     }
