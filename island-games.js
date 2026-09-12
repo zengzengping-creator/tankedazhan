@@ -593,10 +593,20 @@ function updateIslandWorldParkour(s) {
     const hint = document.getElementById("island-world-hint");
     if (s.parkourStage >= ISLAND_PARKOUR_PADS.length) {
       s.parkourRewardLock = true;
-      addIslandCoins(80, "🗼 登顶跑酷塔");
+      let parkourReward = 300;
+      let parkourFirst = false;
+      if (typeof awardTankTask === "function") {
+        const awarded = awardTankTask("island-parkour", "🗼 跑酷塔登顶");
+        parkourReward = awarded.reward;
+        parkourFirst = awarded.firstClear;
+      } else {
+        addIslandCoins(parkourReward, "🗼 跑酷塔登顶");
+      }
       const coinEl = document.getElementById("island-world-coins");
       if (coinEl) coinEl.textContent = islandData?.coins || 0;
-      if (hint) hint.textContent = "🏆 成功登顶跑酷塔！获得80金币。";
+      if (hint) hint.textContent = parkourFirst
+        ? "🏆 跑酷塔首通！获得500金币。"
+        : `🏆 跑酷塔通关！获得${parkourReward}金币。`;
       setTimeout(() => {
         if (!islandWorldState) return;
         islandWorldState.parkourStage = 0;
