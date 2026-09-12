@@ -294,3 +294,109 @@ button:disabled {
   font-size: 13px;
   color: #888;
 }
+
+
+/* 坦克岛娱乐中心 */
+.island-game-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.island-game-entry {
+  padding: 8px 6px;
+  min-height: 70px;
+  background: rgba(27, 93, 73, 0.78);
+  color: #fff;
+  border: 1px solid #55c9a7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 18px;
+}
+
+.island-game-entry b {
+  font-size: 12px;
+}
+
+.island-game-entry small {
+  font-size: 9px;
+  color: #c9fff1;
+}
+
+.island-game-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.island-game-modal.hidden {
+  display: none;
+}
+
+.island-game-card {
+  width: 500px;
+  max-width: 100%;
+  padding: 8px;
+  border: 2px solid #55c9a7;
+  border-radius: 8px;
+  background: #0b211b;
+}
+
+.island-game-topbar,
+.island-game-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.island-game-topbar b {
+  color: #75f0d2;
+  font-size: 15px;
+}
+
+.island-game-topbar button {
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.island-game-toolbar select {
+  background: #152b25;
+  color: #fff;
+  border: 1px solid #55c9a7;
+  border-radius: 4px;
+  padding: 3px 5px;
+}
+
+#island-game-canvas {
+  width: 480px;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #4c8b79;
+  border-radius: 4px;
+  background: #163b2b;
+}
+
+.island-game-message {
+  min-height: 18px;
+  margin-top: 4px;
+  text-align: center;
+  color: #ffd23f;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+@media (max-width: 540px) {
+  .island-game-grid {
+    grid-template-columns: 1fr;
+  }
+}
