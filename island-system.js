@@ -1,4 +1,4 @@
-// 坦克岛：金币、每日任务、成就、坦克商店与技能时长强化
+// 坦克岛：金币、坦克商店、娱乐区入口与技能时长强化
 // 初始免费坦克：普通 / 快速 / 重甲。其他坦克使用金币永久解锁。
 
 const TANK_ISLAND_STORAGE_KEY = "tankBattleIsland_v1";
@@ -10,37 +10,10 @@ const TANK_SHOP_PRICES = {
   omni: 3000,
 };
 
-const DAILY_TASKS = {
-  kills: { name: "击败10辆敌方坦克", target: 10, reward: 120 },
-  levels: { name: "完成2个关卡", target: 2, reward: 150 },
-  powerups: { name: "拾取3个道具", target: 3, reward: 120 },
-  skills: { name: "使用3次坦克技能", target: 3, reward: 110 },
-};
-
-const ACHIEVEMENT_TASKS = {
-  kills50: { name: "累计击败50辆敌军", stat: "kills", target: 50, reward: 400 },
-  kills200: { name: "累计击败200辆敌军", stat: "kills", target: 200, reward: 1000 },
-  levels10: { name: "累计完成10个关卡", stat: "levels", target: 10, reward: 600 },
-  powerups30: { name: "累计拾取30个道具", stat: "powerups", target: 30, reward: 600 },
-  collector: { name: "解锁全部我方坦克", stat: "owned", target: 7, reward: 1500 },
-};
-
-function islandTodayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 function islandDefaultData() {
   return {
     coins: 0,
     unlocked: { normal: true, fast: true, armor: true },
-    totals: { kills: 0, levels: 0, powerups: 0, skills: 0 },
-    daily: {
-      date: islandTodayKey(),
-      progress: { kills: 0, levels: 0, powerups: 0, skills: 0 },
-      claimed: {},
-    },
-    achievementsClaimed: {},
   };
 }
 
@@ -62,17 +35,6 @@ function loadIslandData() {
     if (data.unlocked[type] == null) data.unlocked[type] = false;
   }
 
-  data.totals = { ...defaults.totals, ...(data.totals || {}) };
-  data.achievementsClaimed = data.achievementsClaimed || {};
-  data.daily = data.daily || defaults.daily;
-
-  if (data.daily.date !== islandTodayKey()) {
-    data.daily = defaults.daily;
-  } else {
-    data.daily.progress = { ...defaults.daily.progress, ...(data.daily.progress || {}) };
-    data.daily.claimed = data.daily.claimed || {};
-  }
-
   return data;
 }
 
@@ -91,11 +53,6 @@ function isTankUnlocked(type) {
   return !!islandData.unlocked[type];
 }
 
-function ownedTankCount() {
-  return ["normal", "fast", "armor", "elite", "base", "weaken", "omni"]
-    .filter((type) => isTankUnlocked(type)).length;
-}
-
 // ------------------- 技能时长强化 -------------------
 if (PLAYER_TANK_CLASSES.normal) PLAYER_TANK_CLASSES.normal.skillDesc = "40秒无敌护盾";
 if (PLAYER_TANK_CLASSES.fast) PLAYER_TANK_CLASSES.fast.skillDesc = "30秒极速冲刺";
@@ -107,30 +64,32 @@ activatePlayerSkill = function () {
 
   const type = player.playerClass;
   const cfg = PLAYER_TANK_CLASSES[type] || PLAYER_TANK_CLASSES.normal;
-  const beforeCooldown = player.skillCooldown || 0;
 
   if (type === "normal") {
     if (player.skillCooldown > 0) return;
     player.skillCooldown = cfg.cooldown;
     player.shieldTimer = Math.max(player.shieldTimer || 0, 40 * 60);
     player.skillActiveTimer = 40 * 60;
-  } else if (type === "fast") {
+    return;
+  }
+
+  if (type === "fast") {
     if (player.skillCooldown > 0) return;
     player.skillCooldown = cfg.cooldown;
     player.skillActiveTimer = 30 * 60;
     player.baseSpeed = cfg.speed * 1.7;
-  } else if (type === "elite") {
+    return;
+  }
+
+  if (type === "elite") {
     if (player.skillCooldown > 0) return;
     player.skillCooldown = cfg.cooldown;
     player.fireTimer = Math.max(player.fireTimer || 0, 20 * 60);
     player.skillActiveTimer = 20 * 60;
-  } else {
-    activatePlayerSkillBeforeIsland();
+    return;
   }
 
-  if ((player.skillCooldown || 0) > beforeCooldown) {
-    recordIslandProgress("skills", 1);
-  }
+  return activatePlayerSkillBeforeIsland();
 };
 
 // ------------------- 道具无限叠加 -------------------
@@ -138,8 +97,6 @@ activatePlayerSkill = function () {
 const applyPowerUpBeforeIsland = applyPowerUp;
 applyPowerUp = function (powerUp) {
   if (!powerUp) return;
-
-  recordIslandProgress("powerups", 1);
 
   if (player && player.alive && powerUp.type === "shield") {
     player.shieldTimer = (player.shieldTimer || 0) + 8 * 60;
@@ -160,39 +117,11 @@ applyPowerUp = function (powerUp) {
   applyPowerUpBeforeIsland(powerUp);
 };
 
-// ------------------- 任务进度 -------------------
-function recordIslandProgress(kind, amount = 1) {
-  if (!islandData.totals[kind] && islandData.totals[kind] !== 0) islandData.totals[kind] = 0;
-  islandData.totals[kind] += amount;
-
-  if (islandData.daily.date !== islandTodayKey()) {
-    islandData.daily = islandDefaultData().daily;
-  }
-  if (islandData.daily.progress[kind] != null) {
-    islandData.daily.progress[kind] += amount;
-  }
-
-  saveIslandData();
-  renderTankIsland();
-}
-
-const handleEnemyDestroyedBeforeIsland = handleEnemyDestroyed;
-handleEnemyDestroyed = function (enemy, allowDrop = true) {
-  recordIslandProgress("kills", 1);
-  return handleEnemyDestroyedBeforeIsland(enemy, allowDrop);
-};
-
-const nextLevelOrWinBeforeIsland = nextLevelOrWin;
-nextLevelOrWin = function () {
-  recordIslandProgress("levels", 1);
-  return nextLevelOrWinBeforeIsland();
-};
-
 // ------------------- 坦克购买与选择限制 -------------------
 const selectPlayerTankBeforeIsland = selectPlayerTank;
 selectPlayerTank = function (type) {
   if (!isTankUnlocked(type)) {
-    openTankIsland(`🔒 ${PLAYER_TANK_CLASSES[type]?.name || "该坦克"}尚未解锁，请在岛屿商店购买。`);
+    openTankIsland(`🔒 ${PLAYER_TANK_CLASSES[type]?.name || "该坦克"}尚未解锁，请在坦克商店购买。`);
     return false;
   }
   return selectPlayerTankBeforeIsland(type);
@@ -216,39 +145,7 @@ function buyIslandTank(type) {
   selectPlayerTank(type);
 }
 
-function claimDailyTask(taskId) {
-  const task = DAILY_TASKS[taskId];
-  if (!task || islandData.daily.claimed[taskId]) return;
-  const progress = islandData.daily.progress[taskId] || 0;
-  if (progress < task.target) return;
-
-  islandData.daily.claimed[taskId] = true;
-  islandData.coins += task.reward;
-  saveIslandData();
-  setIslandNotice(`🪙 每日任务完成，获得 ${task.reward} 金币！`);
-  refreshTankLockUI();
-  renderTankIsland();
-}
-
-function achievementProgress(task) {
-  if (task.stat === "owned") return ownedTankCount();
-  return islandData.totals[task.stat] || 0;
-}
-
-function claimAchievement(taskId) {
-  const task = ACHIEVEMENT_TASKS[taskId];
-  if (!task || islandData.achievementsClaimed[taskId]) return;
-  if (achievementProgress(task) < task.target) return;
-
-  islandData.achievementsClaimed[taskId] = true;
-  islandData.coins += task.reward;
-  saveIslandData();
-  setIslandNotice(`🏆 成就完成，获得 ${task.reward} 金币！`);
-  refreshTankLockUI();
-  renderTankIsland();
-}
-
-// ------------------- 岛屿界面 -------------------
+// ------------------- 坦克岛界面 -------------------
 const islandButton = document.getElementById("island-btn");
 const islandPanel = document.getElementById("island-panel");
 const islandCoinText = document.getElementById("island-coins");
@@ -287,27 +184,10 @@ if (islandButton) {
   });
 }
 
-function taskRowHtml(id, task, progress, claimed, kind) {
-  const done = progress >= task.target;
-  const status = claimed ? "✅ 已领取" : `${Math.min(progress, task.target)}/${task.target}`;
-  const action = claimed
-    ? ""
-    : `<button class="island-mini-btn" data-${kind}="${id}" ${done ? "" : "disabled"}>领取 ${task.reward}🪙</button>`;
-  return `<div class="island-task-row"><span>${task.name}<small>${status}</small></span>${action}</div>`;
-}
-
 function renderTankIsland() {
   if (islandCoinText) islandCoinText.textContent = islandData.coins;
   refreshTankLockUI();
   if (!islandPanel) return;
-
-  const dailyHtml = Object.entries(DAILY_TASKS).map(([id, task]) =>
-    taskRowHtml(id, task, islandData.daily.progress[id] || 0, !!islandData.daily.claimed[id], "daily")
-  ).join("");
-
-  const achievementHtml = Object.entries(ACHIEVEMENT_TASKS).map(([id, task]) =>
-    taskRowHtml(id, task, achievementProgress(task), !!islandData.achievementsClaimed[id], "achievement")
-  ).join("");
 
   const shopHtml = Object.entries(TANK_SHOP_PRICES).map(([type, price]) => {
     const cfg = PLAYER_TANK_CLASSES[type];
@@ -317,12 +197,9 @@ function renderTankIsland() {
 
   islandPanel.innerHTML = `
     <div class="island-section">
-      <h3>📅 每日任务</h3>
-      ${dailyHtml}
-    </div>
-    <div class="island-section">
-      <h3>🏆 成就任务</h3>
-      ${achievementHtml}
+      <h3>🏝️ 坦克岛</h3>
+      <div class="island-owned-note">选择你已经拥有的坦克，前往独立娱乐区游玩。</div>
+      <button type="button" class="island-entertainment-enter" data-enter-entertainment="1">🎡 进驻坦克岛娱乐区</button>
     </div>
     <div class="island-section">
       <h3>🛒 坦克商店</h3>
@@ -336,8 +213,6 @@ if (islandPanel) {
     const btn = e.target.closest("button");
     if (!btn) return;
     if (btn.dataset.buy) buyIslandTank(btn.dataset.buy);
-    if (btn.dataset.daily) claimDailyTask(btn.dataset.daily);
-    if (btn.dataset.achievement) claimAchievement(btn.dataset.achievement);
   });
 }
 
