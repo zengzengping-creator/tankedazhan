@@ -1,4 +1,5 @@
-// 局内仓库消耗品：数字键1-5使用坦克大厦仓库中的补给。
+// 局内仓库消耗品：先在坦克岛仓库选择，战斗中按 F 使用当前道具技能。
+// 数字键1-5只负责快速切换当前道具，不会直接消耗。
 const BATTLE_SUPPLY_KEYS = {
   Digit1: "fuel",
   Digit2: "oil",
@@ -59,20 +60,43 @@ function ensureBattleSupplyBar() {
 function renderBattleSupplyBar() {
   const bar = ensureBattleSupplyBar();
   const order = ["fuel","oil","battery","repair","ammo"];
-  bar.innerHTML = order.map((id, i) => {
+  if (!islandData.selectedSupply) islandData.selectedSupply = "fuel";
+
+  bar.innerHTML = `<div class="battle-supply-f">F 使用</div>` + order.map((id, i) => {
     const item = battleSupplyItem(id);
     const count = islandData.supplies?.[id] || 0;
-    return `<div class="battle-supply-slot ${count > 0 ? "" : "empty"}"><kbd>${i+1}</kbd><span>${item?.icon || "📦"}</span><small>x${count}</small></div>`;
+    const selected = islandData.selectedSupply === id;
+    return `<div class="battle-supply-slot ${count > 0 ? "" : "empty"} ${selected ? "selected" : ""}">
+      <kbd>${i+1}</kbd><span>${item?.icon || "📦"}</span><small>x${count}</small>
+    </div>`;
   }).join("");
   bar.classList.toggle("hidden", state !== "playing");
 }
 
 window.addEventListener("keydown", (e) => {
+  if (state !== "playing" || e.repeat) return;
+
+  if (e.code === "KeyF") {
+    e.preventDefault();
+    const id = islandData.selectedSupply || "fuel";
+    const used = useBattleSupply(id);
+    if (!used && typeof metaToast === "function") {
+      const item = battleSupplyItem(id);
+      metaToast(`${item?.icon || "📦"} 当前道具无法使用或库存不足`);
+    }
+    return;
+  }
+
   const id = BATTLE_SUPPLY_KEYS[e.code];
-  if (!id || e.repeat) return;
-  if (state !== "playing") return;
+  if (!id) return;
   e.preventDefault();
-  useBattleSupply(id);
+  islandData.selectedSupply = id;
+  saveIslandData();
+  renderBattleSupplyBar();
+  if (typeof metaToast === "function") {
+    const item = battleSupplyItem(id);
+    metaToast(`已切换：${item?.icon || "📦"} ${item?.name || "道具"} · 按F使用`);
+  }
 }, true);
 
 setInterval(renderBattleSupplyBar, 500);
