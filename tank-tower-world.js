@@ -184,6 +184,7 @@ function openTankTowerWorld(){
 function closeTankTowerWorld(){
   tankTowerActive=false;
   document.getElementById("tank-tower-world")?.classList.add("hidden");
+  if (typeof openIslandWorld === "function") openIslandWorld();
 }
 
 function towerNearZone(x,z){
