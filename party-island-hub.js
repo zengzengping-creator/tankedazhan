@@ -280,4 +280,13 @@ if (typeof finishIslandGame === "function") {
   };
 }
 
+if (typeof closeIslandGame === "function") {
+  const closeIslandGamePartyBase = closeIslandGame;
+  closeIslandGame = function() {
+    partyHubData.rankedActive = false;
+    savePartyHubData();
+    return closeIslandGamePartyBase();
+  };
+}
+
 addPartyHubButtons();
