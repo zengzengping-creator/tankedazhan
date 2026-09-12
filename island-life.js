@@ -29,9 +29,11 @@ const ISLAND_CLOTHES = [
 ];
 
 const ISLAND_TANK_FOOD = [
-  { id: "fuel", name: "高级燃油", price: 40, icon: "⛽" },
-  { id: "oil", name: "装甲润滑油", price: 55, icon: "🛢️" },
-  { id: "battery", name: "能量电池", price: 80, icon: "🔋" },
+  { id: "fuel", name: "高级燃油", price: 40, icon: "⛽", desc: "局内使用：10秒移动加速" },
+  { id: "oil", name: "装甲润滑液", price: 55, icon: "🛢️", desc: "局内使用：6秒护盾" },
+  { id: "battery", name: "能量电池", price: 80, icon: "🔋", desc: "局内使用：技能冷却减少10秒" },
+  { id: "repair", name: "战地修复包", price: 95, icon: "🧰", desc: "局内使用：恢复2滴血" },
+  { id: "ammo", name: "强化弹药箱", price: 120, icon: "📦", desc: "局内使用：12秒火力强化" },
 ];
 
 function ensureIslandLifeData() {
@@ -195,7 +197,7 @@ function openIslandTankFoodShop() {
   modal.classList.remove("hidden");
   document.getElementById("island-shop-v2-title").textContent = "🏢 坦克大楼 · 补给与训练场";
   refreshIslandShopCoins();
-  setIslandShopNote("坦克大楼内部包含补给商店和训练场。");
+  setIslandShopNote("坦克大楼内部包含补给商店、仓库和训练场。");
   const body = document.getElementById("island-shop-v2-body");
   body.innerHTML = `
     <div class="island-tower-training-card">
@@ -205,18 +207,18 @@ function openIslandTankFoodShop() {
     </div>` + ISLAND_TANK_FOOD.map((item) => {
     const count = islandData.supplies[item.id] || 0;
     return `<div class="island-shop-v2-row">
-      <span><strong>${item.icon}</strong><b>${item.name}</b><small>${item.price}金币 · 已有${count}</small></span>
+      <span><strong>${item.icon}</strong><b>${item.name}</b><small>${item.price}金币 · 已有${count} · ${item.desc || ""}</small></span>
       <button data-supply="${item.id}">购买</button>
     </div>`;
   }).join("");
   body.onclick = (e) => {
-    const trainingBtn = e.target.closest("[data-tower-training]");
-    if (trainingBtn) {
+    const enterBtn = e.target.closest("[data-tower-enter]");
+    if (enterBtn) {
       document.getElementById("island-shop-modal-v2")?.classList.add("hidden");
-      closeIslandWorld();
-      openIslandGame("range");
-      const title = document.getElementById("island-game-title");
-      if (title) title.textContent = "🏢 坦克大楼 · 内部训练场";
+      if (typeof openTankTowerWorld === "function") {
+        closeIslandWorld();
+        openTankTowerWorld();
+      }
       return;
     }
 
@@ -373,7 +375,12 @@ handleIslandWorldInteraction = function () {
   } else if (b.id==="blindbox") {
     openIslandBlindBoxShop();
   } else if (b.id==="tower") {
-    openIslandTankFoodShop();
+    if (typeof openTankTowerWorld === "function") {
+      closeIslandWorld();
+      openTankTowerWorld();
+    } else {
+      openIslandTankFoodShop();
+    }
   } else if (b.id==="soccer") {
     closeIslandWorld(); openIslandGame("soccer");
   } else if (b.id==="range") {
