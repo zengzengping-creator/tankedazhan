@@ -10,6 +10,15 @@ const ISLAND_SKINS = [
   { id: "gold", name: "黄金装甲", color: "#e6b932", accent: "#8a6816", rarity: "史诗" },
   { id: "neon", name: "霓虹紫", color: "#a94fe3", accent: "#4c1e75", rarity: "史诗" },
   { id: "ice", name: "极地冰晶", color: "#9de7f5", accent: "#367f9d", rarity: "传说" },
+  { id: "lava", name: "熔岩核心", color: "#e6542f", accent: "#6b1f16", rarity: "史诗" },
+  { id: "military", name: "军绿重装", color: "#68744d", accent: "#303821", rarity: "普通" },
+  { id: "carbon", name: "碳纤黑甲", color: "#2e3136", accent: "#0d0f11", rarity: "稀有" },
+  { id: "royal", name: "皇家蓝金", color: "#3159b7", accent: "#d8b94e", rarity: "史诗" },
+  { id: "galaxy", name: "银河星云", color: "#4f3c91", accent: "#d768f2", rarity: "传说" },
+  { id: "toxic", name: "毒液绿", color: "#67cf36", accent: "#274e1a", rarity: "稀有" },
+  { id: "tiger", name: "猛虎橙纹", color: "#e98326", accent: "#252525", rarity: "史诗" },
+  { id: "chrome", name: "铬银镜面", color: "#b8c2cb", accent: "#4f5961", rarity: "传说" },
+  { id: "candy", name: "糖果幻彩", color: "#ef76c8", accent: "#70d7e6", rarity: "传说" },
 ];
 
 const ISLAND_CLOTHES = [
