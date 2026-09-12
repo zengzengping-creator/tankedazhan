@@ -550,3 +550,131 @@ button:disabled {
     max-height: 405px;
   }
 }
+
+
+/* 坦克岛 V2：生活/商店弹窗 */
+.island-shop-v2 {
+  position: absolute;
+  inset: 0;
+  z-index: 42;
+  background: rgba(3, 12, 18, .92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.island-shop-v2.hidden { display: none; }
+
+.island-shop-v2-card {
+  width: min(460px, 96%);
+  max-height: 460px;
+  overflow-y: auto;
+  border: 2px solid #55c9a7;
+  border-radius: 10px;
+  background: #0b211b;
+  padding: 10px;
+  color: #eefcf8;
+}
+
+.island-shop-v2-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: #75f0d2;
+  font-size: 12px;
+}
+
+.island-shop-v2-head > b { font-size: 15px; }
+
+.island-shop-v2-head button,
+.island-shop-v2-row button,
+.island-blindbox-main button {
+  padding: 6px 9px;
+  font-size: 11px;
+}
+
+.island-shop-v2-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 5px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.06);
+}
+
+.island-shop-v2-row span {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 2px 7px;
+  align-items: center;
+}
+
+.island-shop-v2-row span i {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  grid-row: 1 / span 2;
+}
+
+.island-shop-v2-row span small {
+  color: #a7d9d0;
+  font-size: 10px;
+}
+
+#island-shop-v2-note {
+  min-height: 18px;
+  margin-top: 6px;
+  color: #ffd76a;
+  text-align: center;
+  font-size: 11px;
+}
+
+.island-blindbox-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: rgba(211,91,119,.12);
+}
+
+.island-box-art { font-size: 46px; }
+
+.island-blindbox-main small {
+  color: #cddbd7;
+  text-align: center;
+  font-size: 10px;
+}
+
+.island-skin-owned {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 5px;
+}
+
+.island-skin-chip {
+  padding: 6px;
+  font-size: 10px;
+  background: #18352f;
+  color: #fff;
+  border: 1px solid #356f61;
+}
+
+.island-skin-chip i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+
+@media (max-width: 540px) {
+  .island-skin-owned { grid-template-columns: 1fr; }
+}
