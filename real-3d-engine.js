@@ -63,8 +63,8 @@
     controls.target.copy(target);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.minDistance = 5;
-    controls.maxDistance = 34;
+    controls.minDistance = 3;
+    controls.maxDistance = 26;
     controls.maxPolarAngle = Math.PI * 0.495;
     controls.minPolarAngle = 0.15;
     controls.screenSpacePanning = false;
@@ -192,7 +192,7 @@
 
   const mainCameraSetup = makeCamera(
     mainRenderer,
-    new THREE.Vector3(10.5, 11.5, 13.5),
+    new THREE.Vector3(5.2, 5.6, 6.8),
     new THREE.Vector3(0, 0.8, 0)
   );
   const mainFollowTarget = new THREE.Vector3(0, 0.8, 0);
@@ -528,43 +528,90 @@
       addLights(islandScene);
 
       const sea = new THREE.Mesh(
-        new THREE.PlaneGeometry(34, 34),
+        new THREE.PlaneGeometry(82, 52),
         new THREE.MeshStandardMaterial({ color: 0x176d91, roughness: 0.55, metalness: 0.08 })
       );
       sea.rotation.x = -Math.PI / 2;
-      sea.position.y = -0.16;
+      sea.position.set(10, -0.16, 0);
       sea.receiveShadow = true;
       islandScene.add(sea);
 
-      const island = new THREE.Mesh(
-        new THREE.CylinderGeometry(11.1, 11.5, 0.42, 72),
-        new THREE.MeshStandardMaterial({ color: 0x55a653, roughness: 0.98 })
-      );
-      island.position.y = 0;
-      island.receiveShadow = true;
-      island.castShadow = true;
-      islandScene.add(island);
+      const landMat = new THREE.MeshStandardMaterial({ color: 0x55a653, roughness: 0.98 });
+      const sandMat = new THREE.MeshStandardMaterial({ color: 0xe2cf89, roughness: 1 });
 
-      const beach = new THREE.Mesh(
-        new THREE.TorusGeometry(11.32, 0.38, 10, 72),
-        new THREE.MeshStandardMaterial({ color: 0xe2cf89, roughness: 1 })
+      // 下方旧岛保留。
+      const smallCenter = islandCoord(250, 300, 0);
+      const smallIsland = new THREE.Mesh(
+        new THREE.CylinderGeometry(10.0, 10.35, 0.42, 72),
+        landMat
       );
-      beach.rotation.x = Math.PI / 2;
-      beach.position.y = 0.17;
-      islandScene.add(beach);
+      smallIsland.position.set(smallCenter.x, 0, smallCenter.z);
+      smallIsland.receiveShadow = true;
+      smallIsland.castShadow = true;
+      islandScene.add(smallIsland);
 
-      // 十字道路
+      const smallBeach = new THREE.Mesh(
+        new THREE.TorusGeometry(10.2, 0.38, 10, 72),
+        sandMat
+      );
+      smallBeach.rotation.x = Math.PI / 2;
+      smallBeach.position.set(smallCenter.x, 0.17, smallCenter.z);
+      islandScene.add(smallBeach);
+
+      // 旁边新增一个大很多的圆形主岛。
+      const largeCenter = islandCoord(830, 260, 0);
+      const largeIsland = new THREE.Mesh(
+        new THREE.CylinderGeometry(16.2, 16.55, 0.48, 96),
+        landMat
+      );
+      largeIsland.position.set(largeCenter.x, 0, largeCenter.z);
+      largeIsland.receiveShadow = true;
+      largeIsland.castShadow = true;
+      islandScene.add(largeIsland);
+
+      const largeBeach = new THREE.Mesh(
+        new THREE.TorusGeometry(16.4, 0.48, 12, 96),
+        sandMat
+      );
+      largeBeach.rotation.x = Math.PI / 2;
+      largeBeach.position.set(largeCenter.x, 0.19, largeCenter.z);
+      islandScene.add(largeBeach);
+
+      // 两岛之间是连续陆地，不需要跳跃或传送，直接走过去。
+      const connector = new THREE.Mesh(
+        new THREE.BoxGeometry(7.2, 0.42, 5.6),
+        landMat
+      );
+      connector.position.set(10.9, 0, 1.1);
+      connector.receiveShadow = true;
+      connector.castShadow = true;
+      islandScene.add(connector);
+
+      const connectorRoad = new THREE.Mesh(
+        new THREE.BoxGeometry(8.2, 0.07, 1.05),
+        new THREE.MeshStandardMaterial({ color: 0xc6b483, roughness: 1 })
+      );
+      connectorRoad.position.set(10.9, 0.25, 1.1);
+      islandScene.add(connectorRoad);
+
+      // 两座岛各自的主路。
       const roadMat = new THREE.MeshStandardMaterial({ color: 0xc6b483, roughness: 1 });
       const road1 = new THREE.Mesh(new THREE.BoxGeometry(17.2, 0.05, 0.78), roadMat);
-      road1.position.y = 0.25;
+      road1.position.set(smallCenter.x, 0.25, smallCenter.z);
       islandScene.add(road1);
       const road2 = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.05, 17.2), roadMat);
-      road2.position.y = 0.25;
+      road2.position.set(smallCenter.x, 0.25, smallCenter.z);
       islandScene.add(road2);
+      const mainRoad1 = new THREE.Mesh(new THREE.BoxGeometry(27, 0.05, 0.9), roadMat);
+      mainRoad1.position.set(largeCenter.x, 0.25, largeCenter.z);
+      islandScene.add(mainRoad1);
+      const mainRoad2 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 27), roadMat);
+      mainRoad2.position.set(largeCenter.x, 0.25, largeCenter.z);
+      islandScene.add(mainRoad2);
 
       islandCameraSetup = makeCamera(
         islandRenderer,
-        new THREE.Vector3(15, 14, 18),
+        new THREE.Vector3(5.2, 5.6, 7.2),
         new THREE.Vector3(0, 1.1, 0)
       );
       islandCameraSetup.followPrev = new THREE.Vector3(0, 1.1, 0);
@@ -830,7 +877,7 @@
         const p = islandCoord(mover.x, mover.y, 0);
         p.y = s.mounted ? 0.95 : 1.15;
         islandCameraSetup.controls.target.copy(p);
-        islandCameraSetup.camera.position.set(p.x + 7.5, p.y + 7.5, p.z + 9);
+        islandCameraSetup.camera.position.set(p.x + 4.4, p.y + 4.6, p.z + 5.6);
         islandCameraSetup.followPrev = p.clone();
         islandCameraSetup.controls.update();
       } else {
@@ -840,7 +887,7 @@
       const p = playerMesh.position.clone();
       p.y += player.isFlying ? 0.8 : 0.7;
       mainCameraSetup.controls.target.copy(p);
-      mainCameraSetup.camera.position.set(p.x + 6.5, p.y + 6.8, p.z + 8.2);
+      mainCameraSetup.camera.position.set(p.x + 4.0, p.y + 4.3, p.z + 5.2);
       mainFollowPrev.copy(p);
       mainCameraSetup.controls.update();
     } else {
