@@ -776,3 +776,9 @@ button:disabled {
     min-height: 355px;
   }
 }
+
+
+/* 3D岛屿启用时，旧2D岛屿画布不再占布局空间 */
+#island-world-canvas.real3d-source-hidden {
+  display: none !important;
+}
