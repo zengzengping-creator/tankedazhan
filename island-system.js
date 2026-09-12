@@ -179,6 +179,11 @@ function closeTankIsland() {
 
 if (islandButton) {
   islandButton.addEventListener("click", () => {
+    // 主入口直接进入坦克岛世界；商店仍可由岛上的“商场”打开。
+    if (typeof openIslandWorld === "function") {
+      openIslandWorld();
+      return;
+    }
     if (islandOpen) closeTankIsland();
     else openTankIsland();
   });
@@ -198,8 +203,8 @@ function renderTankIsland() {
   islandPanel.innerHTML = `
     <div class="island-section">
       <h3>🏝️ 坦克岛</h3>
-      <div class="island-owned-note">选择你已经拥有的坦克，前往独立娱乐区游玩。</div>
-      <button type="button" class="island-entertainment-enter" data-enter-entertainment="1">🎡 进驻坦克岛娱乐区</button>
+      <div class="island-owned-note">主入口现在直接进入可自由移动的坦克岛世界。</div>
+      <button type="button" class="island-entertainment-enter" data-enter-entertainment="1">🏝️ 进入坦克岛世界</button>
     </div>
     <div class="island-section">
       <h3>🛒 坦克商店</h3>
