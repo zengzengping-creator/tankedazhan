@@ -53,7 +53,8 @@ if (typeof finishIslandGame === "function") {
   finishIslandGame = function(_oldReward, text) {
     if (!islandGameState || islandGameState.finished) return;
     const mode = islandGameMode || "unknown";
-    const taskId = `island-${mode}`;
+    const ranked = typeof partyHubData !== "undefined" && !!partyHubData.rankedActive;
+    const taskId = ranked ? `ranked-${mode}` : `island-${mode}`;
     const firstClear = !tankTaskClears[taskId];
     const reward = firstClear ? 500 : 300;
 
