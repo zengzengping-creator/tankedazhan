@@ -398,6 +398,8 @@
   let islandStaticBuilt = false;
   let islandTankMesh = null;
   let islandHumanMesh = null;
+  let islandEmoteSprite = null;
+  let islandEmoteTexture = null;
   const islandBulletMeshes = new Map();
 
   function islandCoord(x, y, height = 0) {
@@ -580,6 +582,74 @@
     return true;
   }
 
+  function ensureEmoteSprite() {
+    if (islandEmoteSprite) return islandEmoteSprite;
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+    islandEmoteSprite = new THREE.Sprite(material);
+    islandEmoteSprite.scale.set(1.4, 1.4, 1.4);
+    islandEmoteSprite.visible = false;
+    islandEmoteTexture = { canvas, texture };
+    islandScene.add(islandEmoteSprite);
+    return islandEmoteSprite;
+  }
+
+  function updateIslandSocial3D(s) {
+    const social = window.islandSocialState || {};
+    const now = performance.now();
+
+    // 表情：人和坦克都可用，始终显示在当前控制对象头顶。
+    const sprite = ensureEmoteSprite();
+    if (social.emote && social.emoteUntil > now) {
+      const ctx2 = islandEmoteTexture.canvas.getContext("2d");
+      ctx2.clearRect(0,0,128,128);
+      ctx2.font = "86px sans-serif";
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "middle";
+      ctx2.fillText(social.emote,64,66);
+      islandEmoteTexture.texture.needsUpdate = true;
+
+      if (s.mounted) {
+        const p = islandCoord(s.player.x, s.player.y, 0);
+        sprite.position.set(p.x, 2.05 + (s.player.z || 0)/24, p.z);
+      } else {
+        const p = islandCoord(s.human.x, s.human.y, 0);
+        sprite.position.set(p.x, 1.72 + (s.human.z || 0)/24, p.z);
+      }
+      sprite.visible = true;
+    } else {
+      sprite.visible = false;
+    }
+
+    // 动作只作用于下车人物。
+    if (islandHumanMesh) {
+      islandHumanMesh.rotation.set(0,0,0);
+      islandHumanMesh.scale.set(1,1,1);
+      if (!s.mounted && social.action && social.actionUntil > now) {
+        const t = now / 250;
+        if (social.action === "挥手") {
+          islandHumanMesh.rotation.z = Math.sin(t*2) * 0.18;
+        } else if (social.action === "跳舞") {
+          islandHumanMesh.rotation.y = Math.sin(t) * 0.75;
+          islandHumanMesh.position.y += Math.abs(Math.sin(t*2))*0.12;
+        } else if (social.action === "敬礼") {
+          islandHumanMesh.rotation.z = -0.12;
+          islandHumanMesh.rotation.x = 0.06;
+        } else if (social.action === "鼓掌") {
+          const s2 = 1 + Math.abs(Math.sin(t*3))*0.05;
+          islandHumanMesh.scale.set(s2,1,s2);
+        } else if (social.action === "坐下") {
+          islandHumanMesh.scale.y = 0.72;
+          islandHumanMesh.position.y -= 0.12;
+        }
+      }
+    }
+  }
+
   function syncIsland3D() {
     if (!islandWorldActive || !islandWorldState) return;
     if (!ensureIsland3D()) return;
@@ -637,6 +707,8 @@
         islandBulletMeshes.delete(b);
       }
     }
+
+    updateIslandSocial3D(s);
   }
 
   function resizeRenderer(renderer, camera, host) {
