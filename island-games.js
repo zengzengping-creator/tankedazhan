@@ -577,7 +577,7 @@ function handleIslandWorldInteraction() {
     closeIslandWorld();
     openIslandGame("range");
   } else if (b.id === "parkour") {
-    if (hint) hint.textContent = "🗼 跑酷塔：按J跳跃，依次踩亮1-6号平台，到塔顶获得80金币！";
+    if (hint) hint.textContent = "🗼 跑酷塔：按J跳跃，依次踩亮1-6号平台；首通500金币，之后每次300金币！";
   }
 }
 
