@@ -37,14 +37,7 @@ function ensureIslandLifeData() {
 
 ensureIslandLifeData();
 
-// 新增训练场，放在岛屿左上方。
-if (!ISLAND_WORLD_BUILDINGS.some((b) => b.id === "training")) {
-  ISLAND_WORLD_BUILDINGS.push({
-    id: "training", name: "训练场", icon: "🪖",
-    x: 165, y: 105, w: 88, h: 56, color: "#667545"
-  });
-}
-
+// 训练场移动到坦克大楼内部。
 function activeIslandSkin() {
   return ISLAND_SKINS.find((s) => s.id === islandData.equippedSkin) || null;
 }
@@ -191,11 +184,16 @@ function openIslandBlindBoxShop() {
 function openIslandTankFoodShop() {
   const modal = createIslandShopModal();
   modal.classList.remove("hidden");
-  document.getElementById("island-shop-v2-title").textContent = "🏢 坦克大楼 · 坦克食物/补给";
+  document.getElementById("island-shop-v2-title").textContent = "🏢 坦克大楼 · 补给与训练场";
   refreshIslandShopCoins();
-  setIslandShopNote("这些补给会保存到你的坦克仓库中。");
+  setIslandShopNote("坦克大楼内部包含补给商店和训练场。");
   const body = document.getElementById("island-shop-v2-body");
-  body.innerHTML = ISLAND_TANK_FOOD.map((item) => {
+  body.innerHTML = `
+    <div class="island-tower-training-card">
+      <b>🪖 坦克大楼内部训练场</b>
+      <small>进入后使用坦克进行射击训练。</small>
+      <button type="button" data-tower-training="1">进入训练场</button>
+    </div>` + ISLAND_TANK_FOOD.map((item) => {
     const count = islandData.supplies[item.id] || 0;
     return `<div class="island-shop-v2-row">
       <span><strong>${item.icon}</strong><b>${item.name}</b><small>${item.price}金币 · 已有${count}</small></span>
@@ -203,6 +201,16 @@ function openIslandTankFoodShop() {
     </div>`;
   }).join("");
   body.onclick = (e) => {
+    const trainingBtn = e.target.closest("[data-tower-training]");
+    if (trainingBtn) {
+      document.getElementById("island-shop-modal-v2")?.classList.add("hidden");
+      closeIslandWorld();
+      openIslandGame("range");
+      const title = document.getElementById("island-game-title");
+      if (title) title.textContent = "🏢 坦克大楼 · 内部训练场";
+      return;
+    }
+
     const btn = e.target.closest("[data-supply]");
     if (!btn) return;
     const item = ISLAND_TANK_FOOD.find((x) => x.id === btn.dataset.supply);
@@ -363,11 +371,6 @@ handleIslandWorldInteraction = function () {
     closeIslandWorld(); openIslandGame("range");
   } else if (b.id==="wheel") {
     if (hint) hint.textContent="🎡 摩天轮缓慢旋转中，这里可以俯瞰整个3D坦克岛。";
-  } else if (b.id==="training") {
-    s.trainingActive=true;
-    s.trainingHits=0;
-    s.trainingTargets.forEach((t)=>t.alive=true);
-    if (hint) hint.textContent="🪖 训练开始：上坦克后用空格射击5个训练靶。";
   } else if (b.id==="parkour") {
     if (hint) hint.textContent="🗼 跑酷塔：按J跳跃，依次踩亮1-6号平台，到顶获得80金币。";
   }
