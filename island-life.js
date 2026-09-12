@@ -409,6 +409,16 @@ handleIslandWorldInteraction = function () {
     if (typeof openMetaPanel === "function") openMetaPanel("recharge");
   } else if (b.id==="grandplaza") {
     if (hint) hint.textContent="⛲ 主岛广场：这里是大型坦克岛的新中心区域。";
+  } else if (b.id==="modehall") {
+    if (typeof openMetaPanel === "function") openMetaPanel("modes");
+  } else if (b.id==="rankhall") {
+    if (typeof openMetaPanel === "function") openMetaPanel("rank");
+  } else if (b.id==="onlinehub") {
+    if (typeof openMetaPanel === "function") openMetaPanel("online");
+  } else if (b.id==="backpackhub") {
+    if (typeof openMetaPanel === "function") openMetaPanel("backpack");
+  } else if (b.id==="scenic") {
+    if (typeof openMetaPanel === "function") openMetaPanel("scenic");
   }
 };
 
