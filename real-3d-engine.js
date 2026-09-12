@@ -3,8 +3,8 @@
 // 鼠标左键旋转、滚轮缩放、右键平移，C键重置相机。
 
 (async function initReal3D() {
-  const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
-  const ORBIT_URL = "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js";
+  const THREE_URL = "https://esm.sh/three@0.180.0";
+  const ORBIT_URL = "https://esm.sh/three@0.180.0/examples/jsm/controls/OrbitControls.js";
 
   let THREE, OrbitControls;
   try {
