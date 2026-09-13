@@ -1,4 +1,4 @@
-// 手机版触控操作与PWA安装入口。
+// 手机版触控操作、低延迟虚拟摇杆与PWA安装入口。
 (function initTouchControls(){
   const coarse = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
 
@@ -29,25 +29,40 @@
     b.className="touch-btn";
     b.dataset.touchAction=action;
     b.textContent=label;
-    const press=(e)=>{e.preventDefault();e.stopPropagation();emit(action,true);b.classList.add("pressed");};
-    const release=(e)=>{e.preventDefault();e.stopPropagation();emit(action,false);b.classList.remove("pressed");};
-    b.addEventListener("pointerdown",press);
-    b.addEventListener("pointerup",release);
-    b.addEventListener("pointercancel",release);
-    b.addEventListener("pointerleave",(e)=>{ if(e.buttons) release(e); });
+    const press=(e)=>{
+      e.preventDefault();e.stopPropagation();
+      if(b.hasPointerCapture?.(e.pointerId)===false){
+        try{b.setPointerCapture(e.pointerId);}catch(_){}
+      }
+      emit(action,true);b.classList.add("pressed");
+    };
+    const release=(e)=>{
+      e.preventDefault();e.stopPropagation();
+      emit(action,false);b.classList.remove("pressed");
+      try{if(b.hasPointerCapture?.(e.pointerId))b.releasePointerCapture(e.pointerId);}catch(_){}
+    };
+    b.addEventListener("pointerdown",press,{passive:false});
+    b.addEventListener("pointerup",release,{passive:false});
+    b.addEventListener("pointercancel",release,{passive:false});
     return b;
   }
 
   const wrap=document.getElementById("canvas-wrap");
   if(!wrap) return;
 
+  // 全局只保存一个很小的摇杆状态；游戏循环每帧直接读取，不需要高频派发键盘事件。
+  const joystickState={
+    x:0,y:0,magnitude:0,active:false,
+    digital:{up:false,down:false,left:false,right:false}
+  };
+  globalThis.mobileJoystickState=joystickState;
+
   const controls=document.createElement("div");
   controls.id="mobile-controls";
   controls.innerHTML=`
-    <div class="mobile-dpad">
-      <div></div><div class="slot-up"></div><div></div>
-      <div class="slot-left"></div><div class="dpad-center"></div><div class="slot-right"></div>
-      <div></div><div class="slot-down"></div><div></div>
+    <div class="mobile-joystick" aria-label="移动摇杆">
+      <div class="mobile-joystick-ring"></div>
+      <div class="mobile-joystick-knob"></div>
     </div>
     <div class="mobile-actions">
       <div class="mobile-actions-top"></div>
@@ -55,10 +70,98 @@
     </div>`;
   wrap.appendChild(controls);
 
-  controls.querySelector(".slot-up").appendChild(makeButton("up","▲"));
-  controls.querySelector(".slot-down").appendChild(makeButton("down","▼"));
-  controls.querySelector(".slot-left").appendChild(makeButton("left","◀"));
-  controls.querySelector(".slot-right").appendChild(makeButton("right","▶"));
+  const joystick=controls.querySelector(".mobile-joystick");
+  const knob=controls.querySelector(".mobile-joystick-knob");
+  let joyPointer=null;
+  let targetKnobX=0,targetKnobY=0;
+  let renderedKnobX=999,renderedKnobY=999;
+  let centerX=0,centerY=0,radius=48;
+
+  const digitalNames=["up","down","left","right"];
+  function syncDigitalDirections(){
+    // 仅给仍依赖键盘事件的旧小游戏做兼容，只有跨过阈值时才发送一次事件。
+    const x=joystickState.x,y=joystickState.y;
+    const next={
+      up:y < -0.30,
+      down:y > 0.30,
+      left:x < -0.30,
+      right:x > 0.30
+    };
+    for(const name of digitalNames){
+      if(next[name]!==joystickState.digital[name]){
+        joystickState.digital[name]=next[name];
+        emit(name,next[name]);
+      }
+    }
+  }
+
+  function updateJoystickFromPointer(e){
+    const dx=e.clientX-centerX;
+    const dy=e.clientY-centerY;
+    const dist=Math.hypot(dx,dy);
+    const clamped=Math.min(radius,dist);
+    const nx=dist>0 ? dx/dist : 0;
+    const ny=dist>0 ? dy/dist : 0;
+    targetKnobX=nx*clamped;
+    targetKnobY=ny*clamped;
+
+    // 约14%死区，避免手指轻微抖动导致坦克自己走。
+    const raw=Math.min(1,dist/radius);
+    const dead=0.14;
+    const mag=raw<=dead ? 0 : (raw-dead)/(1-dead);
+    joystickState.x=mag ? nx*mag : 0;
+    joystickState.y=mag ? ny*mag : 0;
+    joystickState.magnitude=mag;
+    syncDigitalDirections();
+  }
+
+  function resetJoystick(){
+    joystickState.x=0;
+    joystickState.y=0;
+    joystickState.magnitude=0;
+    joystickState.active=false;
+    targetKnobX=0;targetKnobY=0;
+    syncDigitalDirections();
+  }
+
+  joystick.addEventListener("pointerdown",(e)=>{
+    e.preventDefault();e.stopPropagation();
+    joyPointer=e.pointerId;
+    const rect=joystick.getBoundingClientRect();
+    centerX=rect.left+rect.width/2;
+    centerY=rect.top+rect.height/2;
+    radius=Math.max(34,Math.min(rect.width,rect.height)*0.36);
+    joystickState.active=true;
+    try{joystick.setPointerCapture(e.pointerId);}catch(_){}
+    updateJoystickFromPointer(e);
+  },{passive:false});
+
+  joystick.addEventListener("pointermove",(e)=>{
+    if(e.pointerId!==joyPointer)return;
+    e.preventDefault();e.stopPropagation();
+    updateJoystickFromPointer(e);
+  },{passive:false});
+
+  const endJoystick=(e)=>{
+    if(joyPointer!==null && e.pointerId!==joyPointer)return;
+    e.preventDefault();e.stopPropagation();
+    try{if(joystick.hasPointerCapture?.(e.pointerId))joystick.releasePointerCapture(e.pointerId);}catch(_){}
+    joyPointer=null;
+    resetJoystick();
+  };
+  joystick.addEventListener("pointerup",endJoystick,{passive:false});
+  joystick.addEventListener("pointercancel",endJoystick,{passive:false});
+
+  // 摇杆视觉更新独立放在RAF里；pointermove只做少量数字计算，不反复改DOM。
+  function renderJoystick(){
+    if(Math.abs(renderedKnobX-targetKnobX)>.15 || Math.abs(renderedKnobY-targetKnobY)>.15){
+      renderedKnobX=targetKnobX;
+      renderedKnobY=targetKnobY;
+      knob.style.transform=`translate3d(${renderedKnobX}px,${renderedKnobY}px,0)`;
+    }
+    requestAnimationFrame(renderJoystick);
+  }
+  requestAnimationFrame(renderJoystick);
 
   const top=controls.querySelector(".mobile-actions-top");
   const bottom=controls.querySelector(".mobile-actions-bottom");
@@ -66,6 +169,10 @@
   bottom.append(makeButton("enter","E 互动"),makeButton("mount","B 下车"),makeButton("fire","● 开火"));
 
   if(coarse) document.body.classList.add("touch-device");
+
+  // 页面失焦或切后台时立刻清零，防止摇杆“粘住”。
+  window.addEventListener("blur",resetJoystick);
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)resetJoystick();});
 
   // 安装APP
   let deferredPrompt=null;
