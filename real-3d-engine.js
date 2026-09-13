@@ -417,10 +417,35 @@
   let islandHumanMesh = null;
   let islandEmoteSprite = null;
   let islandEmoteTexture = null;
+  let islandPetMesh = null;
+  let islandPetId = "";
   const islandBulletMeshes = new Map();
 
   function islandCoord(x, y, height = 0) {
     return new THREE.Vector3((x - 250) / 26, height, (y - 250) / 26);
+  }
+
+  function makeIslandPetMesh(pet) {
+    const group = new THREE.Group();
+    const colors = {
+      scout:0xf0a14b, drone:0x5fcfff, bot:0x9aa8b2, fox:0xe88347, dragon:0x63c477
+    };
+    const mat = new THREE.MeshStandardMaterial({color:colors[pet?.id]||0xf0a14b,roughness:.58,metalness:pet?.id==="drone"||pet?.id==="bot"?.18:0});
+    const dark = new THREE.MeshStandardMaterial({color:0x263039,roughness:.75});
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.26,16,12),mat);
+    body.position.y=.28;group.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.20,16,12),mat);
+    head.position.set(0,.52,-.12);group.add(head);
+    const eye1=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),dark);
+    eye1.position.set(-.07,.57,-.29);group.add(eye1);
+    const eye2=eye1.clone();eye2.position.x=.07;group.add(eye2);
+    if(pet?.id==="drone"){
+      const ring=new THREE.Mesh(new THREE.TorusGeometry(.36,.035,8,20),dark);
+      ring.rotation.x=Math.PI/2;ring.position.y=.32;group.add(ring);
+    }
+    group.scale.setScalar(.95);
+    setMeshShadow(group);
+    return group;
   }
 
   function buildingHeight(id) {
@@ -694,43 +719,7 @@
       smallBeach.position.set(smallCenter.x, 0.17, smallCenter.z);
       islandScene.add(smallBeach);
 
-      // 旁边新增一个大很多的圆形主岛。
-      const largeCenter = islandCoord(830, 260, 0);
-      const largeIsland = new THREE.Mesh(
-        new THREE.CylinderGeometry(16.2, 16.55, 0.48, 96),
-        landMat
-      );
-      largeIsland.position.set(largeCenter.x, 0, largeCenter.z);
-      largeIsland.receiveShadow = true;
-      largeIsland.castShadow = true;
-      islandScene.add(largeIsland);
-
-      const largeBeach = new THREE.Mesh(
-        new THREE.TorusGeometry(16.4, 0.48, 12, 96),
-        sandMat
-      );
-      largeBeach.rotation.x = Math.PI / 2;
-      largeBeach.position.set(largeCenter.x, 0.19, largeCenter.z);
-      islandScene.add(largeBeach);
-
-      // 两岛之间是连续陆地，不需要跳跃或传送，直接走过去。
-      const connector = new THREE.Mesh(
-        new THREE.BoxGeometry(7.2, 0.42, 5.6),
-        landMat
-      );
-      connector.position.set(10.9, 0, 1.1);
-      connector.receiveShadow = true;
-      connector.castShadow = true;
-      islandScene.add(connector);
-
-      const connectorRoad = new THREE.Mesh(
-        new THREE.BoxGeometry(8.2, 0.07, 1.05),
-        new THREE.MeshStandardMaterial({ color: 0xc6b483, roughness: 1 })
-      );
-      connectorRoad.position.set(10.9, 0.25, 1.1);
-      islandScene.add(connectorRoad);
-
-      // 两座岛各自的主路。
+      // 第二个大型主岛已删除，只保留原始岛主路。
       const roadMat = new THREE.MeshStandardMaterial({ color: 0xc6b483, roughness: 1 });
       const road1 = new THREE.Mesh(new THREE.BoxGeometry(17.2, 0.05, 0.78), roadMat);
       road1.position.set(smallCenter.x, 0.25, smallCenter.z);
@@ -738,12 +727,6 @@
       const road2 = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.05, 17.2), roadMat);
       road2.position.set(smallCenter.x, 0.25, smallCenter.z);
       islandScene.add(road2);
-      const mainRoad1 = new THREE.Mesh(new THREE.BoxGeometry(27, 0.05, 0.9), roadMat);
-      mainRoad1.position.set(largeCenter.x, 0.25, largeCenter.z);
-      islandScene.add(mainRoad1);
-      const mainRoad2 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 27), roadMat);
-      mainRoad2.position.set(largeCenter.x, 0.25, largeCenter.z);
-      islandScene.add(mainRoad2);
 
       islandCameraSetup = makeCamera(
         islandRenderer,
@@ -775,174 +758,27 @@
         islandScene.add(platform);
       });
 
-      // 草坪、灌木和树木，让扩大的岛屿更像完整休闲区域。
+      // 原始坦克岛保留少量草坪、灌木和树木；第二大岛的广场和派对装饰全部删除。
       const grassMat = new THREE.MeshStandardMaterial({ color: 0x3f8f45, roughness: 1 });
       const bushMat = new THREE.MeshStandardMaterial({ color: 0x2f7339, roughness: 1 });
       const trunkMat = new THREE.MeshStandardMaterial({ color: 0x725239, roughness: 1 });
       const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f8e45, roughness: .92 });
-      const grassPatches = [
-        [-7.5,-4.5,2.3,1.5],[-5.5,5.8,2.6,1.7],[5.8,-5.5,2.4,1.6],[7.2,4.6,2.1,1.5],
-        [-1.6,6.6,2.8,1.5],[2.4,-6.8,2.5,1.4],
-        [14,-7,3.8,2.2],[18,7,4.5,2.5],[23,-9,4.2,2.2],[28,6,4.8,2.7],
-        [32,-3,3.6,2.0],[22,10,3.8,2.1],[12,3,3.2,2.0]
-      ];
-      for (const [x,z,w,d] of grassPatches) {
-        const patch = new THREE.Mesh(new THREE.BoxGeometry(w,.05,d), grassMat);
-        patch.position.set(x,.24,z);
-        patch.receiveShadow = true;
-        islandScene.add(patch);
-      }
-      const treeSpots = [
-        [-8,-1.5],[-7,3.8],[-3.5,-7],[6.8,-2],[7,6],[1.5,7.5],
-        [13,-8],[15,7],[19,-10],[21,9],[25,-8],[28,8],[31,-4],[33,3],[18,1],[27,1]
-      ];
-      for (const [x,z] of treeSpots) {
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,.9,10),trunkMat);
-        trunk.position.set(x,.68,z); trunk.castShadow=true; islandScene.add(trunk);
-        const crown = new THREE.Mesh(new THREE.SphereGeometry(.55,14,10),leafMat);
-        crown.position.set(x,1.35,z); crown.castShadow=true; islandScene.add(crown);
-        const bush = new THREE.Mesh(new THREE.SphereGeometry(.28,12,8),bushMat);
-        bush.position.set(x+.55,.46,z+.35); bush.castShadow=true; islandScene.add(bush);
-      }
-
-      // 原创欢乐派对主城装饰：彩色拱门、气球柱、圆形跳台和灯柱。
-      const partyColors = [0xff7b7b,0xffd85a,0x63d6ff,0x8b7cff,0x72e58c,0xff8bd1];
-      const archSpots = [[9.5,1.2],[15.5,-5.5],[21,6.5],[28,-4.5]];
-      for (let i=0;i<archSpots.length;i++) {
-        const [x,z]=archSpots[i];
-        const mat=new THREE.MeshStandardMaterial({color:partyColors[i%partyColors.length],roughness:.55});
-        const left=new THREE.Mesh(new THREE.CylinderGeometry(.11,.15,1.9,12),mat);
-        const right=left.clone();
-        left.position.set(x-.72,1.05,z); right.position.set(x+.72,1.05,z);
-        const top=new THREE.Mesh(new THREE.TorusGeometry(.72,.11,10,24,Math.PI),mat);
-        top.rotation.z=Math.PI; top.position.set(x,1.98,z);
-        islandScene.add(left,right,top);
-      }
-
-      const balloonSpots=[[11,-6],[16,5],[24,-7],[29,7],[34,-1],[5,8],[-6,7]];
-      for(let i=0;i<balloonSpots.length;i++){
-        const [x,z]=balloonSpots[i];
-        const mat=new THREE.MeshStandardMaterial({color:partyColors[i%partyColors.length],roughness:.4});
-        const pole=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,1.6,8),new THREE.MeshStandardMaterial({color:0xe6eef2,roughness:.8}));
-        pole.position.set(x,.95,z);
-        const ball=new THREE.Mesh(new THREE.SphereGeometry(.28,14,10),mat);
-        ball.position.set(x,1.9,z);
-        islandScene.add(pole,ball);
-      }
-
-      const jumpSpots=[[12,2.8],[13.3,3.8],[14.8,4.7],[19,-1.5],[20.5,-.6],[22,.3]];
-      jumpSpots.forEach((p,i)=>{
-        const pad=new THREE.Mesh(
-          new THREE.CylinderGeometry(.42,.48,.16,20),
-          new THREE.MeshStandardMaterial({color:partyColors[i%partyColors.length],roughness:.62})
-        );
-        pad.position.set(p[0],.32,p[1]);
-        pad.castShadow=true;
-        islandScene.add(pad);
+      [
+        [-7.5,-4.5,2.3,1.5],[-5.5,5.8,2.6,1.7],[5.8,-5.5,2.4,1.6],
+        [7.2,4.6,2.1,1.5],[-1.6,6.6,2.8,1.5],[2.4,-6.8,2.5,1.4]
+      ].forEach(([x,z,w,d])=>{
+        const patch=new THREE.Mesh(new THREE.BoxGeometry(w,.05,d),grassMat);
+        patch.position.set(x,.24,z);patch.receiveShadow=true;islandScene.add(patch);
       });
-
-      // 原创“欢乐坦克岛”中央派对广场：不复刻其他游戏地图，但营造同类大型社交主城氛围。
-      const plazaCenter = islandCoord(830, 260, 0);
-      const plazaMat = new THREE.MeshStandardMaterial({ color: 0xf0e0b0, roughness: .92 });
-      const plaza = new THREE.Mesh(new THREE.CylinderGeometry(5.8,5.8,.10,64),plazaMat);
-      plaza.position.set(plazaCenter.x,.29,plazaCenter.z);
-      plaza.receiveShadow=true;
-      islandScene.add(plaza);
-
-      const ringColors=[0x63d6ff,0xffd85a,0xff8bd1,0x72e58c];
-      ringColors.forEach((color,i)=>{
-        const ring=new THREE.Mesh(
-          new THREE.TorusGeometry(2.15+i*.72,.08,10,48),
-          new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.08,roughness:.5})
-        );
-        ring.rotation.x=Math.PI/2;
-        ring.position.set(plazaCenter.x,.39+i*.01,plazaCenter.z);
-        islandScene.add(ring);
-      });
-
-      // 中央喷泉/能量核心。
-      const fountainBase=new THREE.Mesh(
-        new THREE.CylinderGeometry(1.15,1.35,.42,36),
-        new THREE.MeshStandardMaterial({color:0x66c7db,roughness:.45,metalness:.12})
-      );
-      fountainBase.position.set(plazaCenter.x,.48,plazaCenter.z);
-      islandScene.add(fountainBase);
-      const fountainCore=new THREE.Mesh(
-        new THREE.SphereGeometry(.55,24,16),
-        new THREE.MeshStandardMaterial({color:0x8eefff,emissive:0x2b92a8,emissiveIntensity:.65,roughness:.25})
-      );
-      fountainCore.position.set(plazaCenter.x,1.15,plazaCenter.z);
-      fountainCore.castShadow=true;
-      islandScene.add(fountainCore);
-
-      // 彩色坡道和滑行桥。
-      const rampMatA=new THREE.MeshStandardMaterial({color:0xff8a73,roughness:.7});
-      const rampMatB=new THREE.MeshStandardMaterial({color:0x7b8cff,roughness:.7});
-      const ramps=[
-        [plazaCenter.x-6.8,plazaCenter.z+2.6,0.22,rampMatA],
-        [plazaCenter.x+6.8,plazaCenter.z-2.6,-0.22,rampMatB]
-      ];
-      for(const [x,z,rot,mat] of ramps){
-        const ramp=new THREE.Mesh(new THREE.BoxGeometry(4.2,.22,1.9),mat);
-        ramp.position.set(x,.65,z);
-        ramp.rotation.z=rot;
-        ramp.castShadow=true;
-        ramp.receiveShadow=true;
-        islandScene.add(ramp);
-      }
-
-      // 弹跳圆台、社交舞台与彩色灯柱。
-      const padColors=[0xff7b7b,0xffd85a,0x63d6ff,0x8b7cff,0x72e58c,0xff8bd1];
-      const partyPads=[
-        [plazaCenter.x-4.8,plazaCenter.z-4.2],
-        [plazaCenter.x-2.6,plazaCenter.z-5.0],
-        [plazaCenter.x+4.9,plazaCenter.z+4.0],
-        [plazaCenter.x+2.8,plazaCenter.z+5.0]
-      ];
-      partyPads.forEach((p,i)=>{
-        const pad=new THREE.Mesh(
-          new THREE.CylinderGeometry(.72,.82,.22,28),
-          new THREE.MeshStandardMaterial({color:padColors[i%padColors.length],roughness:.55})
-        );
-        pad.position.set(p[0],.42,p[1]);
-        pad.castShadow=true;
-        islandScene.add(pad);
-      });
-
-      const stage=new THREE.Mesh(
-        new THREE.CylinderGeometry(2.25,2.45,.38,40),
-        new THREE.MeshStandardMaterial({color:0x8b6cf3,roughness:.52,metalness:.08})
-      );
-      stage.position.set(plazaCenter.x+8.8,.48,plazaCenter.z+6.2);
-      stage.castShadow=true;
-      islandScene.add(stage);
-      const stageRing=new THREE.Mesh(
-        new THREE.TorusGeometry(1.7,.09,10,36),
-        new THREE.MeshStandardMaterial({color:0xffd85a,emissive:0x6a4d00,emissiveIntensity:.35})
-      );
-      stageRing.rotation.x=Math.PI/2;
-      stageRing.position.set(stage.position.x,.72,stage.position.z);
-      islandScene.add(stageRing);
-
-      const lightSpots=[
-        [plazaCenter.x-7.2,plazaCenter.z-5.8],
-        [plazaCenter.x-7.2,plazaCenter.z+5.8],
-        [plazaCenter.x+7.2,plazaCenter.z-5.8],
-        [plazaCenter.x+7.2,plazaCenter.z+5.8]
-      ];
-      lightSpots.forEach((p,i)=>{
-        const pole=new THREE.Mesh(
-          new THREE.CylinderGeometry(.07,.09,2.4,10),
-          new THREE.MeshStandardMaterial({color:0xf2f4f7,roughness:.8})
-        );
-        pole.position.set(p[0],1.45,p[1]);
-        islandScene.add(pole);
-        const lamp=new THREE.Mesh(
-          new THREE.SphereGeometry(.22,14,10),
-          new THREE.MeshStandardMaterial({color:padColors[i],emissive:padColors[i],emissiveIntensity:.55})
-        );
-        lamp.position.set(p[0],2.72,p[1]);
-        islandScene.add(lamp);
+      [
+        [-8,-1.5],[-7,3.8],[-3.5,-7],[6.8,-2],[7,6],[1.5,7.5]
+      ].forEach(([x,z])=>{
+        const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,.9,10),trunkMat);
+        trunk.position.set(x,.68,z);trunk.castShadow=true;islandScene.add(trunk);
+        const crown=new THREE.Mesh(new THREE.SphereGeometry(.55,14,10),leafMat);
+        crown.position.set(x,1.35,z);crown.castShadow=true;islandScene.add(crown);
+        const bush=new THREE.Mesh(new THREE.SphereGeometry(.28,12,8),bushMat);
+        bush.position.set(x+.55,.46,z+.35);bush.castShadow=true;islandScene.add(bush);
       });
 
       // 坦克大厦附近增加大型迎宾拱门，让楼顶巨型坦克从远处就能看到。
@@ -1333,6 +1169,23 @@
       islandHumanMesh.visible = true;
     } else if (islandHumanMesh) {
       islandHumanMesh.visible = false;
+    }
+
+    const pet = typeof activeIslandPet === "function" ? activeIslandPet() : null;
+    if (pet) {
+      if (!islandPetMesh || islandPetId !== pet.id) {
+        if (islandPetMesh) islandScene.remove(islandPetMesh);
+        islandPetMesh = makeIslandPetMesh(pet);
+        islandPetId = pet.id;
+        islandScene.add(islandPetMesh);
+      }
+      const mover = s.mounted ? s.player : s.human;
+      const follow = islandCoord(mover.x - 22, mover.y + 20, 0);
+      islandPetMesh.position.set(follow.x, .25 + (mover.z||0)/24 + Math.abs(Math.sin(performance.now()/260))*.12, follow.z);
+      islandPetMesh.rotation.y = performance.now()/900;
+      islandPetMesh.visible = true;
+    } else if (islandPetMesh) {
+      islandPetMesh.visible = false;
     }
 
     const live = new Set();
