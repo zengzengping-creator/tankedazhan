@@ -405,7 +405,7 @@ function ensureIslandWorldModal() {
         <button type="button" id="island-world-exit">离开岛屿</button>
       </div>
       <canvas id="island-world-canvas" width="2000" height="950"></canvas>
-      <div id="island-world-hint" class="island-world-hint">方向键移动 · J跳跃 · E互动 · 模式/商城/表情都在屏幕快捷栏</div>
+      <div id="island-world-hint" class="island-world-hint">左侧摇杆移动 · J跳跃 · E互动 · 模式/商城/表情都在屏幕快捷栏</div>
     </div>`;
 
   document.querySelector("#canvas-wrap")?.appendChild(modal);
@@ -641,7 +641,7 @@ function updateIslandWorld() {
   if (hint && s.nearBuilding && !s.parkourRewardLock) {
     hint.textContent = `靠近 ${s.nearBuilding.icon} ${s.nearBuilding.name} · 按 E 互动 · J 跳跃`;
   } else if (hint && !s.nearBuilding && s.parkourStage === 0 && !s.parkourRewardLock) {
-    hint.textContent = "方向键移动 · J跳跃 · 靠近建筑按E互动";
+    hint.textContent = "左侧摇杆/方向键移动 · J跳跃 · 靠近建筑按E互动";
   }
 }
 
