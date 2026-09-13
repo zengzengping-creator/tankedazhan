@@ -527,15 +527,18 @@ function clampPlayerToIsland(p) {
   const maze = { x1: 1380, x2: 1900, y1: 390, y2: 800 };
   const bridge = { x1: 455, x2: 545, y1: 205, y2: 355 };
   const funBridge = { x1: 900, x2: 1040, y1: 430, y2: 520 };
-  const mazeJumpPads = [{x:1328,y:590,r:19},{x:1356,y:590,r:19}];
+  const mazeJumpPads = [{x:1318,y:590,r:17},{x:1344,y:590,r:17},{x:1370,y:590,r:17}];
 
   const insideCircle = (c) => Math.hypot(p.x - c.x, p.y - c.y) <= c.r;
   const insideRect = (r) => p.x >= r.x1 && p.x <= r.x2 && p.y >= r.y1 && p.y <= r.y2;
   const insideBridge = p.x >= bridge.x1 && p.x <= bridge.x2 && p.y >= bridge.y1 && p.y <= bridge.y2;
   const insideFunBridge = p.x >= funBridge.x1 && p.x <= funBridge.x2 && p.y >= funBridge.y1 && p.y <= funBridge.y2;
   const onMazePad = mazeJumpPads.some(q => Math.hypot(p.x-q.x,p.y-q.y) <= q.r);
-  const airborneMazeJump = p.x >= 1280 && p.x <= 1390 && p.y >= 548 && p.y <= 632 &&
-    (p.z || 0) > 2.5 && (!islandWorldState || islandWorldState.mounted !== false);
+  // J键刚按下时先产生vz、下一帧才增加z；把“正在起跳”也算作合法跨海状态，
+  // 避免坦克还没离地就被边界吸回去。
+  const airborneMazeJump = p.x >= 1288 && p.x <= 1395 && p.y >= 542 && p.y <= 638 &&
+    ((p.z || 0) > 0.2 || (p.vz || 0) > 0.1) &&
+    (!islandWorldState || islandWorldState.mounted !== false);
 
   if (insideCircle(small) || insideCircle(large) || insideCircle(amusement) ||
       insideRect(maze) || insideBridge || insideFunBridge || onMazePad || airborneMazeJump) return;
@@ -841,7 +844,11 @@ window.addEventListener("keydown", (e) => {
         ? islandCurrentMover(islandWorldState)
         : islandWorldState?.player;
     if (jumper && jumper.z <= 0) {
-      jumper.vz = 6.2;
+      const nearGiantMaze = jumper.x >= 1240 && jumper.x <= 1920 &&
+        jumper.y >= 350 && jumper.y <= 840 &&
+        (!islandWorldState || islandWorldState.mounted !== false);
+      // 巨型迷宫的跳跃稍高一点，降低入口和内部断层的操作难度。
+      jumper.vz = nearGiantMaze ? 8.2 : 6.2;
     }
     return;
   }
