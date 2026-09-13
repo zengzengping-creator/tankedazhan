@@ -13,12 +13,12 @@ const PAYMENT_CHECKOUT_URL = String(process.env.PAYMENT_CHECKOUT_URL || "").trim
 const PAYMENT_WEBHOOK_SECRET = String(process.env.PAYMENT_WEBHOOK_SECRET || "").trim();
 
 const RECHARGE_PACKS = [
-  {id:"r1", yuan:1, coins:300},
-  {id:"r6", yuan:6, coins:1800},
-  {id:"r18", yuan:18, coins:5400},
-  {id:"r30", yuan:30, coins:9000},
-  {id:"r68", yuan:68, coins:20400},
-  {id:"r128", yuan:128, coins:38400}
+  {id:"r1", yuan:1, baseTankCoins:100, bonusTankCoins:0},
+  {id:"r6", yuan:6, baseTankCoins:600, bonusTankCoins:0},
+  {id:"r18", yuan:18, baseTankCoins:1800, bonusTankCoins:0},
+  {id:"r30", yuan:30, baseTankCoins:3000, bonusTankCoins:300},
+  {id:"r68", yuan:68, baseTankCoins:6800, bonusTankCoins:1000},
+  {id:"r128", yuan:128, baseTankCoins:12800, bonusTankCoins:2500}
 ];
 
 const app = express();
@@ -98,9 +98,15 @@ function saveRechargeOrders(){
   }
 }
 function publicRechargeOrder(order){
+  const baseTankCoins=Number(order.baseTankCoins ?? order.coins ?? 0);
+  const bonusTankCoins=Number(order.bonusTankCoins ?? 0);
+  const totalTankCoins=Number(order.totalTankCoins ?? (baseTankCoins+bonusTankCoins));
   return {
     id:order.id,playerId:order.playerId,playerName:order.playerName,
-    packId:order.packId,yuan:order.yuan,coins:order.coins,status:order.status,
+    packId:order.packId,yuan:order.yuan,
+    baseTankCoins,bonusTankCoins,totalTankCoins,
+    firstDouble:!!order.firstDouble,
+    status:order.status,
     createdAt:order.createdAt,paidAt:order.paidAt||"",claimedAt:order.claimedAt||"",
     checkoutUrl:order.checkoutUrl||""
   };
@@ -121,7 +127,9 @@ app.get("/api/health",(req,res)=>res.json({ok:true,maps:maps.length,teams:teams.
 
 app.get("/api/recharge/config",(req,res)=>{
   res.json({
-    rate:"1元=300金币",
+    rate:"1元=100坦克币",
+    exchange:{mid:"5坦克币=1中级坦克币",high:"10坦克币=1高级坦克币"},
+    firstRechargeDouble:true,
     paymentConfigured:!!(PAYMENT_CHECKOUT_URL&&PAYMENT_WEBHOOK_SECRET),
     packs:RECHARGE_PACKS
   });
@@ -136,7 +144,11 @@ app.post("/api/recharge/orders",(req,res)=>{
 
   const order={
     id:"ord-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9),
-    playerId,playerName,packId:pack.id,yuan:pack.yuan,coins:pack.coins,
+    playerId,playerName,packId:pack.id,yuan:pack.yuan,
+    baseTankCoins:pack.baseTankCoins,
+    bonusTankCoins:pack.bonusTankCoins,
+    totalTankCoins:pack.baseTankCoins+pack.bonusTankCoins,
+    firstDouble:false,
     status:"pending",createdAt:new Date().toISOString()
   };
   order.checkoutUrl=makeCheckoutUrl(order);
@@ -173,7 +185,7 @@ app.post("/api/recharge/orders/:id/claim",(req,res)=>{
   order.status="claimed";
   order.claimedAt=new Date().toISOString();
   saveRechargeOrders();
-  res.json({ok:true,coins:order.coins,order:publicRechargeOrder(order)});
+  res.json({ok:true,tankCoins:Number(order.totalTankCoins||0),order:publicRechargeOrder(order)});
 });
 
 app.post("/api/recharge/webhook",(req,res)=>{
@@ -187,6 +199,13 @@ app.post("/api/recharge/webhook",(req,res)=>{
   if(!order)return res.status(404).json({error:"订单不存在"});
   if(!paid)return res.status(400).json({error:"支付状态不是成功"});
   if(order.status==="pending"){
+    const hadEarlierPaid=rechargeOrders.some(o=>
+      o!==order && o.playerId===order.playerId && (o.status==="paid"||o.status==="claimed")
+    );
+    const base=Number(order.baseTankCoins ?? order.coins ?? 0);
+    const bonus=Number(order.bonusTankCoins ?? 0);
+    order.firstDouble=!hadEarlierPaid;
+    order.totalTankCoins=base*(order.firstDouble?2:1)+bonus;
     order.status="paid";
     order.paidAt=new Date().toISOString();
     saveRechargeOrders();
