@@ -46,6 +46,8 @@ const PARTY_MODE_INFO = {
   treasure:["🗺️","寻宝争夺"],
   capture:["🚩","据点抢占"],
   chaos:["⚡","技能大乱斗"],
+  amusement:["🎪","游乐园巡游"],
+  giantmaze:["🧩","巨型剧情迷宫"],
 };
 
 function escapePartyHtml(value) {
@@ -124,6 +126,22 @@ function startSelectedPartyMode() {
   const mode = partyHubData.lastMode || "story";
   document.getElementById("meta-modal")?.classList.add("hidden");
   if (mode === "story") return startStoryMode();
+  if (mode === "amusement") {
+    if (islandWorldState) {
+      const mover = islandWorldState.mounted ? islandWorldState.player : islandWorldState.human;
+      if (mover) { mover.x=900; mover.y=590; mover.z=0; mover.vz=0; }
+    }
+    metaToast("🎪 已进入游乐园巡游区");
+    return;
+  }
+  if (mode === "giantmaze") {
+    if (islandWorldState) {
+      const mover = islandWorldState.mounted ? islandWorldState.player : islandWorldState.human;
+      if (mover) { mover.x=1285; mover.y=590; mover.z=0; mover.vz=0; }
+    }
+    metaToast("🧩 已来到巨型剧情迷宫入口");
+    return;
+  }
   if (mode === "parkour") {
     if (islandWorldState) {
       const mover = islandWorldState.mounted ? islandWorldState.player : islandWorldState.human;
@@ -219,16 +237,17 @@ function renderPartyCreate(title, body) {
 function renderPartyMap(title, body) {
   title.textContent = "🗺️ 坦克岛地图";
   const places = [
-    ["⛲","主岛广场",735,250],
+    ["🌳","原始坦克岛中心",250,300],
     ["🏢","坦克大楼",250,190],
-    ["🎪","游乐园游乐区",1000,470],
-    ["🧩","巨型剧情迷宫入口",1260,590],
+    ["🛍️","原始岛商城",120,170],
+    ["🎪","游乐园游乐区",900,590],
+    ["🧩","巨型剧情迷宫入口",1285,590],
     ["🗼","跑酷塔",390,285],
     ["🎯","射击靶场",350,350],
   ];
   body.innerHTML = `
     <div class="party-map-board">
-      <div class="party-map-mini"><span>旧岛</span><b>主岛</b><i>游乐园</i><em>巨型迷宫</em></div>
+      <div class="party-map-mini"><span>原始岛</span><i>游乐园</i><em>巨型迷宫</em></div>
       <small>选择地点可快速定位；巨型迷宫会把你送到入口跳台前，不会直接跳过挑战。</small>
     </div>
     <div class="party-map-grid">
@@ -299,7 +318,9 @@ function renderPartyModes(title, body) {
       <button data-party-mode="treasure"><strong>🗺️</strong><b>寻宝争夺</b><small>抢夺地图宝箱</small></button>
       <button data-party-mode="capture"><strong>🚩</strong><b>据点抢占</b><small>占领中央据点</small></button>
       <button data-party-mode="chaos"><strong>⚡</strong><b>技能大乱斗</b><small>随机技能混战</small></button>
-      <button data-meta-panel="rank"><strong>🏅</strong><b>排位模式</b><small>赢取排位积分</small></button>
+      <button data-party-mode="amusement"><strong>🎪</strong><b>游乐园巡游</b><small>7项坦克游乐设施</small></button>
+      <button data-party-mode="giantmaze"><strong>🧩</strong><b>巨型剧情迷宫</b><small>跳跃、剧情节点、找出口</small></button>
+      <button data-meta-panel="rank"><strong>🏅</strong><b>排位模式</b><small>排位足球 / 靶场 / 竞速</small></button>
     </div>`;
 
   body.querySelectorAll("[data-party-mode]").forEach(btn => {
@@ -354,18 +375,15 @@ function renderPartyRank(title, body) {
 function renderPartyScenic(title, body) {
   title.textContent = "📍 坦克岛景点";
   const scenic = [
-    ["🎡","摩天轮","岛屿全景地标"],
+    ["🎡","摩天轮","原始坦克岛全景地标"],
     ["🏛️","坦克博物馆","收藏与历史展示"],
-    ["☕","海景咖啡馆","休闲社交区域"],
+    ["☕","海景咖啡馆","休闲区域"],
     ["🌳","中央草坪","下车散步与动作"],
-    ["⛲","主岛广场","大型主岛中心"],
-    ["🗼","跑酷塔","登顶获得金币"],
-    ["⚽","足球场","坦克足球玩法"],
+    ["🗼","跑酷塔","跑酷挑战"],
+    ["⚽","足球场","坦克足球"],
     ["🎯","射击靶场","射击挑战"],
-    ["🎠","坦克旋转乐园","彩色坦克座舱游乐设施"],
-    ["🌈","彩虹滑行坡","大型滑行与竞速景点"],
-    ["📸","巨炮打卡区","主岛拍照与社交地标"],
-    ["🧩","巨型剧情迷宫","跳跃进入、剧情节点与出口挑战"],
+    ["🎪","游乐园游乐区","独立玩法区，从模式选择进入"],
+    ["🧩","巨型剧情迷宫","独立剧情迷宫，从模式选择进入"],
   ];
   body.innerHTML = `
     <div class="party-scenic-grid">
