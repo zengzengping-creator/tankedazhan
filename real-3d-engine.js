@@ -957,6 +957,166 @@
       gateTop.position.set(towerCenter.x,3.45,towerCenter.z+3.0);
       islandScene.add(gateLeft,gateRight,gateTop);
 
+      // 大型“游乐园游乐区”：独立半岛 + 8个可驾驶游乐设施。
+      if (typeof AMUSEMENT_ZONE !== "undefined") {
+        const funCenter = islandCoord(AMUSEMENT_ZONE.center.x, AMUSEMENT_ZONE.center.y, 0);
+        const funLand = new THREE.Mesh(
+          new THREE.CylinderGeometry(9.35,9.65,.46,72),
+          new THREE.MeshStandardMaterial({color:0x68b75c,roughness:.96})
+        );
+        funLand.position.set(funCenter.x,0,funCenter.z);
+        funLand.castShadow=true; funLand.receiveShadow=true; islandScene.add(funLand);
+
+        const funBeach = new THREE.Mesh(
+          new THREE.TorusGeometry(9.5,.38,10,72),
+          new THREE.MeshStandardMaterial({color:0xe5cd82,roughness:1})
+        );
+        funBeach.rotation.x=Math.PI/2;
+        funBeach.position.set(funCenter.x,.18,funCenter.z);
+        islandScene.add(funBeach);
+
+        const funRoad = new THREE.Mesh(
+          new THREE.BoxGeometry(7.0,.08,2.0),
+          new THREE.MeshStandardMaterial({color:0xe0c78f,roughness:.9})
+        );
+        const funEntrance = islandCoord(990,470,0);
+        funRoad.position.set(funEntrance.x,.28,funEntrance.z);
+        funRoad.rotation.y=-.33;
+        islandScene.add(funRoad);
+
+        // 入口大牌“游乐园游乐区”。
+        const signCanvas=document.createElement("canvas");
+        signCanvas.width=512;signCanvas.height=128;
+        const signCtx=signCanvas.getContext("2d");
+        signCtx.fillStyle="#f6c84f";signCtx.fillRect(0,0,512,128);
+        signCtx.strokeStyle="#ffffff";signCtx.lineWidth=12;signCtx.strokeRect(7,7,498,114);
+        signCtx.fillStyle="#24303a";signCtx.font="bold 56px Microsoft YaHei,sans-serif";
+        signCtx.textAlign="center";signCtx.textBaseline="middle";
+        signCtx.fillText("游乐园游乐区",256,66);
+        const signTexture=new THREE.CanvasTexture(signCanvas);
+        signTexture.colorSpace=THREE.SRGBColorSpace;
+        const signMat=new THREE.MeshBasicMaterial({map:signTexture});
+        const gatePos=islandCoord(1000,452,0);
+        const sign=new THREE.Mesh(new THREE.PlaneGeometry(4.6,1.15),signMat);
+        sign.position.set(gatePos.x,3.15,gatePos.z);
+        islandScene.add(sign);
+        const gatePoleMat=new THREE.MeshStandardMaterial({color:0x52cbe8,roughness:.45});
+        [-1.95,1.95].forEach(dx=>{
+          const pole=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,3.8,14),gatePoleMat);
+          pole.position.set(gatePos.x+dx,1.9,gatePos.z);
+          islandScene.add(pole);
+        });
+
+        const rideColor={
+          slide:0xff7996,swing:0x62d6ff,trampoline:0x9b79ff,spinner:0xffd65e,
+          seesaw:0x72df8b,rainbow:0xff8bcf,moving:0x60d0da,maze:0xf0a35d
+        };
+        const posOf=(id)=>{
+          const r=AMUSEMENT_ZONE.rides.find(x=>x.id===id);
+          return r ? islandCoord(r.x,r.y,0) : new THREE.Vector3();
+        };
+
+        // 1 大型滑梯
+        {
+          const p=posOf("slide");
+          const g=new THREE.Group(); g.position.copy(p);
+          const tower=new THREE.Mesh(new THREE.CylinderGeometry(.65,.78,2.8,20),new THREE.MeshStandardMaterial({color:0x63d6ff,roughness:.55}));
+          tower.position.set(-1.0,1.55,0);g.add(tower);
+          const ramp=new THREE.Mesh(new THREE.BoxGeometry(4.0,.22,1.0),new THREE.MeshStandardMaterial({color:rideColor.slide,roughness:.55}));
+          ramp.position.set(.65,1.45,0);ramp.rotation.z=-.42;g.add(ramp);
+          const landing=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.0,.18,24),new THREE.MeshStandardMaterial({color:0xffd65e,roughness:.55}));
+          landing.position.set(2.4,.35,0);g.add(landing);
+          g.userData.amusementRide="slide";setMeshShadow(g);islandScene.add(g);
+        }
+
+        // 2 坦克秋千
+        {
+          const p=posOf("swing");
+          const g=new THREE.Group();g.position.copy(p);g.userData.amusementRide="swing";
+          const mat=new THREE.MeshStandardMaterial({color:rideColor.swing,roughness:.52});
+          [-1.1,1.1].forEach(x=>{
+            const leg=new THREE.Mesh(new THREE.CylinderGeometry(.09,.13,3.0,12),mat);
+            leg.position.set(x,1.55,0);g.add(leg);
+          });
+          const top=new THREE.Mesh(new THREE.BoxGeometry(2.5,.16,.16),mat);top.position.y=3.0;g.add(top);
+          const seat=new THREE.Mesh(new THREE.BoxGeometry(1.25,.18,.95),new THREE.MeshStandardMaterial({color:0xffd65e,roughness:.6}));
+          seat.position.y=.75;g.add(seat);
+          [-.45,.45].forEach(x=>{
+            const rope=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,2.1,8),new THREE.MeshStandardMaterial({color:0xf4f0e5}));
+            rope.position.set(x,1.8,0);g.add(rope);
+          });
+          setMeshShadow(g);islandScene.add(g);
+        }
+
+        // 3 蹦床区
+        {
+          const p=posOf("trampoline");
+          const g=new THREE.Group();g.position.copy(p);g.userData.amusementRide="trampoline";
+          [[0,0],[-1.1,.65],[1.1,.65],[-1.0,-.75],[1.0,-.75]].forEach((q,i)=>{
+            const pad=new THREE.Mesh(new THREE.CylinderGeometry(.65,.72,.18,28),new THREE.MeshStandardMaterial({color:[0x9b79ff,0xff7996,0x62d6ff,0xffd65e,0x72df8b][i],roughness:.45}));
+            pad.position.set(q[0],.3,q[1]);g.add(pad);
+          });
+          setMeshShadow(g);islandScene.add(g);
+        }
+
+        // 4 旋转娱乐盘
+        {
+          const p=posOf("spinner");
+          const g=new THREE.Group();g.position.copy(p);g.userData.amusementRide="spinner";
+          const disc=new THREE.Mesh(new THREE.CylinderGeometry(1.75,1.85,.24,40),new THREE.MeshStandardMaterial({color:rideColor.spinner,roughness:.5}));
+          disc.position.y=.32;g.add(disc);
+          const hub=new THREE.Mesh(new THREE.CylinderGeometry(.35,.45,.7,20),new THREE.MeshStandardMaterial({color:0xff7f9a,roughness:.5}));
+          hub.position.y=.75;g.add(hub);
+          setMeshShadow(g);islandScene.add(g);
+        }
+
+        // 5 跷跷板
+        {
+          const p=posOf("seesaw");
+          const g=new THREE.Group();g.position.copy(p);g.userData.amusementRide="seesaw";
+          const pivot=new THREE.Mesh(new THREE.CylinderGeometry(.28,.5,.75,18),new THREE.MeshStandardMaterial({color:0x7b8cff,roughness:.58}));
+          pivot.position.y=.55;g.add(pivot);
+          const board=new THREE.Mesh(new THREE.BoxGeometry(3.5,.22,.82),new THREE.MeshStandardMaterial({color:rideColor.seesaw,roughness:.55}));
+          board.position.y=1.05;board.rotation.z=.12;g.add(board);
+          setMeshShadow(g);islandScene.add(g);
+        }
+
+        // 6 彩虹跳台
+        {
+          const pads=[[1118,620],[1135,603],[1153,588],[1172,575],[1190,562],[1208,548]];
+          const colors=[0xff6f86,0xffa84d,0xffe05b,0x6edb8a,0x61cfff,0x9a78ff];
+          pads.forEach((q,i)=>{
+            const p=islandCoord(q[0],q[1],0);
+            const pad=new THREE.Mesh(new THREE.CylinderGeometry(.48,.55,.18,24),new THREE.MeshStandardMaterial({color:colors[i],roughness:.52}));
+            pad.position.set(p.x,.32+i*.12,p.z);pad.userData.amusementRide="rainbow";islandScene.add(pad);
+          });
+        }
+
+        // 7 移动平台区
+        {
+          const p=posOf("moving");
+          const g=new THREE.Group();g.position.copy(p);g.userData.amusementRide="moving";
+          const rail=new THREE.Mesh(new THREE.BoxGeometry(4.8,.10,.18),new THREE.MeshStandardMaterial({color:0xdbe7ea,roughness:.6}));
+          rail.position.y=.3;g.add(rail);
+          const platform=new THREE.Mesh(new THREE.BoxGeometry(1.8,.22,1.15),new THREE.MeshStandardMaterial({color:rideColor.moving,roughness:.5}));
+          platform.position.y=.48;platform.userData.movingPlatform=true;g.add(platform);
+          setMeshShadow(g);islandScene.add(g);
+        }
+
+        // 8 小型迷宫
+        if (Array.isArray(AMUSEMENT_ZONE.mazeWalls)) {
+          const wallMat=new THREE.MeshStandardMaterial({color:0x7b5942,roughness:.82});
+          AMUSEMENT_ZONE.mazeWalls.forEach(w=>{
+            const center=islandCoord(w.x+w.w/2,w.y+w.h/2,0);
+            const wall=new THREE.Mesh(new THREE.BoxGeometry(w.w/26,.85,w.h/26),wallMat);
+            wall.position.set(center.x,.68,center.z);wall.userData.amusementRide="maze";setMeshShadow(wall);islandScene.add(wall);
+          });
+          const goal=islandCoord(1168,728,0);
+          const chest=new THREE.Mesh(new THREE.BoxGeometry(.65,.5,.55),new THREE.MeshStandardMaterial({color:0xffd65e,metalness:.08,roughness:.55}));
+          chest.position.set(goal.x,.55,goal.z);islandScene.add(chest);
+        }
+      }
+
       islandStaticBuilt = true;
     }
 
@@ -1154,6 +1314,18 @@
       // 摩天轮真正3D旋转
       const wheel = islandScene.children.find((o) => o.userData?.buildingId === "wheel");
       if (wheel) wheel.rotation.z += 0.0035;
+
+      // 游乐园动态设施。
+      const funState=islandWorldState?.amusement;
+      const spinner=islandScene.children.find(o=>o.userData?.amusementRide==="spinner");
+      if(spinner)spinner.rotation.y+=0.018;
+      const swing=islandScene.children.find(o=>o.userData?.amusementRide==="swing");
+      if(swing)swing.rotation.x=Math.sin(performance.now()/430)*0.08;
+      const movingRide=islandScene.children.find(o=>o.userData?.amusementRide==="moving");
+      const movingPlatform=movingRide?.children?.find(o=>o.userData?.movingPlatform);
+      if(movingPlatform)movingPlatform.position.x=Math.sin((funState?.phase||performance.now()/1000)*1.5)*1.62;
+      const seesaw=islandScene.children.find(o=>o.userData?.amusementRide==="seesaw");
+      if(seesaw)seesaw.rotation.z=Math.sin(performance.now()/520)*0.07;
 
       islandRenderer.render(islandScene, islandCameraSetup.camera);
     }
