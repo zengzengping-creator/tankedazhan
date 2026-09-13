@@ -2727,3 +2727,207 @@ button:disabled {
     transform-origin: left bottom;
   }
 }
+
+
+/* 充值中心 */
+.meta-recharge-top {
+  border-color: rgba(255,215,90,.65) !important;
+  background: linear-gradient(180deg,rgba(72,58,17,.92),rgba(45,36,12,.92)) !important;
+  color: #ffe58a !important;
+}
+
+.meta-recharge-server,
+.meta-recharge-provider,
+.meta-recharge-history {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #315668;
+  border-radius: 8px;
+  background: rgba(255,255,255,.045);
+}
+
+.meta-recharge-server {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.meta-recharge-server.ready {
+  border-color:#4ca779;
+}
+
+.meta-recharge-server span {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.meta-recharge-server b {
+  color:#eaf9ff;
+  font-size:10px;
+}
+
+.meta-recharge-server small {
+  max-width:260px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#9fb6c0;
+  font-size:8px;
+}
+
+.meta-recharge-server button,
+.meta-recharge-history-head button,
+.meta-recharge-order button {
+  padding:5px 8px;
+  border:1px solid #477486;
+  border-radius:6px;
+  background:#173641;
+  color:#fff;
+  font-size:9px;
+}
+
+.meta-recharge-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+  margin-top:8px;
+}
+
+.meta-recharge-card {
+  min-height:116px;
+  padding:9px 7px;
+  border:1px solid #5d5130;
+  border-radius:9px;
+  background:linear-gradient(180deg,rgba(76,61,21,.28),rgba(21,34,41,.86));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  color:#fff;
+}
+
+.meta-recharge-card b {
+  color:#ffe17c;
+  font-size:18px;
+}
+
+.meta-recharge-card strong {
+  color:#fff1b0;
+  font-size:12px;
+}
+
+.meta-recharge-card small {
+  color:#adbec6;
+  font-size:8px;
+}
+
+.meta-recharge-card button {
+  width:100%;
+  margin-top:auto;
+  padding:6px;
+  border:1px solid #d2a93f;
+  border-radius:6px;
+  background:#8a6721;
+  color:#fff7d2;
+  font-size:9px;
+  font-weight:700;
+}
+
+.meta-recharge-card button:disabled {
+  opacity:.45;
+  filter:grayscale(.5);
+}
+
+.meta-recharge-provider {
+  color:#d5e7ee;
+  font-size:9px;
+  line-height:1.45;
+}
+
+.meta-recharge-provider.ready {
+  border-color:#4ca779;
+  color:#75e6a4;
+}
+
+.meta-recharge-history-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:6px;
+}
+
+.meta-recharge-history-head b {
+  color:#8edfff;
+  font-size:11px;
+}
+
+.meta-recharge-orders {
+  display:grid;
+  gap:5px;
+}
+
+.meta-recharge-order {
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  align-items:center;
+  gap:7px;
+  padding:7px;
+  border-radius:7px;
+  background:rgba(0,0,0,.18);
+}
+
+.meta-recharge-order > span {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.meta-recharge-order > span b {
+  color:#eefaff;
+  font-size:9px;
+}
+
+.meta-recharge-order > span small {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#7895a1;
+  font-size:7px;
+}
+
+.meta-recharge-order em {
+  font-style:normal;
+  font-size:8px;
+}
+
+.meta-recharge-order .status-pending { color:#ffcf66; }
+.meta-recharge-order .status-paid { color:#73e6a6; }
+.meta-recharge-order .status-claimed { color:#8db2c1; }
+
+.meta-recharge-empty {
+  padding:12px;
+  text-align:center;
+  color:#819aa5;
+  font-size:9px;
+}
+
+@media (max-width: 540px) {
+  .meta-recharge-grid {
+    grid-template-columns:repeat(2,1fr);
+  }
+  .meta-recharge-server {
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .meta-recharge-order {
+    grid-template-columns:1fr auto;
+  }
+  .meta-recharge-order > div {
+    grid-column:1 / -1;
+  }
+}
