@@ -509,13 +509,13 @@ function clampPlayerToIsland(p) {
   // 第二个大型主岛已删除。保留原始坦克岛，以及独立的游乐园和巨型剧情迷宫玩法区。
   const small = { x: 250, y: 300, r: 260 };
   const amusement = { x: 1060, y: 590, r: 245 };
-  const maze = { x1: 1380, x2: 1900, y1: 390, y2: 800 };
-  const mazeJumpPads = [{x:1318,y:590,r:17},{x:1344,y:590,r:17},{x:1370,y:590,r:17}];
+  const maze = { x1: 560, x2: 1080, y1: 30, y2: 330 };
+  const mazeJumpPads = [{x:500,y:245,r:18},{x:570,y:245,r:18}];
 
   const insideCircle = (q) => Math.hypot(p.x-q.x,p.y-q.y) <= q.r;
   const insideRect = (r) => p.x>=r.x1&&p.x<=r.x2&&p.y>=r.y1&&p.y<=r.y2;
   const onMazePad = mazeJumpPads.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<=q.r);
-  const airborneMazeJump = p.x>=1288&&p.x<=1395&&p.y>=542&&p.y<=638 &&
+  const airborneMazeJump = p.x>=495&&p.x<=570&&p.y>=208&&p.y<=282 &&
     ((p.z||0)>0.2||(p.vz||0)>0.1) &&
     (!islandWorldState||islandWorldState.mounted!==false);
 
@@ -736,14 +736,14 @@ function drawIslandWorld() {
   ctx2.beginPath(); ctx2.arc(250,300,242,0,Math.PI*2); ctx2.fill();
   ctx2.beginPath(); ctx2.arc(1060,590,228,0,Math.PI*2); ctx2.fill();
 
-  // 巨型剧情迷宫平台：整片区域都是迷宫，和游乐园之间留海面跳跃断层。
+  // 第三个岛（巨型剧情迷宫）搬到原始岛旁边，中间保留水面断层。
   ctx2.fillStyle = "#e3cf87";
-  ctx2.fillRect(1366, 376, 548, 438);
+  ctx2.fillRect(546, 16, 548, 328);
   ctx2.fillStyle = "#557f49";
-  ctx2.fillRect(1380, 390, 520, 410);
+  ctx2.fillRect(560, 30, 520, 300);
 
-  // 跨海跳台，必须按J跳跃才能真正进入迷宫区域。
-  [[1328,590],[1356,590]].forEach(([x,y],i)=>{
+  // 起跳台在原始岛岸边，落地台在迷宫岛岸边；中间水面不能直接开过去。
+  [[500,245],[570,245]].forEach(([x,y],i)=>{
     ctx2.fillStyle = i===0 ? "#ffd65e" : "#61cfff";
     ctx2.beginPath();ctx2.arc(x,y,18,0,Math.PI*2);ctx2.fill();
   });
@@ -809,8 +809,8 @@ window.addEventListener("keydown", (e) => {
         ? islandCurrentMover(islandWorldState)
         : islandWorldState?.player;
     if (jumper && jumper.z <= 0) {
-      const nearGiantMaze = jumper.x >= 1240 && jumper.x <= 1920 &&
-        jumper.y >= 350 && jumper.y <= 840 &&
+      const nearGiantMaze = jumper.x >= 450 && jumper.x <= 1100 &&
+        jumper.y >= 0 && jumper.y <= 360 &&
         (!islandWorldState || islandWorldState.mounted !== false);
       // 巨型迷宫的跳跃稍高一点，降低入口和内部断层的操作难度。
       jumper.vz = nearGiantMaze ? 8.2 : 6.2;
