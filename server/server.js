@@ -22,15 +22,13 @@ const RECHARGE_PACKS = [
   {id:"r128", yuan:128, baseTankCoins:12800, bonusTankCoins:2500}
 ];
 
-const VIP_LEVELS = [
-  {level:0, threshold:0,   title:"普通车长", dailyCoins:0,   dailyTankCoins:0, shopDiscount:0,  boxDiscount:0},
-  {level:1, threshold:6,   title:"VIP青铜", dailyCoins:50,  dailyTankCoins:0, shopDiscount:2,  boxDiscount:2},
-  {level:2, threshold:30,  title:"VIP白银", dailyCoins:100, dailyTankCoins:5, shopDiscount:3,  boxDiscount:4},
-  {level:3, threshold:68,  title:"VIP黄金", dailyCoins:180, dailyTankCoins:10,shopDiscount:5,  boxDiscount:6},
-  {level:4, threshold:128, title:"VIP铂金", dailyCoins:300, dailyTankCoins:20,shopDiscount:7,  boxDiscount:8},
-  {level:5, threshold:328, title:"VIP钻石", dailyCoins:500, dailyTankCoins:30,shopDiscount:10, boxDiscount:10},
-  {level:6, threshold:648, title:"VIP至尊", dailyCoins:800, dailyTankCoins:50,shopDiscount:12, boxDiscount:12}
-];
+const VIP_CONFIG = {
+  priceYuan:12,
+  rewardHighTankCoins:12,
+  title:"永久VIP",
+  shopDiscount:5,
+  boxDiscount:0
+};
 
 const app = express();
 app.use(express.json({limit:"256kb"}));
@@ -114,8 +112,9 @@ function publicRechargeOrder(order){
   const totalTankCoins=Number(order.totalTankCoins ?? (baseTankCoins+bonusTankCoins));
   return {
     id:order.id,playerId:order.playerId,playerName:order.playerName,
-    packId:order.packId,yuan:order.yuan,
+    kind:order.kind||"recharge",packId:order.packId,yuan:order.yuan,
     baseTankCoins,bonusTankCoins,totalTankCoins,
+    highTankCoins:Number(order.highTankCoins||0),
     firstDouble:!!order.firstDouble,
     status:order.status,
     createdAt:order.createdAt,paidAt:order.paidAt||"",claimedAt:order.claimedAt||"",
@@ -134,49 +133,22 @@ function makeCheckoutUrl(order){
 }
 loadRechargeOrders();
 
-let vipClaims=[];
-function loadVipClaims(){
-  try{
-    const parsed=JSON.parse(fs.readFileSync(VIP_CLAIMS_FILE,"utf8"));
-    vipClaims=Array.isArray(parsed)?parsed:[];
-  }catch(_){vipClaims=[];}
-}
-function saveVipClaims(){
-  try{
-    fs.mkdirSync(path.dirname(VIP_CLAIMS_FILE),{recursive:true});
-    fs.writeFileSync(VIP_CLAIMS_FILE,JSON.stringify(vipClaims.slice(-10000),null,2));
-  }catch(err){
-    console.warn("VIP claim persistence unavailable:",err.message);
-  }
-}
-function vipPaidYuan(playerId){
-  return rechargeOrders
-    .filter(o=>o.playerId===playerId&&(o.status==="paid"||o.status==="claimed"))
-    .reduce((sum,o)=>sum+Math.max(0,Number(o.yuan)||0),0);
-}
-function vipDateKey(){
-  return new Intl.DateTimeFormat("en-CA",{
-    timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit"
-  }).format(new Date());
+function vipOrderForPlayer(playerId){
+  return rechargeOrders.find(o=>o.playerId===playerId&&o.kind==="vip"&&(o.status==="paid"||o.status==="claimed"))||null;
 }
 function vipInfoForPlayer(playerId){
-  const paidYuan=vipPaidYuan(playerId);
-  let current=VIP_LEVELS[0];
-  for(const row of VIP_LEVELS){
-    if(paidYuan>=row.threshold)current=row;
-  }
-  const next=VIP_LEVELS.find(row=>row.level===current.level+1)||null;
-  const today=vipDateKey();
-  const dailyClaimed=vipClaims.some(x=>x.playerId===playerId&&x.date===today);
+  const order=vipOrderForPlayer(playerId);
   return {
-    ...current,
-    paidYuan,
-    nextLevel:next,
-    dailyClaimed,
-    progress:next?Math.min(1,Math.max(0,(paidYuan-current.threshold)/(next.threshold-current.threshold))):1
+    active:!!order,
+    title:order?"永久VIP":"普通车长",
+    priceYuan:VIP_CONFIG.priceYuan,
+    rewardHighTankCoins:VIP_CONFIG.rewardHighTankCoins,
+    shopDiscount:order?VIP_CONFIG.shopDiscount:0,
+    boxDiscount:order?VIP_CONFIG.boxDiscount:0,
+    orderId:order?.id||"",
+    claimed:order?.status==="claimed"
   };
 }
-loadVipClaims();
 
 app.get("/api/health",(req,res)=>res.json({
   ok:true,maps:maps.length,teams:teams.size,now:new Date().toISOString(),
@@ -186,29 +158,47 @@ app.get("/api/health",(req,res)=>res.json({
 app.get("/api/vip",(req,res)=>{
   const playerId=safeText(req.query.playerId,100);
   if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
-  res.json({vip:vipInfoForPlayer(playerId),levels:VIP_LEVELS});
+  res.json({vip:vipInfoForPlayer(playerId),config:VIP_CONFIG});
 });
 
-app.post("/api/vip/daily-claim",(req,res)=>{
+app.post("/api/vip/order",(req,res)=>{
   const playerId=safeText(req.body?.playerId,100);
+  const playerName=safeText(req.body?.playerName,24)||"车长";
   if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
-  const vip=vipInfoForPlayer(playerId);
-  if(vip.level<=0)return res.status(403).json({error:"VIP1起可领取每日奖励"});
-  if(vip.dailyClaimed)return res.status(409).json({error:"今天已经领取过VIP奖励"});
-  const today=vipDateKey();
-  vipClaims.push({playerId,date:today,level:vip.level,claimedAt:new Date().toISOString()});
-  saveVipClaims();
-  res.json({
-    ok:true,
-    reward:{coins:vip.dailyCoins,tankCoins:vip.dailyTankCoins},
-    vip:{...vip,dailyClaimed:true}
-  });
+  const existing=rechargeOrders.find(o=>o.playerId===playerId&&o.kind==="vip"&&["pending","paid","claimed"].includes(o.status));
+  if(existing)return res.json({order:publicRechargeOrder(existing),paymentConfigured:!!existing.checkoutUrl,alreadyExists:true});
+
+  const order={
+    id:"vip-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9),
+    kind:"vip",playerId,playerName,packId:"vip12",yuan:VIP_CONFIG.priceYuan,
+    baseTankCoins:0,bonusTankCoins:0,totalTankCoins:0,
+    highTankCoins:VIP_CONFIG.rewardHighTankCoins,
+    firstDouble:false,status:"pending",createdAt:new Date().toISOString()
+  };
+  order.checkoutUrl=makeCheckoutUrl(order);
+  rechargeOrders.push(order);saveRechargeOrders();
+  res.status(201).json({order:publicRechargeOrder(order),paymentConfigured:!!order.checkoutUrl});
+});
+
+app.post("/api/vip/claim",(req,res)=>{
+  const playerId=safeText(req.body?.playerId,100);
+  const order=rechargeOrders.find(o=>o.playerId===playerId&&o.kind==="vip"&&(o.status==="paid"||o.status==="claimed"));
+  if(!order)return res.status(404).json({error:"还没有已支付的VIP订单"});
+  if(order.status==="claimed")return res.status(409).json({error:"VIP返还奖励已经领取"});
+  order.status="claimed";order.claimedAt=new Date().toISOString();saveRechargeOrders();
+  res.json({ok:true,highTankCoins:Number(order.highTankCoins||VIP_CONFIG.rewardHighTankCoins),vip:vipInfoForPlayer(playerId),order:publicRechargeOrder(order)});
 });
 
 app.get("/api/recharge/config",(req,res)=>{
   res.json({
     rate:"1元=100坦克币",
-    exchange:{mid:"5坦克币=1中级坦克币",high:"10坦克币=1高级坦克币"},
+    exchange:{
+      coins:"1坦克币=10金币",
+      basicBox:"1坦克币=1次普通坦克盲盒",
+      crewBox:"1坦克币=1次乘员盲盒",
+      midBox:"1中级坦克币=1次中级盲盒",
+      highBox:"1高级坦克币=1次高级盲盒"
+    },
     firstRechargeDouble:true,
     paymentConfigured:!!(PAYMENT_CHECKOUT_URL&&PAYMENT_WEBHOOK_SECRET),
     packs:RECHARGE_PACKS
@@ -224,7 +214,7 @@ app.post("/api/recharge/orders",(req,res)=>{
 
   const order={
     id:"ord-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9),
-    playerId,playerName,packId:pack.id,yuan:pack.yuan,
+    kind:"recharge",playerId,playerName,packId:pack.id,yuan:pack.yuan,
     baseTankCoins:pack.baseTankCoins,
     bonusTankCoins:pack.bonusTankCoins,
     totalTankCoins:pack.baseTankCoins+pack.bonusTankCoins,
@@ -244,14 +234,14 @@ app.get("/api/recharge/orders",(req,res)=>{
   const playerId=safeText(req.query.playerId,100);
   if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
   const orders=rechargeOrders
-    .filter(o=>o.playerId===playerId)
+    .filter(o=>o.playerId===playerId&&(o.kind||"recharge")==="recharge")
     .slice(-30).reverse().map(publicRechargeOrder);
   res.json({orders});
 });
 
 app.get("/api/recharge/orders/:id",(req,res)=>{
   const playerId=safeText(req.query.playerId,100);
-  const order=rechargeOrders.find(o=>o.id===req.params.id&&o.playerId===playerId);
+  const order=rechargeOrders.find(o=>o.id===req.params.id&&o.playerId===playerId&&(o.kind||"recharge")==="recharge");
   if(!order)return res.status(404).json({error:"订单不存在"});
   res.json({order:publicRechargeOrder(order)});
 });
@@ -279,15 +269,21 @@ app.post("/api/recharge/webhook",(req,res)=>{
   if(!order)return res.status(404).json({error:"订单不存在"});
   if(!paid)return res.status(400).json({error:"支付状态不是成功"});
   if(order.status==="pending"){
-    const hadEarlierPaid=rechargeOrders.some(o=>
-      o!==order && o.playerId===order.playerId && (o.status==="paid"||o.status==="claimed")
-    );
-    const base=Number(order.baseTankCoins ?? order.coins ?? 0);
-    const bonus=Number(order.bonusTankCoins ?? 0);
-    order.firstDouble=!hadEarlierPaid;
-    order.totalTankCoins=base*(order.firstDouble?2:1)+bonus;
-    order.status="paid";
-    order.paidAt=new Date().toISOString();
+    if((order.kind||"recharge")==="vip"){
+      order.status="paid";
+      order.paidAt=new Date().toISOString();
+    }else{
+      const hadEarlierPaid=rechargeOrders.some(o=>
+        o!==order && o.playerId===order.playerId && (o.kind||"recharge")==="recharge" &&
+        (o.status==="paid"||o.status==="claimed")
+      );
+      const base=Number(order.baseTankCoins ?? order.coins ?? 0);
+      const bonus=Number(order.bonusTankCoins ?? 0);
+      order.firstDouble=!hadEarlierPaid;
+      order.totalTankCoins=base*(order.firstDouble?2:1)+bonus;
+      order.status="paid";
+      order.paidAt=new Date().toISOString();
+    }
     saveRechargeOrders();
   }
   res.json({ok:true,order:publicRechargeOrder(order)});
