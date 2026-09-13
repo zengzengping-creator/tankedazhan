@@ -342,7 +342,7 @@ updateIslandWorld = function () {
       }
     }
   }
-  s.islandBullets = s.islandBullets.filter((b)=>b.life>0 && b.x>-120&&b.x<1400&&b.y>-120&&b.y<840);
+  s.islandBullets = s.islandBullets.filter((b)=>b.life>0 && b.x>-120&&b.x<2000&&b.y>-120&&b.y<950);
 
   s.wheelAngle += .012;
   s.nearBuilding = getNearestIslandBuilding(mover);
@@ -739,3 +739,217 @@ drawIslandWorld=function(){
 };
 
 globalThis.AMUSEMENT_ZONE=AMUSEMENT_ZONE;
+
+
+// ------------------- 超巨型剧情迷宫区 -------------------
+const GIANT_STORY_MAZE = {
+  name:"巨型剧情迷宫区",
+  bounds:{x1:1380,y1:390,x2:1900,y2:800},
+  entrance:{x:1395,y:590},
+  exit:{x:1880,y:430},
+  jumpPads:[{x:1328,y:590,r:19},{x:1356,y:590,r:19}],
+  storyNodes:[
+    {id:1,x:1430,y:735,r:28,title:"前哨站",text:"📡 前哨站：信号显示正确路线需要先从南侧绕过第一道高墙。"},
+    {id:2,x:1580,y:435,r:28,title:"中继区",text:"🔋 中继区：路线确认，继续深入并寻找下一个南侧通道。"},
+    {id:3,x:1740,y:735,r:28,title:"核心门",text:"🔓 核心门：最终出口已解锁，向右上方寻找绿色出口门！"}
+  ],
+  pits:[
+    {x:1472,y:716,w:52,h:42,label:"断层A"},
+    {x:1554,y:398,w:52,h:42,label:"断层B"},
+    {x:1714,y:716,w:52,h:42,label:"断层C"}
+  ],
+  walls:[
+    {x:1380,y:390,w:520,h:14},{x:1380,y:786,w:520,h:14},
+    {x:1380,y:390,w:14,h:185},{x:1380,y:615,w:14,h:185},
+    {x:1886,y:390,w:14,h:22},{x:1886,y:448,w:14,h:352},
+    {x:1460,y:390,w:14,h:310},
+    {x:1540,y:486,w:14,h:314},
+    {x:1620,y:390,w:14,h:310},
+    {x:1700,y:486,w:14,h:314},
+    {x:1780,y:390,w:14,h:310},
+    {x:1860,y:486,w:14,h:260},
+    {x:1394,y:654,w:30,h:12},
+    {x:1502,y:602,w:38,h:12},
+    {x:1554,y:548,w:32,h:12},
+    {x:1662,y:632,w:38,h:12},
+    {x:1700,y:548,w:34,h:12},
+    {x:1818,y:610,w:42,h:12}
+  ]
+};
+
+function ensureGiantMazeState(s){
+  if(!s)return null;
+  if(!s.giantMaze){
+    s.giantMaze={
+      stage:0,
+      completed:false,
+      lastCheckpoint:{x:GIANT_STORY_MAZE.entrance.x+18,y:GIANT_STORY_MAZE.entrance.y},
+      lastPitAt:0
+    };
+  }
+  return s.giantMaze;
+}
+
+function pointInRectCircle(p,r,extra=0){
+  const radius=(p.r||12)+extra;
+  return p.x+radius>r.x && p.x-radius<r.x+r.w &&
+         p.y+radius>r.y && p.y-radius<r.y+r.h;
+}
+
+function inGiantMazeBounds(p){
+  const b=GIANT_STORY_MAZE.bounds;
+  return p.x>=b.x1&&p.x<=b.x2&&p.y>=b.y1&&p.y<=b.y2;
+}
+
+function giantMazeHint(text){
+  const el=document.getElementById("island-world-hint");
+  if(el)el.textContent=text;
+}
+
+const startIslandWorldBeforeGiantMaze=startIslandWorld;
+startIslandWorld=function(){
+  startIslandWorldBeforeGiantMaze();
+  if(islandWorldState)ensureGiantMazeState(islandWorldState);
+};
+
+const updateIslandWorldBeforeGiantMaze=updateIslandWorld;
+updateIslandWorld=function(){
+  const s=islandWorldState;
+  if(!s)return;
+  const before=amusementMover(s);
+  const prevX=before?.x||0,prevY=before?.y||0,prevZ=before?.z||0;
+
+  updateIslandWorldBeforeGiantMaze();
+
+  const p=amusementMover(s);
+  const m=ensureGiantMazeState(s);
+  if(!p||!m)return;
+
+  // 游乐园东侧断海入口：必须开坦克并按J跳过去。
+  if(p.x>1250&&p.x<1390&&p.y>535&&p.y<645&&!inGiantMazeBounds(p)){
+    if(!s.mounted){
+      p.x=Math.min(p.x,1280);
+      giantMazeHint("🚫 巨型剧情迷宫只能驾驶坦克跳跃进入。");
+    }else if((p.z||0)<2.5&&p.x>1300){
+      giantMazeHint("🛫 前方是断海入口：驾驶坦克按 J 起跳，踩跳台进入巨型剧情迷宫！");
+    }
+  }
+
+  if(inGiantMazeBounds(p)){
+    // 高墙真实碰撞。
+    if(GIANT_STORY_MAZE.walls.some(w=>pointInRectCircle(p,w))){
+      p.x=prevX;p.y=prevY;
+    }
+
+    // 三处断层：高度不足会掉回最近剧情检查点，必须J跳过去。
+    const pit=GIANT_STORY_MAZE.pits.find(q=>pointInRectCircle(p,q,-4));
+    if(pit&&(p.z||0)<4.5){
+      const now=performance.now();
+      p.x=m.lastCheckpoint.x;p.y=m.lastCheckpoint.y;p.z=0;p.vz=0;
+      if(now-m.lastPitAt>700){
+        giantMazeHint(`🌊 掉进${pit.label}了！按 J 跳过断层。`);
+        m.lastPitAt=now;
+      }
+    }
+
+    // 三个剧情节点按顺序推进。
+    const nextNode=GIANT_STORY_MAZE.storyNodes[m.stage];
+    if(nextNode&&Math.hypot(p.x-nextNode.x,p.y-nextNode.y)<=nextNode.r){
+      m.stage++;
+      m.lastCheckpoint={x:nextNode.x,y:nextNode.y};
+      giantMazeHint(nextNode.text+` · 剧情进度 ${m.stage}/3`);
+      if(typeof metaToast==="function")metaToast(`📖 ${nextNode.title} · ${m.stage}/3`);
+    }
+
+    // 到出口且三个节点全部完成才通关。
+    const exit=GIANT_STORY_MAZE.exit;
+    if(!m.completed&&Math.hypot(p.x-exit.x,p.y-exit.y)<30){
+      if(m.stage<3){
+        giantMazeHint(`🔒 出口尚未解锁：先完成3个剧情节点，当前 ${m.stage}/3。`);
+      }else{
+        m.completed=true;
+        let result={reward:300,firstClear:false};
+        if(typeof awardTankTask==="function"){
+          result=awardTankTask("giant-story-maze","🧩 巨型剧情迷宫通关");
+        }else{
+          addIslandCoins(300,"🧩 巨型剧情迷宫通关");
+        }
+        const coin=document.getElementById("island-world-coins");
+        if(coin)coin.textContent=islandData?.coins||0;
+        giantMazeHint(result.firstClear
+          ?"🏆 巨型剧情迷宫首通！获得500金币！"
+          :`🏆 巨型剧情迷宫再次通关！获得${result.reward}金币！`);
+        setTimeout(()=>{
+          if(!islandWorldState)return;
+          const state=ensureGiantMazeState(islandWorldState);
+          const mover=amusementMover(islandWorldState);
+          if(mover){
+            mover.x=GIANT_STORY_MAZE.entrance.x+18;
+            mover.y=GIANT_STORY_MAZE.entrance.y;
+            mover.z=0;mover.vz=0;
+          }
+          state.stage=0;
+          state.completed=false;
+          state.lastCheckpoint={x:GIANT_STORY_MAZE.entrance.x+18,y:GIANT_STORY_MAZE.entrance.y};
+          giantMazeHint("🧩 已回到迷宫入口，新一轮挑战可再次获得300金币。");
+        },3200);
+      }
+    }else if(!m.completed&&m.stage<3&&!s.nearBuilding){
+      giantMazeHint(`🧩 巨型剧情迷宫 · 剧情进度 ${m.stage}/3 · 遇到黑色断层按 J 跳过去`);
+    }
+  }
+};
+
+const drawIslandWorldBeforeGiantMaze=drawIslandWorld;
+drawIslandWorld=function(){
+  drawIslandWorldBeforeGiantMaze();
+  const canvas=document.getElementById("island-world-canvas");
+  const ctx2=canvas?.getContext("2d");
+  const s=islandWorldState;
+  if(!ctx2||!s)return;
+  const m=ensureGiantMazeState(s);
+
+  ctx2.save();
+
+  // 入口跳台与招牌。
+  GIANT_STORY_MAZE.jumpPads.forEach((q,i)=>{
+    ctx2.fillStyle=i===0?"#ffd65e":"#61cfff";
+    ctx2.beginPath();ctx2.arc(q.x,q.y,q.r,0,Math.PI*2);ctx2.fill();
+  });
+  ctx2.fillStyle="#26323a";ctx2.fillRect(1385,540,10,58);ctx2.fillRect(1455,540,10,58);
+  ctx2.fillStyle="#f6c84f";ctx2.fillRect(1372,510,106,34);
+  ctx2.fillStyle="#1e2930";ctx2.font="bold 15px Microsoft YaHei,sans-serif";
+  ctx2.textAlign="center";ctx2.fillText("巨型剧情迷宫",1425,532);
+
+  // 迷宫高墙。
+  ctx2.fillStyle="#3f4c52";
+  GIANT_STORY_MAZE.walls.forEach(w=>ctx2.fillRect(w.x,w.y,w.w,w.h));
+
+  // 断层。
+  ctx2.fillStyle="#101820";
+  GIANT_STORY_MAZE.pits.forEach(q=>{
+    ctx2.fillRect(q.x,q.y,q.w,q.h);
+    ctx2.strokeStyle="#65d9ff";ctx2.lineWidth=2;ctx2.strokeRect(q.x,q.y,q.w,q.h);
+  });
+
+  // 剧情节点。
+  GIANT_STORY_MAZE.storyNodes.forEach((n,i)=>{
+    ctx2.fillStyle=i<m.stage?"#68e58a":(i===m.stage?"#ffd65e":"#78838b");
+    ctx2.beginPath();ctx2.arc(n.x,n.y,16,0,Math.PI*2);ctx2.fill();
+    ctx2.fillStyle="#fff";ctx2.font="bold 11px sans-serif";
+    ctx2.fillText(`${i+1} ${n.title}`,n.x,n.y+30);
+  });
+
+  // 出口门。
+  const ex=GIANT_STORY_MAZE.exit;
+  ctx2.fillStyle=m.stage>=3?"#66e28a":"#6b747a";
+  ctx2.fillRect(ex.x-28,ex.y-28,56,56);
+  ctx2.fillStyle="#fff";ctx2.font="bold 12px sans-serif";ctx2.fillText("出口",ex.x,ex.y+4);
+
+  ctx2.fillStyle="rgba(0,0,0,.68)";ctx2.fillRect(1410,815,410,38);
+  ctx2.fillStyle="#fff";ctx2.font="bold 14px sans-serif";
+  ctx2.fillText(`🧩 巨型剧情迷宫 · 剧情 ${m.stage}/3 · 出口(1880,420)`,1615,840);
+  ctx2.restore();
+};
+
+globalThis.GIANT_STORY_MAZE=GIANT_STORY_MAZE;
