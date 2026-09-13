@@ -259,27 +259,8 @@ function renderPartyMap(title, body) {
 }
 
 function addPartyHubButtons() {
-  const top = document.getElementById("meta-topbar");
-  const right = document.getElementById("meta-rightbar");
-  if (!top || !right || document.getElementById("party-mode-btn")) return;
-
-  const mode = document.createElement("button");
-  mode.id = "party-mode-btn";
-  mode.dataset.metaPanel = "modes";
-  mode.textContent = "🎮 模式";
-  top.appendChild(mode);
-
-  [
-    ["scenic","📍","景点"],
-    ["rank","🏅","排位"],
-    ["online","🌐","联机"],
-    ["backpack","🎒","背包"],
-  ].forEach(([id, icon, label]) => {
-    const btn = document.createElement("button");
-    btn.dataset.metaPanel = id;
-    btn.innerHTML = `${icon}<span>${label}</span>`;
-    right.appendChild(btn);
-  });
+  // 主功能已经统一放到底部快捷栏；顶部只保留宠物/皮肤商城，右侧只保留表情动作。
+  ensurePartyCommandDock();
 }
 
 function startStoryMode() {
