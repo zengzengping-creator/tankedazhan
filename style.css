@@ -3345,3 +3345,149 @@ button:disabled {
     grid-template-columns:1fr;
   }
 }
+
+
+/* 固定12元永久VIP */
+.vip-fixed-card {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px;
+  border:1px solid #7f6928;
+  border-radius:11px;
+  background:linear-gradient(120deg,rgba(91,67,19,.34),rgba(24,37,44,.9));
+}
+
+.vip-fixed-card.active {
+  border-color:#dfba4b;
+  box-shadow:0 0 18px rgba(223,186,75,.10) inset;
+}
+
+.vip-fixed-main {
+  display:grid;
+  gap:3px;
+}
+
+.vip-fixed-main b {
+  color:#ffe58a;
+  font-size:14px;
+}
+
+.vip-fixed-main strong {
+  color:#fff4c3;
+  font-size:20px;
+}
+
+.vip-fixed-main small {
+  color:#b6c8cf;
+  font-size:8px;
+}
+
+.vip-fixed-reward {
+  margin-top:8px;
+  padding:9px;
+  border:1px solid #5d4f79;
+  border-radius:8px;
+  background:rgba(79,55,117,.16);
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.vip-fixed-reward strong {
+  color:#d8c2ff;
+  font-size:11px;
+}
+
+.vip-fixed-reward span {
+  color:#b9c8d0;
+  font-size:8px;
+}
+
+/* 普通坦克币用途 / 乘员盲盒 */
+.tank-coin-uses {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  margin-top:8px;
+}
+
+.tank-coin-uses button {
+  min-height:52px;
+  padding:7px;
+  border:1px solid #416678;
+  border-radius:8px;
+  background:#173541;
+  color:#fff;
+  font-size:9px;
+}
+
+.normal-box-hero {
+  padding:12px;
+  border:1px solid #4d6e7c;
+  border-radius:9px;
+  background:rgba(255,255,255,.05);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+}
+
+.normal-box-hero strong {
+  color:#eaf8ff;
+  font-size:14px;
+}
+
+.normal-box-hero span {
+  color:#a9c0ca;
+  font-size:9px;
+}
+
+.tank-currency-box-link.secondary {
+  border-color:#3f5863;
+  background:#1a2a31;
+  color:#b8c8ce;
+}
+
+.crew-collection {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:6px;
+  margin-top:8px;
+}
+
+.crew-collection button {
+  min-height:76px;
+  padding:7px;
+  border:1px solid #385664;
+  border-radius:8px;
+  background:rgba(255,255,255,.04);
+  color:#eefaff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+}
+
+.crew-collection button.selected {
+  border-color:#69d6ae;
+  background:rgba(65,151,121,.14);
+}
+
+.crew-collection button:disabled {
+  opacity:.45;
+}
+
+.crew-collection strong { font-size:24px; }
+.crew-collection b { font-size:9px; }
+.crew-collection small { color:#9bb2bc; font-size:8px; }
+
+@media (max-width:540px) {
+  .tank-coin-uses {
+    grid-template-columns:1fr;
+  }
+  .crew-collection {
+    grid-template-columns:1fr 1fr;
+  }
+}
