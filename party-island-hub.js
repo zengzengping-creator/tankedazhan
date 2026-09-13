@@ -92,6 +92,7 @@ function ensurePartyCommandDock() {
     <button data-party-command="modes">🎮<span>模式选择</span></button>
     <button data-party-command="start" class="party-command-start">▶<span>开始游戏</span></button>
     <button data-party-command="create">🛠<span>创作</span></button>
+    <button data-party-command="mods">🧩<span>模组</span></button>
     <button data-party-command="map">🗺️<span>地图</span></button>
   `;
   document.getElementById("canvas-wrap")?.appendChild(dock);
@@ -220,17 +221,85 @@ function renderPartyCreate(title, body) {
       <label>地图大小<select id="party-create-size">
         ${["小型","中型","大型","超大型"].map(v=>`<option ${v===draft.size?"selected":""}>${v}</option>`).join("")}
       </select></label>
-      <button id="party-create-save">保存创作草稿</button>
-      <small>当前先保存创作参数；后续可继续接可视化墙体、出生点、跳台和任务编辑器。</small>
+      <div class="party-create-actions">
+        <button id="party-create-save">保存创作草稿</button>
+        <button id="party-create-code">生成地图码</button>
+      </div>
+      <textarea id="party-create-code-output" class="party-map-code" readonly placeholder="生成后，这里会出现 TM1 地图码，可以发给别人。"></textarea>
+      <small>地图码可以直接发给其他玩家；对方在“模组”里粘贴后就能游玩。</small>
     </div>`;
+
+  const readDraft = () => ({
+    name: body.querySelector("#party-create-name")?.value.trim() || "我的坦克地图",
+    theme: body.querySelector("#party-create-theme")?.value || "欢乐岛",
+    size: body.querySelector("#party-create-size")?.value || "中型",
+  });
+
   body.querySelector("#party-create-save")?.addEventListener("click", () => {
-    const next = {
-      name: body.querySelector("#party-create-name")?.value.trim() || "我的坦克地图",
-      theme: body.querySelector("#party-create-theme")?.value || "欢乐岛",
-      size: body.querySelector("#party-create-size")?.value || "中型",
-    };
+    const next = readDraft();
     localStorage.setItem(PARTY_CREATION_KEY, JSON.stringify(next));
     metaToast("🛠 创作草稿已保存");
+  });
+
+  body.querySelector("#party-create-code")?.addEventListener("click", async () => {
+    if (typeof createMapFromDraft !== "function" || typeof encodeCommunityMap !== "function") {
+      metaToast("模组引擎还没有加载完成");
+      return;
+    }
+    const next = readDraft();
+    localStorage.setItem(PARTY_CREATION_KEY, JSON.stringify(next));
+    const code = encodeCommunityMap(createMapFromDraft(next));
+    const out = body.querySelector("#party-create-code-output");
+    if (out) out.value = code;
+    try {
+      await navigator.clipboard?.writeText(code);
+      metaToast("📋 地图码已生成并复制");
+    } catch (_) {
+      metaToast("📋 地图码已生成，可手动复制");
+    }
+  });
+}
+
+function renderPartyMods(title, body) {
+  title.textContent = "🧩 模组 · 社区地图";
+  const maps = typeof getCommunityModMaps === "function" ? getCommunityModMaps() : [];
+  body.innerHTML = `
+    <div class="party-mod-intro">
+      <b>玩别人做的地图</b>
+      <small>内置社区地图可以直接玩；别人发给你的 TM1 地图码也可以粘贴导入。</small>
+    </div>
+    <div class="party-mod-grid">
+      ${maps.map(m=>`
+        <button data-mod-play="${escapePartyHtml(m.id)}">
+          <strong>${escapePartyHtml(m.icon||"🧩")}</strong>
+          <b>${escapePartyHtml(m.name)}</b>
+          <small>作者：${escapePartyHtml(m.author||"匿名")} · ${escapePartyHtml(m.difficulty||"自定义")}</small>
+          <span>${escapePartyHtml(m.desc||"玩家创作地图")}</span>
+          <em>▶ 游玩</em>
+        </button>`).join("")}
+    </div>
+    <div class="party-mod-import">
+      <b>📥 导入别人发来的地图码</b>
+      <textarea id="party-mod-code" class="party-map-code" placeholder="粘贴 TM1. 开头的地图码"></textarea>
+      <button id="party-mod-import-btn">导入并游玩</button>
+      <small>当前是地图码分享，不需要服务器。真正的在线“社区广场/排行榜/点赞”以后接后端后再开放。</small>
+    </div>`;
+
+  body.querySelectorAll("[data-mod-play]").forEach(btn => btn.onclick = () => {
+    if (typeof openCommunityModMap === "function") openCommunityModMap(btn.dataset.modPlay);
+  });
+
+  body.querySelector("#party-mod-import-btn")?.addEventListener("click", () => {
+    const code = body.querySelector("#party-mod-code")?.value.trim();
+    if (!code) return;
+    try {
+      const map = decodeCommunityMap(code);
+      if (typeof saveImportedCommunityMap === "function") saveImportedCommunityMap(map);
+      renderPartyMods(title, body);
+      setTimeout(() => openCommunityModMap(map), 0);
+    } catch (err) {
+      metaToast("地图码无效");
+    }
   });
 }
 
@@ -454,7 +523,7 @@ function renderPartyBackpack(title, body) {
 // 扩展原大厅面板路由。
 const openMetaPanelPartyBase = openMetaPanel;
 openMetaPanel = function(type) {
-  if (["modes","rank","scenic","online","backpack","chat","team","create","map"].includes(type)) {
+  if (["modes","rank","scenic","online","backpack","chat","team","create","mods","map"].includes(type)) {
     const modal=document.getElementById("meta-modal");
     const title=document.getElementById("meta-modal-title");
     const body=document.getElementById("meta-modal-body");
@@ -468,6 +537,7 @@ openMetaPanel = function(type) {
     else if(type==="chat")renderPartyChat(title,body);
     else if(type==="team")renderPartyTeam(title,body);
     else if(type==="create")renderPartyCreate(title,body);
+    else if(type==="mods")renderPartyMods(title,body);
     else renderPartyMap(title,body);
     return;
   }
