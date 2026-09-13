@@ -154,6 +154,11 @@ function vipPaidYuan(playerId){
     .filter(o=>o.playerId===playerId&&(o.status==="paid"||o.status==="claimed"))
     .reduce((sum,o)=>sum+Math.max(0,Number(o.yuan)||0),0);
 }
+function vipDateKey(){
+  return new Intl.DateTimeFormat("en-CA",{
+    timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit"
+  }).format(new Date());
+}
 function vipInfoForPlayer(playerId){
   const paidYuan=vipPaidYuan(playerId);
   let current=VIP_LEVELS[0];
@@ -161,7 +166,7 @@ function vipInfoForPlayer(playerId){
     if(paidYuan>=row.threshold)current=row;
   }
   const next=VIP_LEVELS.find(row=>row.level===current.level+1)||null;
-  const today=new Date().toISOString().slice(0,10);
+  const today=vipDateKey();
   const dailyClaimed=vipClaims.some(x=>x.playerId===playerId&&x.date===today);
   return {
     ...current,
@@ -190,7 +195,7 @@ app.post("/api/vip/daily-claim",(req,res)=>{
   const vip=vipInfoForPlayer(playerId);
   if(vip.level<=0)return res.status(403).json({error:"VIP1起可领取每日奖励"});
   if(vip.dailyClaimed)return res.status(409).json({error:"今天已经领取过VIP奖励"});
-  const today=new Date().toISOString().slice(0,10);
+  const today=vipDateKey();
   vipClaims.push({playerId,date:today,level:vip.level,claimedAt:new Date().toISOString()});
   saveVipClaims();
   res.json({
