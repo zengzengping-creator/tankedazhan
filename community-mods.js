@@ -1,7 +1,5 @@
-// 社区模组地图 V1：内置社区地图 + 地图码导入/导出 + 通用可玩地图引擎。
-// 纯前端版本不伪装联网；别人可把 TM1 地图码发给你，粘贴后即可游玩。
-
-const COMMUNITY_MOD_STORAGE_KEY = "tankPartyImportedMods_v1";
+// 社区模组地图 V2：内置社区地图 + 在线社区搜索 + 通用可玩地图引擎。
+// 玩家创作地图发布到社区服务器后，其他玩家可按地图名字直接搜索并游玩。
 
 const COMMUNITY_MOD_MAPS = [
   {
@@ -91,42 +89,10 @@ function normalizeCommunityMap(raw){
   return map;
 }
 
-function encodeCommunityMap(map){
-  const safe=normalizeCommunityMap(map);
-  const json=JSON.stringify(safe);
-  const bytes=new TextEncoder().encode(json);
-  let binary="";
-  for(const b of bytes)binary+=String.fromCharCode(b);
-  return "TM1."+btoa(binary);
-}
-
-function decodeCommunityMap(code){
-  const value=String(code||"").trim();
-  if(!value.startsWith("TM1."))throw new Error("不是有效的 TM1 地图码");
-  const binary=atob(value.slice(4));
-  const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
-  return normalizeCommunityMap(JSON.parse(new TextDecoder().decode(bytes)));
-}
-
-function loadImportedCommunityMaps(){
-  try{
-    const rows=JSON.parse(localStorage.getItem(COMMUNITY_MOD_STORAGE_KEY)||"[]");
-    return Array.isArray(rows)?rows.map(normalizeCommunityMap).slice(-20):[];
-  }catch(_){return [];}
-}
-
-function saveImportedCommunityMap(map){
-  const rows=loadImportedCommunityMaps().filter(m=>m.id!==map.id);
-  rows.push(normalizeCommunityMap(map));
-  localStorage.setItem(COMMUNITY_MOD_STORAGE_KEY,JSON.stringify(rows.slice(-20)));
-}
-
 function getCommunityModMaps(){
-  return [...COMMUNITY_MOD_MAPS,...loadImportedCommunityMaps()];
+  return [...COMMUNITY_MOD_MAPS];
 }
 globalThis.getCommunityModMaps=getCommunityModMaps;
-globalThis.encodeCommunityMap=encodeCommunityMap;
-globalThis.decodeCommunityMap=decodeCommunityMap;
 
 function createMapFromDraft(draft={}){
   const size=draft.size||"中型";
@@ -149,7 +115,7 @@ function createMapFromDraft(draft={}){
     name:draft.name||"我的坦克地图",
     author:"玩家创作",
     icon:"🛠️",
-    desc:"由创作面板生成的可分享地图。",
+    desc:"由创作面板生成并可发布到社区的地图。",
     difficulty:"自定义",
     theme,width,height,
     spawn:{x:45,y:height-45},goal:{x:width-45,y:45,r:25},
