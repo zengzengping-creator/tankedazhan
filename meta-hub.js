@@ -2,22 +2,20 @@
 const META_STORAGE_KEY = "tankBattleMeta_v1";
 const VIP_CACHE_KEY = "tankBattleVipCache_v1";
 
-const VIP_FALLBACK_LEVELS = [
-  {level:0,threshold:0,title:"普通车长",dailyCoins:0,dailyTankCoins:0,shopDiscount:0,boxDiscount:0},
-  {level:1,threshold:6,title:"VIP青铜",dailyCoins:50,dailyTankCoins:0,shopDiscount:2,boxDiscount:2},
-  {level:2,threshold:30,title:"VIP白银",dailyCoins:100,dailyTankCoins:5,shopDiscount:3,boxDiscount:4},
-  {level:3,threshold:68,title:"VIP黄金",dailyCoins:180,dailyTankCoins:10,shopDiscount:5,boxDiscount:6},
-  {level:4,threshold:128,title:"VIP铂金",dailyCoins:300,dailyTankCoins:20,shopDiscount:7,boxDiscount:8},
-  {level:5,threshold:328,title:"VIP钻石",dailyCoins:500,dailyTankCoins:30,shopDiscount:10,boxDiscount:10},
-  {level:6,threshold:648,title:"VIP至尊",dailyCoins:800,dailyTankCoins:50,shopDiscount:12,boxDiscount:12},
-];
+const VIP_FALLBACK_CONFIG = {
+  priceYuan:12,
+  rewardHighTankCoins:12,
+  title:"永久VIP",
+  shopDiscount:5,
+  boxDiscount:0
+};
 
 function loadVipCache(){
   try{
     const v=JSON.parse(localStorage.getItem(VIP_CACHE_KEY)||"null");
-    return v&&typeof v==="object"?v:{level:0,title:"普通车长",paidYuan:0,shopDiscount:0,boxDiscount:0,dailyClaimed:false};
+    return v&&typeof v==="object"?v:{active:false,title:"普通车长",priceYuan:12,rewardHighTankCoins:12,shopDiscount:0,boxDiscount:0,claimed:false};
   }catch(_){
-    return {level:0,title:"普通车长",paidYuan:0,shopDiscount:0,boxDiscount:0,dailyClaimed:false};
+    return {active:false,title:"普通车长",priceYuan:12,rewardHighTankCoins:12,shopDiscount:0,boxDiscount:0,claimed:false};
   }
 }
 let metaVipCache=loadVipCache();
@@ -39,6 +37,15 @@ async function syncVipStatus(silent=true){
   try{
     const result=await getVipStatusOnline();
     if(result?.vip)saveVipCache(result.vip);
+    if(result?.vip?.active && !result.vip.claimed && typeof claimVipPurchaseOnline==="function"){
+      try{
+        const claim=await claimVipPurchaseOnline();
+        const reward=Number(claim?.highTankCoins)||0;
+        if(reward>0)metaAddHighTankCoins(reward);
+        if(claim?.vip)saveVipCache(claim.vip);
+        if(!silent&&reward>0)metaToast("👑 VIP返还到账：💎 高级坦克币 x"+reward);
+      }catch(_){}
+    }
     return metaVipCache;
   }catch(err){
     if(!silent)metaToast("VIP服务器连接失败："+(err?.message||"未知错误"));
@@ -93,6 +100,13 @@ function metaAddCoins(amount) {
 function metaAddTankCoins(amount) {
   if (typeof islandData === "undefined") return;
   islandData.tankCoins = Math.max(0, (islandData.tankCoins || 0) + Math.floor(Number(amount)||0));
+  if (typeof saveIslandData === "function") saveIslandData();
+  refreshMetaHud();
+}
+
+function metaAddHighTankCoins(amount) {
+  if (typeof islandData === "undefined") return;
+  islandData.highTankCoins = Math.max(0, (islandData.highTankCoins || 0) + Math.floor(Number(amount)||0));
   if (typeof saveIslandData === "function") saveIslandData();
   refreshMetaHud();
 }
@@ -232,7 +246,7 @@ function refreshMetaHud() {
   const vipEl = document.getElementById("meta-vip-level");
   if (el && typeof islandData !== "undefined") el.textContent = islandData.coins || 0;
   if (tankEl && typeof islandData !== "undefined") tankEl.textContent = islandData.tankCoins || 0;
-  if (vipEl) vipEl.textContent = "VIP"+(metaVipCache.level||0);
+  if (vipEl) vipEl.textContent = metaVipCache.active ? "VIP" : "VIP¥12";
 }
 
 function openMetaPanel(type) {
