@@ -418,7 +418,7 @@ function ensureIslandWorldModal() {
         <span>🪙 <b id="island-world-coins">0</b></span>
         <button type="button" id="island-world-exit">离开岛屿</button>
       </div>
-      <canvas id="island-world-canvas" width="1100" height="600"></canvas>
+      <canvas id="island-world-canvas" width="1400" height="840"></canvas>
       <div id="island-world-hint" class="island-world-hint">方向键移动 · J跳跃 · E互动 · 两座岛直接步行/驾驶互通</div>
     </div>`;
 
@@ -523,12 +523,15 @@ function clampPlayerToIsland(p) {
   // 8字形双岛：左侧保留旧岛，右侧新增更大的主岛。
   const small = { x: 250, y: 300, r: 260 };
   const large = { x: 830, y: 260, r: 430 };
+  const amusement = { x: 1060, y: 590, r: 245 };
   const bridge = { x1: 455, x2: 545, y1: 205, y2: 355 };
+  const funBridge = { x1: 900, x2: 1040, y1: 430, y2: 520 };
 
   const insideCircle = (c) => Math.hypot(p.x - c.x, p.y - c.y) <= c.r;
   const insideBridge = p.x >= bridge.x1 && p.x <= bridge.x2 && p.y >= bridge.y1 && p.y <= bridge.y2;
+  const insideFunBridge = p.x >= funBridge.x1 && p.x <= funBridge.x2 && p.y >= funBridge.y1 && p.y <= funBridge.y2;
 
-  if (insideCircle(small) || insideCircle(large) || insideBridge) return;
+  if (insideCircle(small) || insideCircle(large) || insideCircle(amusement) || insideBridge || insideFunBridge) return;
 
   // 超出双岛范围时，吸附到最近岛屿边缘。
   const clampToCircle = (c) => {
@@ -539,7 +542,8 @@ function clampPlayerToIsland(p) {
   };
   const a = clampToCircle(small);
   const b = clampToCircle(large);
-  const best = a.dist <= b.dist ? a : b;
+  const c2 = clampToCircle(amusement);
+  const best = [a,b,c2].sort((u,v)=>u.dist-v.dist)[0];
   p.x = best.x;
   p.y = best.y;
 }
@@ -728,25 +732,29 @@ function drawIslandWorld() {
   const s = islandWorldState;
   if (!ctx2 || !s) return;
 
-  ctx2.clearRect(0, 0, 1100, 600);
+  ctx2.clearRect(0, 0, 1400, 840);
 
   // 海水
-  const sea = ctx2.createLinearGradient(0, 0, 0, 600);
+  const sea = ctx2.createLinearGradient(0, 0, 0, 840);
   sea.addColorStop(0, "#0f6682");
   sea.addColorStop(1, "#073d5b");
   ctx2.fillStyle = sea;
-  ctx2.fillRect(0, 0, 1100, 600);
+  ctx2.fillRect(0, 0, 1400, 840);
 
   // 8字形双岛：旧岛 + 旁边更大的新主岛，中间陆地直接连接。
   ctx2.fillStyle = "#e3cf87";
   ctx2.beginPath(); ctx2.arc(250, 300, 260, 0, Math.PI * 2); ctx2.fill();
   ctx2.beginPath(); ctx2.arc(830, 260, 430, 0, Math.PI * 2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(1060, 590, 245, 0, Math.PI * 2); ctx2.fill();
   ctx2.fillRect(455, 205, 90, 150);
+  ctx2.fillRect(900, 430, 140, 90);
 
   ctx2.fillStyle = "#4f9f52";
   ctx2.beginPath(); ctx2.arc(250, 300, 242, 0, Math.PI * 2); ctx2.fill();
   ctx2.beginPath(); ctx2.arc(830, 260, 408, 0, Math.PI * 2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(1060, 590, 228, 0, Math.PI * 2); ctx2.fill();
   ctx2.fillRect(460, 215, 85, 130);
+  ctx2.fillRect(910, 440, 130, 70);
 
   // 双岛主路与连接路
   ctx2.strokeStyle = "#c7b580";
