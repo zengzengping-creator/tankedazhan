@@ -521,14 +521,17 @@ function renderSkinShop(title, body) {
 }
 
 async function renderRecharge(title, body) {
-  title.textContent = "💎 金币充值中心";
+  title.textContent = "💎 坦克币充值";
   const fallbackPacks=[
-    {id:"r1",yuan:1,coins:300},{id:"r6",yuan:6,coins:1800},
-    {id:"r18",yuan:18,coins:5400},{id:"r30",yuan:30,coins:9000},
-    {id:"r68",yuan:68,coins:20400},{id:"r128",yuan:128,coins:38400}
+    {id:"r1",yuan:1,baseTankCoins:100,bonusTankCoins:0},
+    {id:"r6",yuan:6,baseTankCoins:600,bonusTankCoins:0},
+    {id:"r18",yuan:18,baseTankCoins:1800,bonusTankCoins:0},
+    {id:"r30",yuan:30,baseTankCoins:3000,bonusTankCoins:300},
+    {id:"r68",yuan:68,baseTankCoins:6800,bonusTankCoins:1000},
+    {id:"r128",yuan:128,baseTankCoins:12800,bonusTankCoins:2500}
   ];
   const serverUrl=typeof getCommunityServerUrl==="function"?getCommunityServerUrl():"";
-  let config={packs:fallbackPacks,paymentConfigured:false};
+  let config={packs:fallbackPacks,paymentConfigured:false,firstRechargeDouble:true};
   let orders=[];
   let serverError="";
 
@@ -542,6 +545,8 @@ async function renderRecharge(title, body) {
     }
   }
 
+  const hasPaidBefore=orders.some(o=>o.status==="paid"||o.status==="claimed");
+  const firstDoubleAvailable=!hasPaidBefore;
   const statusText=(order)=>{
     if(order.status==="claimed")return "✅ 已到账";
     if(order.status==="paid")return "💰 已支付 · 待领取";
@@ -550,8 +555,13 @@ async function renderRecharge(title, body) {
 
   body.innerHTML = `
     <div class="meta-recharge-rate">
-      <b>固定兑换比例：1元 = 300金币</b>
-      <small>支付成功后由服务器确认，再领取金币；同一订单只能领取一次。</small>
+      <b>🔷 1元 = 100坦克币</b>
+      <small>首次充值：基础坦克币 ×2；30元及以上额外赠送坦克币。普通金币仍通过游戏任务获得。</small>
+    </div>
+
+    <div class="recharge-first-banner ${firstDoubleAvailable?"active":"used"}">
+      <strong>${firstDoubleAvailable?"🎉 首充双倍可用":"✅ 首充双倍已使用"}</strong>
+      <span>${firstDoubleAvailable?"第一次支付成功时，基础坦克币自动翻倍。":"后续充值按基础数量 + 档位赠送计算。"}</span>
     </div>
 
     <div class="meta-recharge-server ${serverUrl&&!serverError?"ready":""}">
@@ -562,19 +572,31 @@ async function renderRecharge(title, body) {
     ${serverError?`<div class="meta-payment-warning">⚠️ ${escapeRechargeHtml(serverError)}</div>`:""}
 
     <div class="meta-recharge-grid">
-      ${(config.packs||fallbackPacks).map(p=>`
-        <div class="meta-recharge-card">
+      ${(config.packs||fallbackPacks).map(p=>{
+        const base=Number(p.baseTankCoins)||0;
+        const bonus=Number(p.bonusTankCoins)||0;
+        const preview=base*(firstDoubleAvailable?2:1)+bonus;
+        return `
+        <div class="meta-recharge-card ${p.yuan>=30?"bonus-pack":""}">
           <b>¥${p.yuan}</b>
-          <strong>🪙 ${Number(p.coins).toLocaleString()}</strong>
-          <small>${p.yuan>=68?"大额金币包":"金币充值包"}</small>
+          <strong>🔷 ${preview.toLocaleString()}</strong>
+          <small>基础 ${base.toLocaleString()}${firstDoubleAvailable?" ×2":""}</small>
+          ${bonus>0?`<em>🎁 额外赠送 +${bonus.toLocaleString()}</em>`:"<em>标准充值</em>"}
           <button data-recharge-pack="${p.id}" ${!serverUrl||serverError?"disabled":""}>立即充值</button>
-        </div>`).join("")}
+        </div>`;
+      }).join("")}
+    </div>
+
+    <div class="tank-recharge-rules">
+      <span>🟣 5坦克币 = 1中级坦克币</span>
+      <span>💎 10坦克币 = 1高级坦克币</span>
+      <button id="recharge-open-exchange">充值后去兑换</button>
     </div>
 
     <div class="meta-recharge-provider ${config.paymentConfigured?"ready":""}">
       ${config.paymentConfigured
-        ?"✅ 支付渠道已连接，可以创建订单并跳转支付。"
-        :"🔒 订单服务器已支持充值；当前支付渠道未配置时，不会自动扣款或发放金币。"}
+        ?"✅ 支付渠道已连接。支付成功后由服务器确认坦克币数量。"
+        :"🔒 充值订单系统已完成；支付渠道未配置时不会真实扣款，也不会发放付费坦克币。"}
     </div>
 
     <div class="meta-recharge-history">
@@ -582,11 +604,14 @@ async function renderRecharge(title, body) {
       <div class="meta-recharge-orders">
         ${orders.length?orders.map(o=>`
           <div class="meta-recharge-order">
-            <span><b>¥${o.yuan} · 🪙 ${Number(o.coins).toLocaleString()}</b><small>${escapeRechargeHtml(o.id)}</small></span>
+            <span>
+              <b>¥${o.yuan} · 🔷 ${Number(o.totalTankCoins||o.baseTankCoins||0).toLocaleString()}</b>
+              <small>${escapeRechargeHtml(o.id)}${o.firstDouble?" · 首充双倍":""}${o.bonusTankCoins?` · 赠送+${Number(o.bonusTankCoins).toLocaleString()}`:""}</small>
+            </span>
             <em class="status-${o.status}">${statusText(o)}</em>
             <div>
               ${o.status==="pending"&&o.checkoutUrl?`<button data-recharge-pay="${escapeRechargeHtml(o.checkoutUrl)}">去支付</button>`:""}
-              ${o.status==="paid"?`<button data-recharge-claim="${o.id}">领取金币</button>`:""}
+              ${o.status==="paid"?`<button data-recharge-claim="${o.id}">领取坦克币</button>`:""}
             </div>
           </div>`).join("")
           :'<div class="meta-recharge-empty">还没有充值订单</div>'}
@@ -625,9 +650,9 @@ async function renderRecharge(title, body) {
     btn.disabled=true;
     try{
       const result=await claimRechargeOrderOnline(btn.dataset.rechargeClaim);
-      const coins=Number(result?.coins)||0;
-      if(coins>0)metaAddCoins(coins);
-      metaToast(`🪙 充值到账 +${coins.toLocaleString()}金币`);
+      const tankCoins=Number(result?.tankCoins)||0;
+      if(tankCoins>0)metaAddTankCoins(tankCoins);
+      metaToast(`🔷 充值到账 +${tankCoins.toLocaleString()}坦克币`);
       await renderRecharge(title,body);
     }catch(err){
       metaToast("领取失败："+(err?.message||"订单状态异常"));
@@ -636,6 +661,7 @@ async function renderRecharge(title, body) {
   });
 
   body.querySelector("#meta-recharge-refresh")?.addEventListener("click",()=>renderRecharge(title,body));
+  body.querySelector("#recharge-open-exchange")?.addEventListener("click",()=>renderCurrencyWallet(title,body));
 }
 
 function escapeRechargeHtml(value){
