@@ -194,10 +194,17 @@ function updateCommunityMod(){
   const ox=p.x,oy=p.y;
   const speed=3.2;
   let dx=0,dy=0;
-  if(communityModKeys.ArrowLeft)dx-=speed;
-  if(communityModKeys.ArrowRight)dx+=speed;
-  if(communityModKeys.ArrowUp)dy-=speed;
-  if(communityModKeys.ArrowDown)dy+=speed;
+  const joy=globalThis.mobileJoystickState;
+  if(joy?.active&&joy.magnitude>0.02){
+    dx=joy.x*speed;
+    dy=joy.y*speed;
+  }else{
+    if(communityModKeys.ArrowLeft)dx-=speed;
+    if(communityModKeys.ArrowRight)dx+=speed;
+    if(communityModKeys.ArrowUp)dy-=speed;
+    if(communityModKeys.ArrowDown)dy+=speed;
+    if(dx&&dy){dx*=0.70710678;dy*=0.70710678;}
+  }
   p.x=Math.max(p.r,Math.min(m.width-p.r,p.x+dx));
   p.y=Math.max(p.r,Math.min(m.height-p.r,p.y+dy));
   if(m.walls.some(w=>communityRectHit(p,w))){p.x=ox;p.y=oy;}
