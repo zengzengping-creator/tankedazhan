@@ -418,7 +418,7 @@ function ensureIslandWorldModal() {
         <span>🪙 <b id="island-world-coins">0</b></span>
         <button type="button" id="island-world-exit">离开岛屿</button>
       </div>
-      <canvas id="island-world-canvas" width="1400" height="840"></canvas>
+      <canvas id="island-world-canvas" width="2000" height="950"></canvas>
       <div id="island-world-hint" class="island-world-hint">方向键移动 · J跳跃 · E互动 · 两座岛直接步行/驾驶互通</div>
     </div>`;
 
@@ -524,14 +524,21 @@ function clampPlayerToIsland(p) {
   const small = { x: 250, y: 300, r: 260 };
   const large = { x: 830, y: 260, r: 430 };
   const amusement = { x: 1060, y: 590, r: 245 };
+  const maze = { x1: 1380, x2: 1900, y1: 390, y2: 800 };
   const bridge = { x1: 455, x2: 545, y1: 205, y2: 355 };
   const funBridge = { x1: 900, x2: 1040, y1: 430, y2: 520 };
+  const mazeJumpPads = [{x:1328,y:590,r:19},{x:1356,y:590,r:19}];
 
   const insideCircle = (c) => Math.hypot(p.x - c.x, p.y - c.y) <= c.r;
+  const insideRect = (r) => p.x >= r.x1 && p.x <= r.x2 && p.y >= r.y1 && p.y <= r.y2;
   const insideBridge = p.x >= bridge.x1 && p.x <= bridge.x2 && p.y >= bridge.y1 && p.y <= bridge.y2;
   const insideFunBridge = p.x >= funBridge.x1 && p.x <= funBridge.x2 && p.y >= funBridge.y1 && p.y <= funBridge.y2;
+  const onMazePad = mazeJumpPads.some(q => Math.hypot(p.x-q.x,p.y-q.y) <= q.r);
+  const airborneMazeJump = p.x >= 1280 && p.x <= 1390 && p.y >= 548 && p.y <= 632 &&
+    (p.z || 0) > 2.5 && (!islandWorldState || islandWorldState.mounted !== false);
 
-  if (insideCircle(small) || insideCircle(large) || insideCircle(amusement) || insideBridge || insideFunBridge) return;
+  if (insideCircle(small) || insideCircle(large) || insideCircle(amusement) ||
+      insideRect(maze) || insideBridge || insideFunBridge || onMazePad || airborneMazeJump) return;
 
   // 超出双岛范围时，吸附到最近岛屿边缘。
   const clampToCircle = (c) => {
@@ -543,7 +550,10 @@ function clampPlayerToIsland(p) {
   const a = clampToCircle(small);
   const b = clampToCircle(large);
   const c2 = clampToCircle(amusement);
-  const best = [a,b,c2].sort((u,v)=>u.dist-v.dist)[0];
+  const mazeX = Math.max(maze.x1, Math.min(maze.x2, p.x));
+  const mazeY = Math.max(maze.y1, Math.min(maze.y2, p.y));
+  const mazeClamp = {x:mazeX,y:mazeY,dist:Math.hypot(p.x-mazeX,p.y-mazeY)};
+  const best = [a,b,c2,mazeClamp].sort((u,v)=>u.dist-v.dist)[0];
   p.x = best.x;
   p.y = best.y;
 }
@@ -732,14 +742,14 @@ function drawIslandWorld() {
   const s = islandWorldState;
   if (!ctx2 || !s) return;
 
-  ctx2.clearRect(0, 0, 1400, 840);
+  ctx2.clearRect(0, 0, 2000, 950);
 
   // 海水
-  const sea = ctx2.createLinearGradient(0, 0, 0, 840);
+  const sea = ctx2.createLinearGradient(0, 0, 0, 950);
   sea.addColorStop(0, "#0f6682");
   sea.addColorStop(1, "#073d5b");
   ctx2.fillStyle = sea;
-  ctx2.fillRect(0, 0, 1400, 840);
+  ctx2.fillRect(0, 0, 2000, 950);
 
   // 8字形双岛：旧岛 + 旁边更大的新主岛，中间陆地直接连接。
   ctx2.fillStyle = "#e3cf87";
@@ -755,6 +765,18 @@ function drawIslandWorld() {
   ctx2.beginPath(); ctx2.arc(1060, 590, 228, 0, Math.PI * 2); ctx2.fill();
   ctx2.fillRect(460, 215, 85, 130);
   ctx2.fillRect(910, 440, 130, 70);
+
+  // 巨型剧情迷宫平台：整片区域都是迷宫，和游乐园之间留海面跳跃断层。
+  ctx2.fillStyle = "#e3cf87";
+  ctx2.fillRect(1366, 376, 548, 438);
+  ctx2.fillStyle = "#557f49";
+  ctx2.fillRect(1380, 390, 520, 410);
+
+  // 跨海跳台，必须按J跳跃才能真正进入迷宫区域。
+  [[1328,590],[1356,590]].forEach(([x,y],i)=>{
+    ctx2.fillStyle = i===0 ? "#ffd65e" : "#61cfff";
+    ctx2.beginPath();ctx2.arc(x,y,18,0,Math.PI*2);ctx2.fill();
+  });
 
   // 双岛主路与连接路
   ctx2.strokeStyle = "#c7b580";
