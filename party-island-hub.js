@@ -567,18 +567,22 @@ function renderPartyScenic(title, body) {
 }
 
 function renderPartyOnline(title, body) {
-  title.textContent = "🌐 联机大厅";
+  title.textContent = "🌐 联机中心";
+  const url=typeof getCommunityServerUrl==="function"?getCommunityServerUrl():"";
+  const connected=typeof isTeamServerConnected==="function"&&isTeamServerConnected();
   body.innerHTML = `
     <div class="party-online-card">
       <div class="party-online-icon">🌐</div>
-      <b>多人联机中心</b>
-      <small>计划支持：好友房间、房间码、组队、实时PVP、多人坦克岛。</small>
-      <button disabled>创建房间 · 待服务器接入</button>
-      <button disabled>加入房间 · 待服务器接入</button>
+      <b>组队与社区服务器</b>
+      <small>${connected?"服务器已连接，可以创建/加入队伍。":url?"已保存服务器地址，进入组队页即可连接。":"尚未配置服务器地址。"}</small>
+      <button id="party-online-team">进入在线组队</button>
+      <button id="party-online-mods">搜索社区地图</button>
     </div>
     <div class="party-info-note">
-      当前项目运行在 GitHub Pages 纯前端，尚没有实时房间服务器。这里不会伪装成已联网；接入 WebSocket / 后端房间服务后即可启用。
+      组队房间和社区地图搜索使用同一个服务器。当前已支持创建队伍、队伍码加入、准备状态、房主开始，以及按地图名搜索社区地图。
     </div>`;
+  body.querySelector("#party-online-team")?.addEventListener("click",()=>openMetaPanel("team"));
+  body.querySelector("#party-online-mods")?.addEventListener("click",()=>openMetaPanel("mods"));
 }
 
 function renderPartyBackpack(title, body) {
