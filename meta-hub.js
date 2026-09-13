@@ -11,11 +11,13 @@ const VIP_FALLBACK_CONFIG = {
 };
 
 function loadVipCache(){
+  const fresh={active:false,title:"普通车长",priceYuan:12,rewardHighTankCoins:12,shopDiscount:0,boxDiscount:0,claimed:false};
   try{
     const v=JSON.parse(localStorage.getItem(VIP_CACHE_KEY)||"null");
-    return v&&typeof v==="object"?v:{active:false,title:"普通车长",priceYuan:12,rewardHighTankCoins:12,shopDiscount:0,boxDiscount:0,claimed:false};
+    // 旧版VIP1~VIP6缓存不再沿用，必须以新的12元永久VIP服务器状态为准。
+    return v&&typeof v==="object"&&typeof v.active==="boolean"?Object.assign(fresh,v):fresh;
   }catch(_){
-    return {active:false,title:"普通车长",priceYuan:12,rewardHighTankCoins:12,shopDiscount:0,boxDiscount:0,claimed:false};
+    return fresh;
   }
 }
 let metaVipCache=loadVipCache();
@@ -556,7 +558,7 @@ function renderCurrencyWallet(title, body) {
 function drawNormalTankBox() {
   if((islandData.tankCoins||0)<1){metaToast("坦克币不足");return;}
   islandData.tankCoins-=1;
-  const pool=typeof TANK_SHOP_PRICES!=="undefined"?Object.keys(TANK_SHOP_PRICES):["elite","base","weaken","flight","evolution","omni"];
+  const pool=["elite","base","weaken"];
   const type=pool[Math.floor(Math.random()*pool.length)];
   islandData.unlocked=islandData.unlocked||{};
   const duplicate=!!islandData.unlocked[type];
