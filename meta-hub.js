@@ -509,20 +509,21 @@ function skinPoolForBox(box) {
 function drawMetaBlindBox(box) {
   const key=box.currency||"coins";
   const info=CURRENCY_INFO[key]||CURRENCY_INFO.coins;
+  const cost=vipDiscountedPrice(box.cost,"box");
   const balance=islandData[key]||0;
-  if (balance<box.cost) {
+  if (balance<cost) {
     metaToast(info.name+"不足");
     return;
   }
   const pool=skinPoolForBox(box);
   if(!pool.length)return;
-  islandData[key]-=box.cost;
+  islandData[key]-=cost;
   const skin=pool[Math.floor(Math.random()*pool.length)];
   const duplicate=!!islandData.skins?.[skin.id];
   islandData.skins=islandData.skins||{};
   islandData.skins[skin.id]=true;
   islandData.equippedSkin=skin.id;
-  if(duplicate)islandData[key]+=Math.floor(box.cost*0.25);
+  if(duplicate)islandData[key]+=Math.floor(cost*0.25);
   saveIslandData();
   metaData.event.skinDraws++;
   metaData.seasonXp+=20;
@@ -544,10 +545,11 @@ function renderBoxes(title, body) {
     <div class="meta-boxes">
       ${BLIND_BOXES.map(box=>{
         const info=CURRENCY_INFO[box.currency||"coins"]||CURRENCY_INFO.coins;
+        const cost=vipDiscountedPrice(box.cost,"box");
         return `<div class="meta-box-card ${box.id==="high"?"premium":box.id==="mid"?"mid":""}">
           <div>${box.icon}</div><b>${box.name}</b>
           <small>${box.rarities.join(" / ")}</small>
-          <button data-box="${box.id}">${info.icon} ${box.cost} 抽一次</button>
+          <button data-box="${box.id}">${info.icon} ${cost} 抽一次${cost<box.cost?" · VIP折扣":""}</button>
         </div>`;
       }).join("")}
     </div>
@@ -572,9 +574,10 @@ function renderPets(title, body) {
       ${ISLAND_PETS.map(p=>{
         const owned=!!islandData.pets[p.id];
         const equipped=islandData.equippedPet===p.id;
+        const price=vipDiscountedPrice(p.price,"shop");
         return `<button data-pet="${p.id}" class="${equipped?"selected":""}">
           <strong>${p.icon}</strong><b>${p.name}</b>
-          <small>${equipped?"✅ 跟随中":owned?"已拥有":p.price+"金币"}</small>
+          <small>${equipped?"✅ 跟随中":owned?"已拥有":price+"金币"+(price<p.price?" · VIP价":"")}</small>
           <span>${equipped?"已装备":owned?"装备":"购买"}</span>
         </button>`;
       }).join("")}
@@ -583,8 +586,9 @@ function renderPets(title, body) {
     const pet=ISLAND_PETS.find(p=>p.id===btn.dataset.pet);
     if(!pet)return;
     if(!islandData.pets[pet.id]){
-      if((islandData.coins||0)<pet.price){metaToast("金币不足");return;}
-      islandData.coins-=pet.price;
+      const price=vipDiscountedPrice(pet.price,"shop");
+      if((islandData.coins||0)<price){metaToast("金币不足");return;}
+      islandData.coins-=price;
       islandData.pets[pet.id]=true;
     }
     islandData.equippedPet=pet.id;
@@ -763,7 +767,8 @@ async function renderRecharge(title, body) {
       const result=await claimRechargeOrderOnline(btn.dataset.rechargeClaim);
       const tankCoins=Number(result?.tankCoins)||0;
       if(tankCoins>0)metaAddTankCoins(tankCoins);
-      metaToast(`🔷 充值到账 +${tankCoins.toLocaleString()}坦克币`);
+      await syncVipStatus(true);
+      metaToast(`🔷 充值到账 +${tankCoins.toLocaleString()}坦克币 · VIP已更新`);
       await renderRecharge(title,body);
     }catch(err){
       metaToast("领取失败："+(err?.message||"订单状态异常"));
@@ -830,6 +835,7 @@ ensurePetData();
 createMetaHud();
 refreshMetaHud();
 updateMetaHudLocation();
+setTimeout(()=>syncVipStatus(true),600);
 setInterval(() => {
   refreshMetaHud();
   updateMetaHudLocation();
