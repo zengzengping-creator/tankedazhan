@@ -16,8 +16,13 @@ function getCommunityServerUrl(){
 
 function setCommunityServerUrl(url){
   const value=String(url||"").trim().replace(/\/$/,"");
+  const prev=getCommunityServerUrl();
   if(value)localStorage.setItem(TANK_PARTY_SERVER_URL_KEY,value);
   else localStorage.removeItem(TANK_PARTY_SERVER_URL_KEY);
+  if(value!==prev && teamSocket){
+    try{teamSocket.close();}catch(_){}
+    teamSocket=null;teamConnected=false;teamState=null;
+  }
   return value;
 }
 
