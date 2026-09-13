@@ -248,7 +248,7 @@ app.get("/api/recharge/orders/:id",(req,res)=>{
 
 app.post("/api/recharge/orders/:id/claim",(req,res)=>{
   const playerId=safeText(req.body?.playerId,100);
-  const order=rechargeOrders.find(o=>o.id===req.params.id&&o.playerId===playerId);
+  const order=rechargeOrders.find(o=>o.id===req.params.id&&o.playerId===playerId&&(o.kind||"recharge")==="recharge");
   if(!order)return res.status(404).json({error:"订单不存在"});
   if(order.status==="claimed")return res.status(409).json({error:"该订单已经领取"});
   if(order.status!=="paid")return res.status(409).json({error:"订单尚未支付"});
