@@ -82,6 +82,19 @@ async function checkCommunityServer(){
   }
 }
 
+async function getVipStatusOnline(){
+  const player=getCommunityPlayer();
+  return communityFetch("/api/vip?playerId="+encodeURIComponent(player.id));
+}
+
+async function claimVipDailyOnline(){
+  const player=getCommunityPlayer();
+  return communityFetch("/api/vip/daily-claim",{
+    method:"POST",
+    body:JSON.stringify({playerId:player.id})
+  });
+}
+
 async function getRechargeConfigOnline(){
   return communityFetch("/api/recharge/config");
 }
@@ -221,6 +234,7 @@ function isTeamServerConnected(){return teamConnected;}
 Object.assign(globalThis,{
   getCommunityServerUrl,setCommunityServerUrl,getCommunityPlayer,setCommunityPlayerName,
   searchCommunityMapsOnline,publishCommunityMapOnline,checkCommunityServer,
+  getVipStatusOnline,claimVipDailyOnline,
   getRechargeConfigOnline,createRechargeOrderOnline,getRechargeOrdersOnline,getRechargeOrderOnline,claimRechargeOrderOnline,
   ensureTeamConnection,onTeamServerEvent,createOnlineTeam,joinOnlineTeam,leaveOnlineTeam,
   setOnlineTeamReady,startOnlineTeamGame,getOnlineTeamState,isTeamServerConnected
