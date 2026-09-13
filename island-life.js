@@ -923,3 +923,24 @@ drawIslandWorld=function(){
 };
 
 globalThis.GIANT_STORY_MAZE=GIANT_STORY_MAZE;
+
+
+// 宠物2D回退显示：真实3D不可用时，也能看到当前装备宠物跟随。
+const drawIslandWorldBeforePetFollower = drawIslandWorld;
+drawIslandWorld = function(){
+  drawIslandWorldBeforePetFollower();
+  if(!islandWorldState || typeof activeIslandPet!=="function") return;
+  const canvas=document.getElementById("island-world-canvas");
+  const ctx2=canvas?.getContext("2d");
+  if(!ctx2)return;
+  const pet=activeIslandPet();
+  const mover=islandWorldState.mounted?islandWorldState.player:islandWorldState.human;
+  if(!pet||!mover)return;
+  const bob=Math.abs(Math.sin(performance.now()/260))*5;
+  ctx2.save();
+  ctx2.font="24px sans-serif";
+  ctx2.textAlign="center";
+  ctx2.textBaseline="middle";
+  ctx2.fillText(pet.icon,mover.x-24,mover.y-mover.z+18-bob);
+  ctx2.restore();
+};
