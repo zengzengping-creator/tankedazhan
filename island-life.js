@@ -523,7 +523,8 @@ window.addEventListener("keydown",(e)=>{
     const mover=islandCurrentMover(islandWorldState);
     if(mover && mover.z<=0){
       e.preventDefault();e.stopImmediatePropagation();
-      mover.vz=6.2;
+      const nearGiantMaze=mover.x>=1240&&mover.x<=1920&&mover.y>=350&&mover.y<=840&&islandWorldState.mounted;
+      mover.vz=nearGiantMaze?8.2:6.2;
     }
   }
 },true);
@@ -747,16 +748,16 @@ const GIANT_STORY_MAZE = {
   bounds:{x1:1380,y1:390,x2:1900,y2:800},
   entrance:{x:1395,y:590},
   exit:{x:1880,y:430},
-  jumpPads:[{x:1328,y:590,r:19},{x:1356,y:590,r:19}],
+  jumpPads:[{x:1318,y:590,r:17},{x:1344,y:590,r:17},{x:1370,y:590,r:17}],
   storyNodes:[
     {id:1,x:1430,y:735,r:28,title:"前哨站",text:"📡 前哨站：信号显示正确路线需要先从南侧绕过第一道高墙。"},
     {id:2,x:1580,y:458,r:28,title:"中继区",text:"🔋 中继区：路线确认，继续深入并寻找下一个南侧通道。"},
     {id:3,x:1740,y:680,r:28,title:"核心门",text:"🔓 核心门：最终出口已解锁，向右上方寻找绿色出口门！"}
   ],
   pits:[
-    {x:1472,y:716,w:52,h:42,label:"断层A"},
-    {x:1554,y:398,w:52,h:42,label:"断层B"},
-    {x:1714,y:716,w:52,h:42,label:"断层C"}
+    {x:1480,y:722,w:30,h:24,label:"断层A"},
+    {x:1564,y:404,w:30,h:24,label:"断层B"},
+    {x:1724,y:722,w:30,h:24,label:"断层C"}
   ],
   walls:[
     {x:1380,y:390,w:520,h:14},{x:1380,y:786,w:520,h:14},
@@ -830,8 +831,8 @@ updateIslandWorld=function(){
     if(!s.mounted){
       p.x=Math.min(p.x,1280);
       giantMazeHint("🚫 巨型剧情迷宫只能驾驶坦克跳跃进入。");
-    }else if((p.z||0)<2.5&&p.x>1300){
-      giantMazeHint("🛫 前方是断海入口：驾驶坦克按 J 起跳，踩跳台进入巨型剧情迷宫！");
+    }else if((p.z||0)<0.8&&p.x>1290){
+      giantMazeHint("🛫 前方入口已降低难度：靠近彩色跳台按 J，即可轻松跳进巨型剧情迷宫！");
     }
   }
 
@@ -843,11 +844,11 @@ updateIslandWorld=function(){
 
     // 三处断层：高度不足会掉回最近剧情检查点，必须J跳过去。
     const pit=GIANT_STORY_MAZE.pits.find(q=>pointInRectCircle(p,q,-4));
-    if(pit&&(p.z||0)<4.5){
+    if(pit&&(p.z||0)<1.6){
       const now=performance.now();
       p.x=m.lastCheckpoint.x;p.y=m.lastCheckpoint.y;p.z=0;p.vz=0;
       if(now-m.lastPitAt>700){
-        giantMazeHint(`🌊 掉进${pit.label}了！按 J 跳过断层。`);
+        giantMazeHint(`🌊 掉进${pit.label}了！断层已经缩短，靠近边缘按 J 就能跳过去。`);
         m.lastPitAt=now;
       }
     }
