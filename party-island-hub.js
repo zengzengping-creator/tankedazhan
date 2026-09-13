@@ -140,7 +140,7 @@ function startSelectedPartyMode() {
   if (mode === "giantmaze") {
     if (islandWorldState) {
       const mover = islandWorldState.mounted ? islandWorldState.player : islandWorldState.human;
-      if (mover) { mover.x=1285; mover.y=590; mover.z=0; mover.vz=0; }
+      if (mover) { mover.x=485; mover.y=245; mover.z=0; mover.vz=0; }
     }
     metaToast("🧩 已来到巨型剧情迷宫入口");
     return;
@@ -434,7 +434,7 @@ function renderPartyMap(title, body) {
     ["🏢","坦克大楼",250,190],
     ["🛍️","原始岛商城",120,170],
     ["🎪","游乐园游乐区",900,590],
-    ["🧩","巨型剧情迷宫入口",1285,590],
+    ["🧩","巨型剧情迷宫起跳台",485,245],
     ["🗼","跑酷塔",390,285],
     ["🎯","射击靶场",350,350],
   ];
