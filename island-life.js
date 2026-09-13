@@ -544,15 +544,16 @@ window.addEventListener("keydown",(e)=>{
 
 // ------------------- 大型游乐园游乐区：7个坦克可玩项目 -------------------
 const AMUSEMENT_ZONE = {
-  center:{x:1060,y:590,r:245},
+  // 游乐岛已搬到初始岛与迷宫岛之间偏下的位置。
+  center:{x:640,y:570,r:210},
   rides:[
-    {id:"slide",name:"大型滑梯",icon:"🛝",x:935,y:505,r:42},
-    {id:"swing",name:"坦克秋千",icon:"🎪",x:1040,y:505,r:42},
-    {id:"trampoline",name:"蹦床区",icon:"🟣",x:1150,y:510,r:48},
-    {id:"spinner",name:"旋转娱乐盘",icon:"🎡",x:940,y:595,r:50},
-    {id:"seesaw",name:"坦克跷跷板",icon:"⚖️",x:1045,y:592,r:48},
-    {id:"rainbow",name:"彩虹跳台",icon:"🌈",x:1160,y:595,r:60},
-    {id:"moving",name:"滚动平台区",icon:"↔️",x:965,y:688,r:55},
+    {id:"slide",name:"大型滑梯",icon:"🛝",x:515,y:485,r:42},
+    {id:"swing",name:"坦克秋千",icon:"🎪",x:620,y:485,r:42},
+    {id:"trampoline",name:"蹦床区",icon:"🟣",x:730,y:490,r:48},
+    {id:"spinner",name:"旋转娱乐盘",icon:"🎡",x:520,y:575,r:50},
+    {id:"seesaw",name:"坦克跷跷板",icon:"⚖️",x:625,y:572,r:48},
+    {id:"rainbow",name:"彩虹跳台",icon:"🌈",x:740,y:575,r:60},
+    {id:"moving",name:"滚动平台区",icon:"↔️",x:545,y:668,r:55},
   ]
 };
 
@@ -665,7 +666,7 @@ updateIslandWorld=function(){
     markAmusementRide(s,"seesaw");
   }
 
-  const rainbowPads=[[1118,620],[1135,603],[1153,588],[1172,575],[1190,562],[1208,548]];
+  const rainbowPads=[[698,600],[715,583],[733,568],[752,555],[770,542],[788,528]];
   rainbowPads.forEach((q,i)=>{
     if(Math.hypot(p.x-q[0],p.y-q[1])<18){
       p.vz=Math.max(p.vz||0,7.0);
@@ -700,10 +701,10 @@ drawIslandWorld=function(){
   const a=ensureAmusementState(s);
 
   ctx2.save();
-  ctx2.fillStyle="#f6cf55";ctx2.fillRect(925,432,150,34);
-  ctx2.fillStyle="#26323a";ctx2.fillRect(934,466,10,46);ctx2.fillRect(1056,466,10,46);
+  ctx2.fillStyle="#f6cf55";ctx2.fillRect(505,412,150,34);
+  ctx2.fillStyle="#26323a";ctx2.fillRect(514,446,10,46);ctx2.fillRect(636,446,10,46);
   ctx2.fillStyle="#162027";ctx2.font="bold 17px Microsoft YaHei,sans-serif";
-  ctx2.textAlign="center";ctx2.fillText("游乐园游乐区",1000,454);
+  ctx2.textAlign="center";ctx2.fillText("游乐园游乐区",580,434);
 
   const colors={slide:"#ff7996",swing:"#62d6ff",trampoline:"#9b79ff",spinner:"#ffd65e",
     seesaw:"#72df8b",rainbow:"#ff8bcf",moving:"#60d0da",maze:"#f0a35d"};
@@ -713,7 +714,7 @@ drawIslandWorld=function(){
     ctx2.fillText(`${r.icon} ${r.name}`,r.x,r.y+r.r*.72);
   });
 
-  const pads=[[1118,620],[1135,603],[1153,588],[1172,575],[1190,562],[1208,548]];
+  const pads=[[698,600],[715,583],[733,568],[752,555],[770,542],[788,528]];
   ["#ff6f86","#ffa84d","#ffe05b","#6edb8a","#61cfff","#9a78ff"].forEach((cl,i)=>{
     ctx2.fillStyle=cl;ctx2.beginPath();ctx2.arc(pads[i][0],pads[i][1],10,0,Math.PI*2);ctx2.fill();
   });
@@ -723,7 +724,7 @@ drawIslandWorld=function(){
 
   ctx2.fillStyle="rgba(0,0,0,.62)";ctx2.fillRect(930,785,260,34);
   ctx2.fillStyle="#fff";ctx2.font="bold 14px sans-serif";
-  ctx2.fillText(`🎪 游乐园巡游：${Object.keys(a.visited).length}/7`,1060,807);
+  ctx2.fillText(`🎪 游乐园巡游：${Object.keys(a.visited).length}/7`,640,790);
   ctx2.restore();
 };
 
