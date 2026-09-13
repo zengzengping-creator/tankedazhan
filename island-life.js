@@ -530,7 +530,7 @@ window.addEventListener("keydown",(e)=>{
 },true);
 
 
-// ------------------- 大型游乐园游乐区：8个坦克可玩项目 -------------------
+// ------------------- 大型游乐园游乐区：7个坦克可玩项目 -------------------
 const AMUSEMENT_ZONE = {
   center:{x:1060,y:590,r:245},
   rides:[
@@ -541,14 +541,6 @@ const AMUSEMENT_ZONE = {
     {id:"seesaw",name:"坦克跷跷板",icon:"⚖️",x:1045,y:592,r:48},
     {id:"rainbow",name:"彩虹跳台",icon:"🌈",x:1160,y:595,r:60},
     {id:"moving",name:"滚动平台区",icon:"↔️",x:965,y:688,r:55},
-    {id:"maze",name:"小型迷宫",icon:"🧩",x:1125,y:690,r:82},
-  ],
-  mazeWalls:[
-    {x:1052,y:632,w:152,h:12},{x:1052,y:742,w:152,h:12},
-    {x:1052,y:632,w:12,h:122},{x:1192,y:632,w:12,h:122},
-    {x:1080,y:654,w:12,h:66},{x:1080,y:654,w:72,h:12},
-    {x:1128,y:676,w:12,h:66},{x:1152,y:702,w:40,h:12},
-    {x:1102,y:724,w:38,h:12}
   ]
 };
 
@@ -571,34 +563,26 @@ function markAmusementRide(s,id){
   a.visited[id]=true;
   const count=Object.keys(a.visited).length;
   const hint=document.getElementById("island-world-hint");
-  if(hint)hint.textContent=`${r.icon} ${r.name} 已体验 · 游乐园进度 ${count}/8`;
-  if(typeof metaToast==="function")metaToast(`${r.icon} ${r.name} · ${count}/8`);
+  if(hint)hint.textContent=`${r.icon} ${r.name} 已体验 · 游乐园进度 ${count}/7`;
+  if(typeof metaToast==="function")metaToast(`${r.icon} ${r.name} · ${count}/7`);
 
-  if(count>=8){
+  if(count>=7){
     let result={reward:300,firstClear:false};
     if(typeof awardTankTask==="function"){
-      result=awardTankTask("island-amusement-tour","🎪 游乐园8项巡游");
+      result=awardTankTask("island-amusement-tour","🎪 游乐园7项巡游");
     }else{
-      addIslandCoins(300,"🎪 游乐园8项巡游");
+      addIslandCoins(300,"🎪 游乐园7项巡游");
     }
     const coin=document.getElementById("island-world-coins");
     if(coin)coin.textContent=islandData?.coins||0;
     if(hint)hint.textContent=result.firstClear
-      ? "🏆 游乐园8项全部完成！首通获得500金币！"
-      : `🏆 游乐园8项全部完成！获得${result.reward}金币！`;
+      ? "🏆 游乐园7项全部完成！首通获得500金币！"
+      : `🏆 游乐园7项全部完成！获得${result.reward}金币！`;
     setTimeout(()=>{
       if(!islandWorldState)return;
       ensureAmusementState(islandWorldState).visited={};
     },3500);
   }
-}
-
-function amusementMazeHit(p){
-  const rr=p.r||12;
-  return AMUSEMENT_ZONE.mazeWalls.some(w=>
-    p.x+rr>w.x && p.x-rr<w.x+w.w &&
-    p.y+rr>w.y && p.y-rr<w.y+w.h
-  );
 }
 
 const startIslandWorldBeforeAmusement=startIslandWorld;
@@ -621,8 +605,6 @@ updateIslandWorld=function(){
   if(!p||!a)return;
   a.phase+=0.035;
   if(a.cooldown>0)a.cooldown--;
-
-  if(amusementMazeHit(p)){ p.x=prevX; p.y=prevY; }
 
   const slide=rideById("slide");
   if(rideDist(p,slide)<slide.r && a.slide<=0 && a.cooldown<=0){
@@ -688,13 +670,11 @@ updateIslandWorld=function(){
     markAmusementRide(s,"moving");
   }
 
-  if(Math.hypot(p.x-1168,p.y-728)<22)markAmusementRide(s,"maze");
-
   const inZone=Math.hypot(p.x-AMUSEMENT_ZONE.center.x,p.y-AMUSEMENT_ZONE.center.y)<AMUSEMENT_ZONE.center.r+20;
   if(inZone && !s.nearBuilding){
     const count=Object.keys(a.visited).length;
     const hint=document.getElementById("island-world-hint");
-    if(hint&&count<8)hint.textContent=`🎪 游乐园游乐区 · 已体验 ${count}/8 · 坦克可直接游玩设施`;
+    if(hint&&count<7)hint.textContent=`🎪 游乐园游乐区 · 已体验 ${count}/7 · 坦克可直接游玩设施`;
   }
 };
 
@@ -729,13 +709,9 @@ drawIslandWorld=function(){
   const px=965+Math.sin(a.phase*1.5)*42;
   ctx2.fillStyle="#62d2d9";ctx2.fillRect(px-24,678,48,20);
 
-  ctx2.fillStyle="#765641";
-  AMUSEMENT_ZONE.mazeWalls.forEach(w=>ctx2.fillRect(w.x,w.y,w.w,w.h));
-  ctx2.font="22px sans-serif";ctx2.fillText("🎁",1168,730);
-
   ctx2.fillStyle="rgba(0,0,0,.62)";ctx2.fillRect(930,785,260,34);
   ctx2.fillStyle="#fff";ctx2.font="bold 14px sans-serif";
-  ctx2.fillText(`🎪 游乐园巡游：${Object.keys(a.visited).length}/8`,1060,807);
+  ctx2.fillText(`🎪 游乐园巡游：${Object.keys(a.visited).length}/7`,1060,807);
   ctx2.restore();
 };
 
