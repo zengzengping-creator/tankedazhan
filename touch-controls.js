@@ -76,6 +76,7 @@
   let targetKnobX=0,targetKnobY=0;
   let renderedKnobX=999,renderedKnobY=999;
   let centerX=0,centerY=0,radius=48;
+  let knobFrame=0;
 
   const digitalNames=["up","down","left","right"];
   function syncDigitalDirections(){
@@ -113,6 +114,7 @@
     joystickState.y=mag ? ny*mag : 0;
     joystickState.magnitude=mag;
     syncDigitalDirections();
+    queueKnobRender();
   }
 
   function resetJoystick(){
@@ -122,6 +124,7 @@
     joystickState.active=false;
     targetKnobX=0;targetKnobY=0;
     syncDigitalDirections();
+    queueKnobRender();
   }
 
   joystick.addEventListener("pointerdown",(e)=>{
@@ -152,16 +155,19 @@
   joystick.addEventListener("pointerup",endJoystick,{passive:false});
   joystick.addEventListener("pointercancel",endJoystick,{passive:false});
 
-  // 摇杆视觉更新独立放在RAF里；pointermove只做少量数字计算，不反复改DOM。
-  function renderJoystick(){
-    if(Math.abs(renderedKnobX-targetKnobX)>.15 || Math.abs(renderedKnobY-targetKnobY)>.15){
-      renderedKnobX=targetKnobX;
-      renderedKnobY=targetKnobY;
-      knob.style.transform=`translate3d(${renderedKnobX}px,${renderedKnobY}px,0)`;
-    }
-    requestAnimationFrame(renderJoystick);
+  // 只有摇杆位置发生变化才请求一帧DOM更新，松手后不会额外跑一条永久动画循环。
+  function queueKnobRender(){
+    if(knobFrame)return;
+    knobFrame=requestAnimationFrame(()=>{
+      knobFrame=0;
+      if(Math.abs(renderedKnobX-targetKnobX)>.15 || Math.abs(renderedKnobY-targetKnobY)>.15){
+        renderedKnobX=targetKnobX;
+        renderedKnobY=targetKnobY;
+        knob.style.transform=`translate3d(${renderedKnobX}px,${renderedKnobY}px,0)`;
+      }
+    });
   }
-  requestAnimationFrame(renderJoystick);
+  queueKnobRender();
 
   const top=controls.querySelector(".mobile-actions-top");
   const bottom=controls.querySelector(".mobile-actions-bottom");
