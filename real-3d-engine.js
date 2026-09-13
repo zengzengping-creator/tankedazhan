@@ -998,7 +998,7 @@
           sctx.fillStyle="#25313a";sctx.font="bold 52px Microsoft YaHei,sans-serif";
           sctx.textAlign="center";sctx.textBaseline="middle";sctx.fillText("巨型剧情迷宫",256,66);
           const st=new THREE.CanvasTexture(signCanvas);st.colorSpace=THREE.SRGBColorSpace;
-          const sp=islandCoord(1425,540,0);
+          const sp=islandCoord(mazeCfg.entrance.x+33,mazeCfg.entrance.y-72,0);
           const sign=new THREE.Mesh(new THREE.PlaneGeometry(4.5,1.1),new THREE.MeshBasicMaterial({map:st}));
           sign.position.set(sp.x,3.2,sp.z);islandScene.add(sign);
           const poleMat=new THREE.MeshStandardMaterial({color:0x55d6ef,roughness:.45});
