@@ -1,5 +1,50 @@
 // 顶部/右侧大厅HUD：头像、赛季、手册、活动任务、表情动作、盲盒、充值中心。
 const META_STORAGE_KEY = "tankBattleMeta_v1";
+const VIP_CACHE_KEY = "tankBattleVipCache_v1";
+
+const VIP_FALLBACK_LEVELS = [
+  {level:0,threshold:0,title:"普通车长",dailyCoins:0,dailyTankCoins:0,shopDiscount:0,boxDiscount:0},
+  {level:1,threshold:6,title:"VIP青铜",dailyCoins:50,dailyTankCoins:0,shopDiscount:2,boxDiscount:2},
+  {level:2,threshold:30,title:"VIP白银",dailyCoins:100,dailyTankCoins:5,shopDiscount:3,boxDiscount:4},
+  {level:3,threshold:68,title:"VIP黄金",dailyCoins:180,dailyTankCoins:10,shopDiscount:5,boxDiscount:6},
+  {level:4,threshold:128,title:"VIP铂金",dailyCoins:300,dailyTankCoins:20,shopDiscount:7,boxDiscount:8},
+  {level:5,threshold:328,title:"VIP钻石",dailyCoins:500,dailyTankCoins:30,shopDiscount:10,boxDiscount:10},
+  {level:6,threshold:648,title:"VIP至尊",dailyCoins:800,dailyTankCoins:50,shopDiscount:12,boxDiscount:12},
+];
+
+function loadVipCache(){
+  try{
+    const v=JSON.parse(localStorage.getItem(VIP_CACHE_KEY)||"null");
+    return v&&typeof v==="object"?v:{level:0,title:"普通车长",paidYuan:0,shopDiscount:0,boxDiscount:0,dailyClaimed:false};
+  }catch(_){
+    return {level:0,title:"普通车长",paidYuan:0,shopDiscount:0,boxDiscount:0,dailyClaimed:false};
+  }
+}
+let metaVipCache=loadVipCache();
+
+function saveVipCache(vip){
+  metaVipCache=Object.assign({},metaVipCache,vip||{});
+  try{localStorage.setItem(VIP_CACHE_KEY,JSON.stringify(metaVipCache));}catch(_){}
+  refreshMetaHud();
+}
+
+function vipDiscountedPrice(base,kind="shop"){
+  const pct=kind==="box"?(metaVipCache.boxDiscount||0):(metaVipCache.shopDiscount||0);
+  return Math.max(1,Math.floor(Number(base||0)*(100-pct)/100));
+}
+globalThis.getVipDiscountedPrice=vipDiscountedPrice;
+
+async function syncVipStatus(silent=true){
+  if(typeof getCommunityServerUrl!=="function"||!getCommunityServerUrl()||typeof getVipStatusOnline!=="function")return metaVipCache;
+  try{
+    const result=await getVipStatusOnline();
+    if(result?.vip)saveVipCache(result.vip);
+    return metaVipCache;
+  }catch(err){
+    if(!silent)metaToast("VIP服务器连接失败："+(err?.message||"未知错误"));
+    return metaVipCache;
+  }
+}
 
 function metaDefaultData() {
   return {
@@ -106,7 +151,8 @@ function activeIslandPet() {
 globalThis.activeIslandPet = activeIslandPet;
 
 function skinDirectPrice(skin) {
-  return skin?.rarity==="传说" ? 500 : skin?.rarity==="史诗" ? 320 : skin?.rarity==="稀有" ? 200 : 120;
+  const base=skin?.rarity==="传说" ? 500 : skin?.rarity==="史诗" ? 320 : skin?.rarity==="稀有" ? 200 : 120;
+  return vipDiscountedPrice(base,"shop");
 }
 
 const CURRENCY_INFO = {
@@ -131,6 +177,7 @@ function createMetaHud() {
     <button class="meta-avatar" data-meta-panel="profile" title="头像">👤</button>
     <div class="meta-coins">🪙 <b id="meta-coins">0</b></div>
     <button data-meta-panel="currency" class="meta-tank-currency">🔷 <b id="meta-tank-coins">0</b></button>
+    <button data-meta-panel="vip" class="meta-vip-top">👑 <b id="meta-vip-level">VIP0</b></button>
     <button data-meta-panel="pets">🐾 宠物</button>
     <button data-meta-panel="skinshop">🎨 皮肤商城</button>
     <button data-meta-panel="recharge" class="meta-recharge-top">💎 充值</button>
@@ -182,8 +229,10 @@ function createMetaHud() {
 function refreshMetaHud() {
   const el = document.getElementById("meta-coins");
   const tankEl = document.getElementById("meta-tank-coins");
+  const vipEl = document.getElementById("meta-vip-level");
   if (el && typeof islandData !== "undefined") el.textContent = islandData.coins || 0;
   if (tankEl && typeof islandData !== "undefined") tankEl.textContent = islandData.tankCoins || 0;
+  if (vipEl) vipEl.textContent = "VIP"+(metaVipCache.level||0);
 }
 
 function openMetaPanel(type) {
@@ -202,6 +251,7 @@ function openMetaPanel(type) {
   else if (type === "social") renderSocial(title, body);
   else if (type === "boxes") renderBoxes(title, body);
   else if (type === "currency") renderCurrencyWallet(title, body);
+  else if (type === "vip") renderVip(title, body);
   else if (type === "recharge") renderRecharge(title, body);
   else if (type === "pets") renderPets(title, body);
   else if (type === "skinshop") renderSkinShop(title, body);
@@ -345,6 +395,67 @@ function renderSocial(title, body) {
   `;
   body.querySelectorAll("[data-emote]").forEach(btn=>btn.onclick=()=>useEmote(btn.dataset.emote));
   body.querySelectorAll("[data-action]").forEach(btn=>btn.onclick=()=>useAction(btn.dataset.action));
+}
+
+async function renderVip(title, body) {
+  title.textContent = "👑 VIP会员";
+  body.innerHTML = '<div class="vip-loading">正在同步VIP等级…</div>';
+  await syncVipStatus(true);
+
+  let levels=VIP_FALLBACK_LEVELS;
+  try{
+    if(typeof getVipStatusOnline==="function"&&typeof getCommunityServerUrl==="function"&&getCommunityServerUrl()){
+      const result=await getVipStatusOnline();
+      if(Array.isArray(result?.levels))levels=result.levels;
+      if(result?.vip)saveVipCache(result.vip);
+    }
+  }catch(_){}
+
+  const vip=metaVipCache;
+  const current=levels.find(x=>x.level===vip.level)||levels[0];
+  const next=levels.find(x=>x.level===vip.level+1)||null;
+  const paid=Number(vip.paidYuan)||0;
+  const pct=next?Math.max(0,Math.min(100,((paid-current.threshold)/(next.threshold-current.threshold))*100)):100;
+
+  body.innerHTML = `
+    <div class="vip-hero vip-level-${vip.level||0}">
+      <div class="vip-crown">👑</div>
+      <div><b>VIP${vip.level||0} · ${escapeRechargeHtml(vip.title||current.title)}</b>
+      <small>累计充值 ¥${paid.toFixed(0)}</small></div>
+    </div>
+    <div class="vip-progress-card">
+      <div><span>VIP${vip.level||0}</span><b>${next?"距离 VIP"+next.level+" 还差 ¥"+Math.max(0,next.threshold-paid).toFixed(0):"已达到最高VIP"}</b></div>
+      <div class="meta-progress"><i style="width:${pct}%"></i></div>
+    </div>
+    <div class="vip-benefits">
+      <div><strong>🪙 ${current.dailyCoins||0}</strong><span>每日金币</span></div>
+      <div><strong>🔷 ${current.dailyTankCoins||0}</strong><span>每日坦克币</span></div>
+      <div><strong>${current.shopDiscount||0}%</strong><span>商城折扣</span></div>
+      <div><strong>${current.boxDiscount||0}%</strong><span>盲盒折扣</span></div>
+    </div>
+    <button id="vip-daily-claim" class="vip-daily-btn" ${vip.level<=0||vip.dailyClaimed?"disabled":""}>
+      ${vip.level<=0?"VIP1起可领取":vip.dailyClaimed?"✅ 今日已领取":"🎁 领取今日VIP奖励"}
+    </button>
+    <div class="vip-level-list">
+      ${levels.slice(1).map(row=>`<div class="${row.level===vip.level?"current":""}">
+        <span><b>VIP${row.level} · ${row.title}</b><small>累计充值 ¥${row.threshold}</small></span>
+        <em>每日 🪙${row.dailyCoins} ${row.dailyTankCoins?"＋ 🔷"+row.dailyTankCoins:""} · 商城-${row.shopDiscount}% · 盲盒-${row.boxDiscount}%</em>
+      </div>`).join("")}
+    </div>`;
+
+  body.querySelector("#vip-daily-claim")?.addEventListener("click",async()=>{
+    try{
+      const result=await claimVipDailyOnline();
+      const reward=result?.reward||{};
+      if(reward.coins)metaAddCoins(Number(reward.coins)||0);
+      if(reward.tankCoins)metaAddTankCoins(Number(reward.tankCoins)||0);
+      if(result?.vip)saveVipCache(result.vip);
+      metaToast(`👑 VIP每日奖励：🪙${reward.coins||0}${reward.tankCoins?" + 🔷"+reward.tankCoins:""}`);
+      renderVip(title,body);
+    }catch(err){
+      metaToast(err?.message||"VIP奖励领取失败");
+    }
+  });
 }
 
 function renderCurrencyWallet(title, body) {
