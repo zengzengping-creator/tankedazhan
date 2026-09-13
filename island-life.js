@@ -304,10 +304,22 @@ updateIslandWorld = function () {
   const mover = islandCurrentMover(s);
   const speed = s.mounted ? islandWorldTankSpeed() : 2.05;
   let dx=0, dy=0;
-  if (islandWorldKeys.ArrowLeft) dx -= speed;
-  if (islandWorldKeys.ArrowRight) dx += speed;
-  if (islandWorldKeys.ArrowUp) dy -= speed;
-  if (islandWorldKeys.ArrowDown) dy += speed;
+  const joy = globalThis.mobileJoystickState;
+  if (joy?.active && joy.magnitude > 0.02) {
+    // 坦克岛使用真正模拟摇杆：支持斜向与力度速度，不再只靠四个数字方向键。
+    dx = joy.x * speed;
+    dy = joy.y * speed;
+  } else {
+    if (islandWorldKeys.ArrowLeft) dx -= speed;
+    if (islandWorldKeys.ArrowRight) dx += speed;
+    if (islandWorldKeys.ArrowUp) dy -= speed;
+    if (islandWorldKeys.ArrowDown) dy += speed;
+    // 键盘斜向时归一化，避免斜着走反而更快。
+    if (dx && dy) {
+      dx *= 0.70710678;
+      dy *= 0.70710678;
+    }
+  }
 
   mover.x += dx;
   mover.y += dy;
@@ -358,8 +370,8 @@ updateIslandWorld = function () {
     hint.textContent = `${s.mounted ? "🪖" : "🚶"} 靠近 ${s.nearBuilding.icon} ${s.nearBuilding.name} · E互动 · J跳跃 · ${s.mounted ? "B下车 / 空格开炮" : "靠近坦克空格上车"}`;
   } else if (hint && !s.nearBuilding && s.parkourStage===0 && !s.parkourRewardLock) {
     hint.textContent = s.mounted
-      ? "方向键驾驶 · 空格开炮 · B下坦克 · J跳跃 · E互动"
-      : "方向键步行 · 靠近坦克按空格上车 · J跳跃 · E互动";
+      ? "摇杆/方向键驾驶 · 空格开炮 · B下坦克 · J跳跃 · E互动"
+      : "摇杆/方向键步行 · 靠近坦克按空格上车 · J跳跃 · E互动";
   }
 };
 
