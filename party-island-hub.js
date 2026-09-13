@@ -206,10 +206,12 @@ function renderPartyTeam(title, body) {
 
   body.innerHTML = `
     <div class="party-server-card">
-      <div><b>组队服务器</b><span class="${connected?"online":"offline"}">${connected?"● 已连接":"● 未连接"}</span></div>
+      <div><b>统一服务器</b><span class="${connected?"online":"offline"}">${connected?"● 组队已连接":"● 未连接"}</span></div>
+      <small class="party-server-scope">一个地址同时用于：👥组队 · 🧩模组 · 💎充值 · 👑VIP</small>
       <label>服务器地址<input id="party-server-url" placeholder="https://你的服务器地址" value="${escapePartyHtml(serverUrl)}"></label>
       <label>玩家名字<input id="party-player-name" maxlength="18" value="${escapePartyHtml(player.name)}"></label>
-      <button id="party-server-save">保存并连接</button>
+      <div class="party-server-actions"><button id="party-server-save">保存并连接</button><button id="party-server-check">检查全部服务</button></div>
+      <div id="party-server-health" class="party-server-health"></div>
     </div>
 
     ${team ? `
@@ -260,6 +262,18 @@ function renderPartyTeam(title, body) {
   };
 
   body.querySelector("#party-server-save")?.addEventListener("click",saveSettings);
+  body.querySelector("#party-server-check")?.addEventListener("click",async()=>{
+    const el=body.querySelector("#party-server-health");
+    const url=body.querySelector("#party-server-url")?.value.trim()||"";
+    if(typeof setCommunityServerUrl==="function")setCommunityServerUrl(url);
+    if(!url){if(el)el.textContent="请先填写服务器地址";return;}
+    if(el)el.textContent="正在检查组队 / 模组 / 充值 / VIP…";
+    const result=typeof checkCommunityServer==="function"?await checkCommunityServer():{ok:false,error:"检查接口未加载"};
+    if(result.ok){
+      const features=result.data?.features||{};
+      if(el)el.textContent="✅ 服务器在线 · 👥"+(features.teams?"正常":"异常")+" · 🧩"+(features.maps?"正常":"异常")+" · 💎"+(features.recharge?"正常":"异常")+" · 👑"+(features.vip?"正常":"异常")+" · 支付"+(features.paymentConfigured?"已配置":"未配置");
+    }else if(el)el.textContent="❌ "+(result.error||"服务器不可用");
+  });
 
   body.querySelector("#party-team-create")?.addEventListener("click",async()=>{
     const ok=connected || await saveSettings();
