@@ -412,62 +412,68 @@ function renderSocial(title, body) {
 }
 
 async function renderVip(title, body) {
-  title.textContent = "👑 VIP会员";
-  body.innerHTML = '<div class="vip-loading">正在同步VIP等级…</div>';
+  title.textContent = "👑 永久VIP";
+  body.innerHTML = '<div class="vip-loading">正在同步VIP状态…</div>';
   await syncVipStatus(true);
 
-  let levels=VIP_FALLBACK_LEVELS;
+  let config=VIP_FALLBACK_CONFIG;
   try{
     if(typeof getVipStatusOnline==="function"&&typeof getCommunityServerUrl==="function"&&getCommunityServerUrl()){
       const result=await getVipStatusOnline();
-      if(Array.isArray(result?.levels))levels=result.levels;
+      if(result?.config)config=Object.assign({},VIP_FALLBACK_CONFIG,result.config);
       if(result?.vip)saveVipCache(result.vip);
     }
   }catch(_){}
 
   const vip=metaVipCache;
-  const current=levels.find(x=>x.level===vip.level)||levels[0];
-  const next=levels.find(x=>x.level===vip.level+1)||null;
-  const paid=Number(vip.paidYuan)||0;
-  const pct=next?Math.max(0,Math.min(100,((paid-current.threshold)/(next.threshold-current.threshold))*100)):100;
-
   body.innerHTML = `
-    <div class="vip-hero vip-level-${vip.level||0}">
+    <div class="vip-fixed-card ${vip.active?"active":""}">
       <div class="vip-crown">👑</div>
-      <div><b>VIP${vip.level||0} · ${escapeRechargeHtml(vip.title||current.title)}</b>
-      <small>累计充值 ¥${paid.toFixed(0)}</small></div>
+      <div class="vip-fixed-main">
+        <b>${vip.active?"永久VIP已开通":"永久VIP"}</b>
+        <strong>¥${config.priceYuan}</strong>
+        <small>一次购买永久有效，不再分VIP1～VIP6。</small>
+      </div>
     </div>
-    <div class="vip-progress-card">
-      <div><span>VIP${vip.level||0}</span><b>${next?"距离 VIP"+next.level+" 还差 ¥"+Math.max(0,next.threshold-paid).toFixed(0):"已达到最高VIP"}</b></div>
-      <div class="meta-progress"><i style="width:${pct}%"></i></div>
-    </div>
-    <div class="vip-benefits">
-      <div><strong>🪙 ${current.dailyCoins||0}</strong><span>每日金币</span></div>
-      <div><strong>🔷 ${current.dailyTankCoins||0}</strong><span>每日坦克币</span></div>
-      <div><strong>${current.shopDiscount||0}%</strong><span>商城折扣</span></div>
-      <div><strong>${current.boxDiscount||0}%</strong><span>盲盒折扣</span></div>
-    </div>
-    <button id="vip-daily-claim" class="vip-daily-btn" ${vip.level<=0||vip.dailyClaimed?"disabled":""}>
-      ${vip.level<=0?"VIP1起可领取":vip.dailyClaimed?"✅ 今日已领取":"🎁 领取今日VIP奖励"}
-    </button>
-    <div class="vip-level-list">
-      ${levels.slice(1).map(row=>`<div class="${row.level===vip.level?"current":""}">
-        <span><b>VIP${row.level} · ${row.title}</b><small>累计充值 ¥${row.threshold}</small></span>
-        <em>每日 🪙${row.dailyCoins} ${row.dailyTankCoins?"＋ 🔷"+row.dailyTankCoins:""} · 商城-${row.shopDiscount}% · 盲盒-${row.boxDiscount}%</em>
-      </div>`).join("")}
-    </div>`;
 
-  body.querySelector("#vip-daily-claim")?.addEventListener("click",async()=>{
+    <div class="vip-fixed-reward">
+      <strong>💎 购买立即返还 ${config.rewardHighTankCoins} 个高级坦克币</strong>
+      <span>1个高级坦克币可以抽1次高级坦克盲盒。</span>
+    </div>
+
+    <div class="vip-benefits">
+      <div><strong>永久</strong><span>VIP身份徽章</span></div>
+      <div><strong>${vip.active?(vip.shopDiscount||config.shopDiscount||0):config.shopDiscount||0}%</strong><span>商城优惠</span></div>
+      <div><strong>💎${config.rewardHighTankCoins}</strong><span>一次性返还</span></div>
+      <div><strong>1币1抽</strong><span>高级盲盒</span></div>
+    </div>
+
+    ${vip.active
+      ? `<button class="vip-daily-btn" disabled>✅ 永久VIP已拥有</button>`
+      : `<button id="vip-buy-fixed" class="vip-daily-btn">¥${config.priceYuan} 购买永久VIP</button>`}
+    <div class="meta-payment-warning">真实购买仍由服务器支付回调确认；未接支付渠道时不会假装扣款或发放VIP奖励。</div>`;
+
+  body.querySelector("#vip-buy-fixed")?.addEventListener("click",async()=>{
+    if(!(typeof getCommunityServerUrl==="function"&&getCommunityServerUrl())){
+      metaToast("请先配置统一服务器地址");
+      return;
+    }
     try{
-      const result=await claimVipDailyOnline();
-      const reward=result?.reward||{};
-      if(reward.coins)metaAddCoins(Number(reward.coins)||0);
-      if(reward.tankCoins)metaAddTankCoins(Number(reward.tankCoins)||0);
-      if(result?.vip)saveVipCache(result.vip);
-      metaToast(`👑 VIP每日奖励：🪙${reward.coins||0}${reward.tankCoins?" + 🔷"+reward.tankCoins:""}`);
-      renderVip(title,body);
+      const result=await createVipOrderOnline();
+      const order=result?.order;
+      if(order?.status==="paid"){
+        await syncVipStatus(false);
+        renderVip(title,body);
+        return;
+      }
+      if(order?.checkoutUrl){
+        window.open(order.checkoutUrl,"_blank","noopener,noreferrer");
+        metaToast("👑 VIP订单已创建，正在打开支付页面");
+      }else{
+        metaToast("VIP订单已创建，但支付渠道尚未配置");
+      }
     }catch(err){
-      metaToast(err?.message||"VIP奖励领取失败");
+      metaToast("VIP购买失败："+(err?.message||"服务器错误"));
     }
   });
 }
