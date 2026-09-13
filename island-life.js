@@ -523,7 +523,7 @@ window.addEventListener("keydown",(e)=>{
     const mover=islandCurrentMover(islandWorldState);
     if(mover && mover.z<=0){
       e.preventDefault();e.stopImmediatePropagation();
-      const nearGiantMaze=mover.x>=1240&&mover.x<=1920&&mover.y>=350&&mover.y<=840&&islandWorldState.mounted;
+      const nearGiantMaze=mover.x>=450&&mover.x<=1100&&mover.y>=0&&mover.y<=360&&islandWorldState.mounted;
       mover.vz=nearGiantMaze?8.2:6.2;
     }
   }
@@ -721,29 +721,29 @@ globalThis.AMUSEMENT_ZONE=AMUSEMENT_ZONE;
 // ------------------- 超巨型剧情迷宫区 -------------------
 const GIANT_STORY_MAZE = {
   name:"巨型剧情迷宫区",
-  bounds:{x1:1380,y1:390,x2:1900,y2:800},
-  entrance:{x:1395,y:590},
-  exit:{x:1880,y:430},
-  jumpPads:[{x:1318,y:590,r:17},{x:1344,y:590,r:17},{x:1370,y:590,r:17}],
+  // 第三个岛搬到原始坦克岛右侧偏上，岸边距离很近，但中间仍是水面。
+  bounds:{x1:560,y1:30,x2:1080,y2:330},
+  entrance:{x:575,y:245},
+  exit:{x:1060,y:70},
+  jumpPads:[{x:500,y:245,r:18},{x:570,y:245,r:18}],
   storyNodes:[
-    {id:1,x:1435,y:735,r:28,title:"前哨站",text:"📡 前哨站：通道稍微收窄了，保持低速转弯更容易通过。"},
-    {id:2,x:1575,y:448,r:28,title:"中继区",text:"🔋 中继区：第二段需要绕到南侧开口，再找准时机跳过断层。"},
-    {id:3,x:1705,y:735,r:28,title:"核心门",text:"🔓 核心门：最后一段难度稍高，但大坦克仍然能正常通过。"}
+    {id:1,x:620,y:285,r:28,title:"前哨站",text:"📡 前哨站：沿南侧宽通道前进，再向上绕过第一道高墙。"},
+    {id:2,x:760,y:75,r:28,title:"中继区",text:"🔋 中继区：继续向南绕过第二道高墙，注意断层。"},
+    {id:3,x:890,y:285,r:28,title:"核心门",text:"🔓 核心门：再从北侧绕过最后一道墙，就能找到绿色出口。"}
   ],
   pits:[
-    {x:1478,y:720,w:30,h:22,label:"断层A"},
-    {x:1565,y:406,w:30,h:22,label:"断层B"},
-    {x:1715,y:720,w:30,h:22,label:"断层C"}
+    {x:672,y:68,w:28,h:20,label:"断层A"},
+    {x:804,y:278,w:28,h:20,label:"断层B"},
+    {x:934,y:68,w:28,h:20,label:"断层C"}
   ],
   walls:[
-    // 中等偏难：仍保留大型坦克可通过的宽度，但交错开口缩到约96像素，
-    // 需要更认真地找路线和控制转弯，不会像之前一样太空。
-    {x:1380,y:390,w:520,h:14},{x:1380,y:786,w:520,h:14},
-    {x:1380,y:390,w:14,h:185},{x:1380,y:615,w:14,h:185},
-    {x:1886,y:390,w:14,h:22},{x:1886,y:448,w:14,h:352},
-    {x:1510,y:500,w:14,h:300},
-    {x:1640,y:390,w:14,h:300},
-    {x:1770,y:500,w:14,h:300}
+    // 保留大坦克可通过的宽通道，三道交错墙形成中等难度蛇形路线。
+    {x:560,y:30,w:520,h:14},{x:560,y:316,w:520,h:14},
+    {x:560,y:30,w:14,h:195},{x:560,y:265,w:14,h:65},
+    {x:1066,y:30,w:14,h:20},{x:1066,y:90,w:14,h:240},
+    {x:690,y:110,w:14,h:220},
+    {x:820,y:30,w:14,h:220},
+    {x:950,y:110,w:14,h:220}
   ]
 };
 
@@ -795,13 +795,13 @@ updateIslandWorld=function(){
   const m=ensureGiantMazeState(s);
   if(!p||!m)return;
 
-  // 游乐园东侧断海入口：必须开坦克并按J跳过去。
-  if(p.x>1250&&p.x<1390&&p.y>535&&p.y<645&&!inGiantMazeBounds(p)){
+  // 原始岛东岸到第三个迷宫岛之间是水面，必须开坦克按J跳过去。
+  if(p.x>490&&p.x<575&&p.y>205&&p.y<285&&!inGiantMazeBounds(p)){
     if(!s.mounted){
-      p.x=Math.min(p.x,1280);
-      giantMazeHint("🚫 巨型剧情迷宫只能驾驶坦克跳跃进入。");
-    }else if((p.z||0)<0.8&&p.x>1290){
-      giantMazeHint("🛫 前方入口已降低难度：靠近彩色跳台按 J，即可轻松跳进巨型剧情迷宫！");
+      p.x=Math.min(p.x,505);
+      giantMazeHint("🚫 第三个岛只能驾驶坦克跳跃过去。");
+    }else if((p.z||0)<0.8&&p.x>495){
+      giantMazeHint("🛫 第三个岛就在旁边：从黄色起跳台按 J，跳到蓝色落地台！");
     }
   }
 
@@ -886,10 +886,10 @@ drawIslandWorld=function(){
     ctx2.fillStyle=i===0?"#ffd65e":"#61cfff";
     ctx2.beginPath();ctx2.arc(q.x,q.y,q.r,0,Math.PI*2);ctx2.fill();
   });
-  ctx2.fillStyle="#26323a";ctx2.fillRect(1385,540,10,58);ctx2.fillRect(1455,540,10,58);
-  ctx2.fillStyle="#f6c84f";ctx2.fillRect(1372,510,106,34);
+  ctx2.fillStyle="#26323a";ctx2.fillRect(568,178,10,58);ctx2.fillRect(638,178,10,58);
+  ctx2.fillStyle="#f6c84f";ctx2.fillRect(555,148,106,34);
   ctx2.fillStyle="#1e2930";ctx2.font="bold 15px Microsoft YaHei,sans-serif";
-  ctx2.textAlign="center";ctx2.fillText("巨型剧情迷宫",1425,532);
+  ctx2.textAlign="center";ctx2.fillText("巨型剧情迷宫",608,170);
 
   // 迷宫高墙。
   ctx2.fillStyle="#3f4c52";
@@ -916,9 +916,9 @@ drawIslandWorld=function(){
   ctx2.fillRect(ex.x-28,ex.y-28,56,56);
   ctx2.fillStyle="#fff";ctx2.font="bold 12px sans-serif";ctx2.fillText("出口",ex.x,ex.y+4);
 
-  ctx2.fillStyle="rgba(0,0,0,.68)";ctx2.fillRect(1410,815,410,38);
+  ctx2.fillStyle="rgba(0,0,0,.68)";ctx2.fillRect(610,342,410,38);
   ctx2.fillStyle="#fff";ctx2.font="bold 14px sans-serif";
-  ctx2.fillText(`🧩 巨型剧情迷宫 · 剧情 ${m.stage}/3 · 出口(1880,420)`,1615,840);
+  ctx2.fillText(`🧩 巨型剧情迷宫 · 剧情 ${m.stage}/3 · 出口(${ex.x},${ex.y})`,815,367);
   ctx2.restore();
 };
 
