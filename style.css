@@ -2224,3 +2224,20 @@ button:disabled {
   .party-team-slots { grid-template-columns:repeat(2,1fr); }
   .party-team-actions { grid-template-columns:1fr; }
 }
+
+
+@media (max-width: 900px), (pointer: coarse) {
+  .party-command-dock {
+    bottom: 158px;
+    z-index: 90;
+    width: min(360px, calc(100% - 120px));
+    grid-template-columns: repeat(3,1fr);
+  }
+  .party-command-dock button {
+    min-height: 38px;
+    font-size: 14px;
+  }
+  .party-command-dock button span {
+    font-size: 8px;
+  }
+}
