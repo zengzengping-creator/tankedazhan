@@ -45,6 +45,13 @@ function metaAddCoins(amount) {
   if (typeof renderTankIsland === "function") renderTankIsland();
 }
 
+function metaAddTankCoins(amount) {
+  if (typeof islandData === "undefined") return;
+  islandData.tankCoins = Math.max(0, (islandData.tankCoins || 0) + Math.floor(Number(amount)||0));
+  if (typeof saveIslandData === "function") saveIslandData();
+  refreshMetaHud();
+}
+
 function metaToast(text) {
   let el = document.getElementById("meta-toast");
   if (!el) {
@@ -102,10 +109,17 @@ function skinDirectPrice(skin) {
   return skin?.rarity==="传说" ? 500 : skin?.rarity==="史诗" ? 320 : skin?.rarity==="稀有" ? 200 : 120;
 }
 
+const CURRENCY_INFO = {
+  coins:{icon:"🪙",name:"金币"},
+  tankCoins:{icon:"🔷",name:"坦克币"},
+  midTankCoins:{icon:"🟣",name:"中级坦克币"},
+  highTankCoins:{icon:"💎",name:"高级坦克币"},
+};
+
 const BLIND_BOXES = [
-  { id:"basic", name:"基础迷彩盲盒", icon:"📦", cost:100, rarities:["普通","普通","稀有"] },
-  { id:"elite", name:"精英涂装盲盒", icon:"🎁", cost:180, rarities:["稀有","稀有","史诗"] },
-  { id:"legend", name:"传说皮肤盲盒", icon:"✨", cost:320, rarities:["史诗","传说","传说"] },
+  { id:"basic", name:"基础迷彩盲盒", icon:"📦", cost:100, currency:"coins", rarities:["普通","普通","稀有"] },
+  { id:"mid", name:"中级坦克盲盒", icon:"🎁", cost:20, currency:"midTankCoins", rarities:["稀有","稀有","史诗"] },
+  { id:"high", name:"高级坦克盲盒", icon:"✨", cost:20, currency:"highTankCoins", rarities:["史诗","传说","传说"] },
 ];
 
 function createMetaHud() {
@@ -116,6 +130,7 @@ function createMetaHud() {
   top.innerHTML = `
     <button class="meta-avatar" data-meta-panel="profile" title="头像">👤</button>
     <div class="meta-coins">🪙 <b id="meta-coins">0</b></div>
+    <button data-meta-panel="currency" class="meta-tank-currency">🔷 <b id="meta-tank-coins">0</b></button>
     <button data-meta-panel="pets">🐾 宠物</button>
     <button data-meta-panel="skinshop">🎨 皮肤商城</button>
     <button data-meta-panel="recharge" class="meta-recharge-top">💎 充值</button>
@@ -166,7 +181,9 @@ function createMetaHud() {
 
 function refreshMetaHud() {
   const el = document.getElementById("meta-coins");
+  const tankEl = document.getElementById("meta-tank-coins");
   if (el && typeof islandData !== "undefined") el.textContent = islandData.coins || 0;
+  if (tankEl && typeof islandData !== "undefined") tankEl.textContent = islandData.tankCoins || 0;
 }
 
 function openMetaPanel(type) {
@@ -184,6 +201,7 @@ function openMetaPanel(type) {
   else if (type === "tasks") renderTasks(title, body);
   else if (type === "social") renderSocial(title, body);
   else if (type === "boxes") renderBoxes(title, body);
+  else if (type === "currency") renderCurrencyWallet(title, body);
   else if (type === "recharge") renderRecharge(title, body);
   else if (type === "pets") renderPets(title, body);
   else if (type === "skinshop") renderSkinShop(title, body);
@@ -329,6 +347,48 @@ function renderSocial(title, body) {
   body.querySelectorAll("[data-action]").forEach(btn=>btn.onclick=()=>useAction(btn.dataset.action));
 }
 
+function renderCurrencyWallet(title, body) {
+  title.textContent = "🔷 坦克币兑换";
+  const tank = islandData.tankCoins || 0;
+  const mid = islandData.midTankCoins || 0;
+  const high = islandData.highTankCoins || 0;
+  body.innerHTML = `
+    <div class="tank-currency-wallet">
+      <div><strong>🔷 ${tank.toLocaleString()}</strong><span>坦克币</span></div>
+      <div><strong>🟣 ${mid.toLocaleString()}</strong><span>中级坦克币</span></div>
+      <div><strong>💎 ${high.toLocaleString()}</strong><span>高级坦克币</span></div>
+    </div>
+    <div class="tank-currency-exchange">
+      <div>
+        <span><b>5 🔷 → 1 🟣</b><small>中级坦克币用于抽中级坦克盲盒</small></span>
+        <button data-exchange="mid" ${tank<5?"disabled":""}>兑换1个</button>
+        <button data-exchange-batch="mid" ${tank<50?"disabled":""}>兑换10个</button>
+      </div>
+      <div>
+        <span><b>10 🔷 → 1 💎</b><small>高级坦克币用于抽高级坦克盲盒</small></span>
+        <button data-exchange="high" ${tank<10?"disabled":""}>兑换1个</button>
+        <button data-exchange-batch="high" ${tank<100?"disabled":""}>兑换10个</button>
+      </div>
+    </div>
+    <div class="meta-payment-warning">兑换后不可反向换回坦克币。</div>
+    <button class="tank-currency-box-link" id="open-special-boxes">🎁 去抽中级 / 高级坦克盲盒</button>`;
+
+  const exchange=(type,count)=>{
+    const ratio=type==="high"?10:5;
+    const key=type==="high"?"highTankCoins":"midTankCoins";
+    const need=ratio*count;
+    if((islandData.tankCoins||0)<need){metaToast("坦克币不足");return;}
+    islandData.tankCoins-=need;
+    islandData[key]=(islandData[key]||0)+count;
+    saveIslandData();refreshMetaHud();
+    metaToast(type==="high"?`💎 获得高级坦克币 x${count}`:`🟣 获得中级坦克币 x${count}`);
+    renderCurrencyWallet(title,body);
+  };
+  body.querySelectorAll("[data-exchange]").forEach(btn=>btn.onclick=()=>exchange(btn.dataset.exchange,1));
+  body.querySelectorAll("[data-exchange-batch]").forEach(btn=>btn.onclick=()=>exchange(btn.dataset.exchangeBatch,10));
+  body.querySelector("#open-special-boxes")?.addEventListener("click",()=>renderBoxes(title,body));
+}
+
 function skinPoolForBox(box) {
   const all = typeof ISLAND_SKINS !== "undefined" ? ISLAND_SKINS : [];
   const pool = all.filter(s=>box.rarities.includes(s.rarity));
@@ -336,32 +396,49 @@ function skinPoolForBox(box) {
 }
 
 function drawMetaBlindBox(box) {
-  if ((islandData.coins||0)<box.cost) {
-    metaToast("金币不足");
+  const key=box.currency||"coins";
+  const info=CURRENCY_INFO[key]||CURRENCY_INFO.coins;
+  const balance=islandData[key]||0;
+  if (balance<box.cost) {
+    metaToast(info.name+"不足");
     return;
   }
   const pool=skinPoolForBox(box);
   if(!pool.length)return;
-  islandData.coins-=box.cost;
+  islandData[key]-=box.cost;
   const skin=pool[Math.floor(Math.random()*pool.length)];
   const duplicate=!!islandData.skins?.[skin.id];
   islandData.skins=islandData.skins||{};
   islandData.skins[skin.id]=true;
   islandData.equippedSkin=skin.id;
-  if(duplicate)islandData.coins+=Math.floor(box.cost*0.25);
+  if(duplicate)islandData[key]+=Math.floor(box.cost*0.25);
   saveIslandData();
   metaData.event.skinDraws++;
   metaData.seasonXp+=20;
   saveMetaData();
   refreshMetaHud();
-  metaToast(duplicate?`重复【${skin.name}】，返还部分金币`:`获得【${skin.rarity}·${skin.name}】`);
+  metaToast(duplicate?`重复【${skin.name}】，返还部分${info.name}`:`获得【${skin.rarity}·${skin.name}】`);
 }
 
 function renderBoxes(title, body) {
-  title.textContent = "🎁 皮肤盲盒中心";
+  title.textContent = "🎁 坦克盲盒中心";
   body.innerHTML = `
+    <div class="tank-currency-mini">
+      <span>🪙 ${islandData.coins||0}</span>
+      <span>🔷 ${islandData.tankCoins||0}</span>
+      <span>🟣 ${islandData.midTankCoins||0}</span>
+      <span>💎 ${islandData.highTankCoins||0}</span>
+      <button id="box-open-exchange">兑换坦克币</button>
+    </div>
     <div class="meta-boxes">
-      ${BLIND_BOXES.map(box=>`<div class="meta-box-card"><div>${box.icon}</div><b>${box.name}</b><small>${box.rarities.join(" / ")}</small><button data-box="${box.id}">${box.cost}金币抽一次</button></div>`).join("")}
+      ${BLIND_BOXES.map(box=>{
+        const info=CURRENCY_INFO[box.currency||"coins"]||CURRENCY_INFO.coins;
+        return `<div class="meta-box-card ${box.id==="high"?"premium":box.id==="mid"?"mid":""}">
+          <div>${box.icon}</div><b>${box.name}</b>
+          <small>${box.rarities.join(" / ")}</small>
+          <button data-box="${box.id}">${info.icon} ${box.cost} 抽一次</button>
+        </div>`;
+      }).join("")}
     </div>
     <div class="meta-skin-count">已拥有皮肤：${Object.values(islandData.skins||{}).filter(Boolean).length} / ${typeof ISLAND_SKINS!=="undefined"?ISLAND_SKINS.length:0}</div>`;
   body.querySelectorAll("[data-box]").forEach(btn=>btn.onclick=()=>{
@@ -369,6 +446,7 @@ function renderBoxes(title, body) {
     if(box)drawMetaBlindBox(box);
     renderBoxes(title,body);
   });
+  body.querySelector("#box-open-exchange")?.addEventListener("click",()=>renderCurrencyWallet(title,body));
 }
 
 function renderPets(title, body) {
