@@ -2523,3 +2523,125 @@ button:disabled {
     grid-template-columns:1fr;
   }
 }
+
+
+/* 在线组队服务器 / 社区地图搜索 */
+.party-server-card {
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid #315b6b;
+  border-radius: 8px;
+  background: rgba(255,255,255,.05);
+  display: grid;
+  gap: 6px;
+}
+
+.party-server-card.compact {
+  grid-template-columns: 1fr auto;
+  align-items: end;
+}
+
+.party-server-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.party-server-card label {
+  display: grid;
+  gap: 3px;
+  color: #aec7d1;
+  font-size: 9px;
+}
+
+.party-server-card input,
+.party-team-join input,
+.party-mod-search input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid #356274;
+  border-radius: 6px;
+  background: #102630;
+  color: #fff;
+  font-size: 10px;
+}
+
+.party-server-card button,
+.party-team-join button,
+.party-mod-search button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid #4a7b8c;
+  border-radius: 6px;
+  background: #173a47;
+  color: #fff;
+  font-size: 10px;
+}
+
+.party-server-card .online {
+  color: #6ff0a5;
+  font-size: 9px;
+}
+
+.party-server-card .offline {
+  color: #ffb269;
+  font-size: 9px;
+}
+
+.party-team-summary button {
+  margin-top: 5px;
+  padding: 5px 8px;
+  border: 1px solid #4a7b8c;
+  border-radius: 6px;
+  background: #173a47;
+  color: #fff;
+  font-size: 9px;
+}
+
+.party-team-join {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.party-mod-search {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  margin: 8px 0 5px;
+}
+
+.party-mod-status {
+  min-height: 18px;
+  color: #9fbac5;
+  font-size: 9px;
+  text-align: center;
+}
+
+.party-mod-empty {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border: 1px dashed #385565;
+  border-radius: 8px;
+  color: #91aab5;
+  text-align: center;
+  font-size: 10px;
+}
+
+.party-online-card #party-online-team,
+.party-online-card #party-online-mods {
+  width: min(280px,92%);
+  padding: 7px;
+  font-size: 10px;
+}
+
+@media (max-width: 540px) {
+  .party-server-card.compact,
+  .party-team-join {
+    grid-template-columns: 1fr;
+  }
+}
