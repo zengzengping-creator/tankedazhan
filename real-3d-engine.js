@@ -430,7 +430,7 @@
     const colors = {
       scout:0xf0a14b, drone:0x5fcfff, bot:0x9aa8b2, fox:0xe88347, dragon:0x63c477
     };
-    const mat = new THREE.MeshStandardMaterial({color:colors[pet?.id]||0xf0a14b,roughness:.58,metalness:pet?.id==="drone"||pet?.id==="bot"?.18:0});
+    const mat = new THREE.MeshStandardMaterial({color:colors[pet?.id]||0xf0a14b,roughness:.58,metalness:(pet?.id==="drone"||pet?.id==="bot") ? .18 : 0});
     const dark = new THREE.MeshStandardMaterial({color:0x263039,roughness:.75});
     const body = new THREE.Mesh(new THREE.SphereGeometry(.26,16,12),mat);
     body.position.y=.28;group.add(body);
