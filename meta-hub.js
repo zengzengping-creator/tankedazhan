@@ -118,6 +118,7 @@ function createMetaHud() {
     <div class="meta-coins">🪙 <b id="meta-coins">0</b></div>
     <button data-meta-panel="pets">🐾 宠物</button>
     <button data-meta-panel="skinshop">🎨 皮肤商城</button>
+    <button data-meta-panel="recharge" class="meta-recharge-top">💎 充值</button>
   `;
 
   const right = document.createElement("div");
@@ -441,15 +442,128 @@ function renderSkinShop(title, body) {
   });
 }
 
-function renderRecharge(title, body) {
+async function renderRecharge(title, body) {
   title.textContent = "💎 金币充值中心";
-  const packs=[1,6,18,30,68,128];
+  const fallbackPacks=[
+    {id:"r1",yuan:1,coins:300},{id:"r6",yuan:6,coins:1800},
+    {id:"r18",yuan:18,coins:5400},{id:"r30",yuan:30,coins:9000},
+    {id:"r68",yuan:68,coins:20400},{id:"r128",yuan:128,coins:38400}
+  ];
+  const serverUrl=typeof getCommunityServerUrl==="function"?getCommunityServerUrl():"";
+  let config={packs:fallbackPacks,paymentConfigured:false};
+  let orders=[];
+  let serverError="";
+
+  if(serverUrl && typeof getRechargeConfigOnline==="function"){
+    try{
+      config=await getRechargeConfigOnline();
+      const history=await getRechargeOrdersOnline();
+      orders=Array.isArray(history?.orders)?history.orders:[];
+    }catch(err){
+      serverError=err?.message||"充值服务器不可用";
+    }
+  }
+
+  const statusText=(order)=>{
+    if(order.status==="claimed")return "✅ 已到账";
+    if(order.status==="paid")return "💰 已支付 · 待领取";
+    return "⏳ 待支付";
+  };
+
   body.innerHTML = `
-    <div class="meta-recharge-rate"><b>固定兑换比例：1元 = 300金币</b><small>当前项目运行在 GitHub Pages，尚未接入真实支付服务器。</small></div>
-    <div class="meta-recharge-grid">
-      ${packs.map(y=>`<div class="meta-recharge-card"><b>¥${y}</b><strong>🪙 ${y*300}</strong><button disabled>待接支付渠道</button></div>`).join("")}
+    <div class="meta-recharge-rate">
+      <b>固定兑换比例：1元 = 300金币</b>
+      <small>支付成功后由服务器确认，再领取金币；同一订单只能领取一次。</small>
     </div>
-    <div class="meta-payment-warning">真实充值需要接入支付服务商、订单服务器和支付回调验证；当前不会假装扣款或直接发放付费金币。</div>`;
+
+    <div class="meta-recharge-server ${serverUrl&&!serverError?"ready":""}">
+      <span><b>充值服务器</b><small>${serverUrl ? escapeRechargeHtml(serverUrl) : "尚未配置服务器地址"}</small></span>
+      <button id="meta-recharge-server-btn">${serverUrl?"更换服务器":"配置服务器"}</button>
+    </div>
+
+    ${serverError?`<div class="meta-payment-warning">⚠️ ${escapeRechargeHtml(serverError)}</div>`:""}
+
+    <div class="meta-recharge-grid">
+      ${(config.packs||fallbackPacks).map(p=>`
+        <div class="meta-recharge-card">
+          <b>¥${p.yuan}</b>
+          <strong>🪙 ${Number(p.coins).toLocaleString()}</strong>
+          <small>${p.yuan>=68?"大额金币包":"金币充值包"}</small>
+          <button data-recharge-pack="${p.id}" ${!serverUrl||serverError?"disabled":""}>立即充值</button>
+        </div>`).join("")}
+    </div>
+
+    <div class="meta-recharge-provider ${config.paymentConfigured?"ready":""}">
+      ${config.paymentConfigured
+        ?"✅ 支付渠道已连接，可以创建订单并跳转支付。"
+        :"🔒 订单服务器已支持充值；当前支付渠道未配置时，不会自动扣款或发放金币。"}
+    </div>
+
+    <div class="meta-recharge-history">
+      <div class="meta-recharge-history-head"><b>充值记录</b><button id="meta-recharge-refresh">刷新</button></div>
+      <div class="meta-recharge-orders">
+        ${orders.length?orders.map(o=>`
+          <div class="meta-recharge-order">
+            <span><b>¥${o.yuan} · 🪙 ${Number(o.coins).toLocaleString()}</b><small>${escapeRechargeHtml(o.id)}</small></span>
+            <em class="status-${o.status}">${statusText(o)}</em>
+            <div>
+              ${o.status==="pending"&&o.checkoutUrl?`<button data-recharge-pay="${escapeRechargeHtml(o.checkoutUrl)}">去支付</button>`:""}
+              ${o.status==="paid"?`<button data-recharge-claim="${o.id}">领取金币</button>`:""}
+            </div>
+          </div>`).join("")
+          :'<div class="meta-recharge-empty">还没有充值订单</div>'}
+      </div>
+    </div>`;
+
+  body.querySelector("#meta-recharge-server-btn")?.addEventListener("click",()=>{
+    if(typeof openMetaPanel==="function")openMetaPanel("team");
+    metaToast("可在在线组队页配置同一个服务器地址");
+  });
+
+  body.querySelectorAll("[data-recharge-pack]").forEach(btn=>btn.onclick=async()=>{
+    btn.disabled=true;
+    try{
+      const result=await createRechargeOrderOnline(btn.dataset.rechargePack);
+      const order=result?.order;
+      if(order?.checkoutUrl){
+        window.open(order.checkoutUrl,"_blank","noopener,noreferrer");
+        metaToast("💎 订单已创建，正在打开支付页面");
+      }else{
+        metaToast("订单已创建，但支付渠道尚未配置");
+      }
+      await renderRecharge(title,body);
+    }catch(err){
+      metaToast("充值下单失败："+(err?.message||"服务器错误"));
+      btn.disabled=false;
+    }
+  });
+
+  body.querySelectorAll("[data-recharge-pay]").forEach(btn=>btn.onclick=()=>{
+    const url=btn.dataset.rechargePay;
+    if(url)window.open(url,"_blank","noopener,noreferrer");
+  });
+
+  body.querySelectorAll("[data-recharge-claim]").forEach(btn=>btn.onclick=async()=>{
+    btn.disabled=true;
+    try{
+      const result=await claimRechargeOrderOnline(btn.dataset.rechargeClaim);
+      const coins=Number(result?.coins)||0;
+      if(coins>0)metaAddCoins(coins);
+      metaToast(`🪙 充值到账 +${coins.toLocaleString()}金币`);
+      await renderRecharge(title,body);
+    }catch(err){
+      metaToast("领取失败："+(err?.message||"订单状态异常"));
+      btn.disabled=false;
+    }
+  });
+
+  body.querySelector("#meta-recharge-refresh")?.addEventListener("click",()=>renderRecharge(title,body));
+}
+
+function escapeRechargeHtml(value){
+  return String(value??"").replace(/[&<>"']/g,ch=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[ch]);
 }
 
 // 活动进度：击杀。
