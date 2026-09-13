@@ -2931,3 +2931,214 @@ button:disabled {
     grid-column:1 / -1;
   }
 }
+
+
+/* 坦克币 / 中级币 / 高级币 */
+.meta-tank-currency {
+  border-color: rgba(92,197,255,.55) !important;
+  background: linear-gradient(180deg,rgba(22,72,92,.92),rgba(13,46,62,.92)) !important;
+  color: #9eeaff !important;
+}
+
+.meta-tank-currency b {
+  font-size: 9px;
+}
+
+.tank-currency-wallet {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+  margin-bottom:8px;
+}
+
+.tank-currency-wallet > div {
+  min-height:72px;
+  padding:8px;
+  border:1px solid #355c6b;
+  border-radius:9px;
+  background:rgba(255,255,255,.055);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+}
+
+.tank-currency-wallet strong {
+  font-size:16px;
+  color:#eefaff;
+}
+
+.tank-currency-wallet span {
+  font-size:9px;
+  color:#a9c4cf;
+}
+
+.tank-currency-exchange {
+  display:grid;
+  gap:7px;
+}
+
+.tank-currency-exchange > div {
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  gap:6px;
+  align-items:center;
+  padding:8px;
+  border:1px solid #345363;
+  border-radius:8px;
+  background:rgba(0,0,0,.16);
+}
+
+.tank-currency-exchange span {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.tank-currency-exchange b {
+  color:#eaf8ff;
+  font-size:10px;
+}
+
+.tank-currency-exchange small {
+  color:#91acb7;
+  font-size:8px;
+}
+
+.tank-currency-exchange button,
+.tank-currency-box-link,
+.tank-recharge-rules button {
+  padding:6px 8px;
+  border:1px solid #4a7b8c;
+  border-radius:6px;
+  background:#173a47;
+  color:#fff;
+  font-size:9px;
+}
+
+.tank-currency-exchange button:disabled {
+  opacity:.4;
+}
+
+.tank-currency-box-link {
+  display:block;
+  width:min(320px,100%);
+  margin:8px auto 0;
+  border-color:#9471d6;
+  background:#4a356c;
+}
+
+.tank-currency-mini {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:5px;
+  margin-bottom:8px;
+  padding:7px;
+  border:1px solid #345766;
+  border-radius:8px;
+  background:rgba(255,255,255,.045);
+  color:#eaf8ff;
+  font-size:9px;
+}
+
+.tank-currency-mini span {
+  padding:4px 6px;
+  border-radius:5px;
+  background:rgba(0,0,0,.18);
+}
+
+.tank-currency-mini button {
+  margin-left:auto;
+  padding:5px 7px;
+  border:1px solid #4d7b8c;
+  border-radius:6px;
+  background:#173a47;
+  color:#fff;
+  font-size:8px;
+}
+
+.meta-box-card.mid {
+  border-color:#8059c7;
+  background:linear-gradient(180deg,rgba(91,58,145,.2),rgba(16,30,38,.88));
+}
+
+.meta-box-card.premium {
+  border-color:#d4b047;
+  background:linear-gradient(180deg,rgba(139,106,26,.25),rgba(19,30,38,.9));
+  box-shadow:0 0 14px rgba(222,183,67,.08) inset;
+}
+
+.recharge-first-banner {
+  margin-top:8px;
+  padding:8px;
+  border-radius:8px;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.recharge-first-banner.active {
+  border:1px solid #e0b844;
+  background:linear-gradient(90deg,rgba(130,92,12,.30),rgba(55,42,12,.22));
+}
+
+.recharge-first-banner.used {
+  border:1px solid #46606b;
+  background:rgba(255,255,255,.035);
+}
+
+.recharge-first-banner strong {
+  color:#ffe27d;
+  font-size:11px;
+}
+
+.recharge-first-banner.used strong {
+  color:#a7bdc7;
+}
+
+.recharge-first-banner span {
+  color:#c8d6dc;
+  font-size:8px;
+}
+
+.meta-recharge-card.bonus-pack {
+  border-color:#c69e36;
+  box-shadow:0 0 0 1px rgba(226,183,67,.13) inset;
+}
+
+.meta-recharge-card em {
+  color:#ffd86b;
+  font-size:8px;
+  font-style:normal;
+}
+
+.tank-recharge-rules {
+  margin-top:8px;
+  padding:8px;
+  border:1px solid #4c4f78;
+  border-radius:8px;
+  background:rgba(63,52,105,.13);
+  display:grid;
+  grid-template-columns:1fr 1fr auto;
+  align-items:center;
+  gap:6px;
+  color:#dfe9ff;
+  font-size:9px;
+}
+
+@media (max-width:540px) {
+  .tank-currency-wallet {
+    grid-template-columns:1fr;
+  }
+  .tank-currency-exchange > div {
+    grid-template-columns:1fr 1fr;
+  }
+  .tank-currency-exchange > div span {
+    grid-column:1 / -1;
+  }
+  .tank-recharge-rules {
+    grid-template-columns:1fr;
+  }
+}
