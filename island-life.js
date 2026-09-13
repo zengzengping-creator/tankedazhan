@@ -419,6 +419,12 @@ handleIslandWorldInteraction = function () {
     if (typeof openMetaPanel === "function") openMetaPanel("backpack");
   } else if (b.id==="scenic") {
     if (typeof openMetaPanel === "function") openMetaPanel("scenic");
+  } else if (b.id==="carousel") {
+    if (hint) hint.textContent="🎠 坦克旋转乐园：彩色坦克座舱环绕中央炮塔旋转。";
+  } else if (b.id==="slidepark") {
+    if (hint) hint.textContent="🌈 彩虹滑行坡：大型彩色坡道景点，可作为竞速和跑酷路线的起点。";
+  } else if (b.id==="photozone") {
+    if (hint) hint.textContent="📸 巨炮打卡区：巨型坦克炮和灯牌组成的主岛拍照地标。";
   }
 };
 
