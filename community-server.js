@@ -82,6 +82,29 @@ async function checkCommunityServer(){
   }
 }
 
+async function getRechargeConfigOnline(){
+  return communityFetch("/api/recharge/config");
+}
+
+async function createRechargeOrderOnline(packId){
+  const player=getCommunityPlayer();
+  return communityFetch("/api/recharge/orders",{
+    method:"POST",
+    body:JSON.stringify({playerId:player.id,playerName:player.name,packId:String(packId||"")})
+  });
+}
+
+async function getRechargeOrdersOnline(){
+  const player=getCommunityPlayer();
+  return communityFetch("/api/recharge/orders?playerId="+encodeURIComponent(player.id));
+}
+
+async function getRechargeOrderOnline(orderId){
+  const player=getCommunityPlayer();
+  return communityFetch("/api/recharge/orders/"+encodeURIComponent(String(orderId||""))+
+    "?playerId="+encodeURIComponent(player.id));
+}
+
 function teamWebSocketUrl(){
   const base=getCommunityServerUrl();
   if(!base)return "";
@@ -190,6 +213,7 @@ function isTeamServerConnected(){return teamConnected;}
 Object.assign(globalThis,{
   getCommunityServerUrl,setCommunityServerUrl,getCommunityPlayer,setCommunityPlayerName,
   searchCommunityMapsOnline,publishCommunityMapOnline,checkCommunityServer,
+  getRechargeConfigOnline,createRechargeOrderOnline,getRechargeOrdersOnline,getRechargeOrderOnline,
   ensureTeamConnection,onTeamServerEvent,createOnlineTeam,joinOnlineTeam,leaveOnlineTeam,
   setOnlineTeamReady,startOnlineTeamGame,getOnlineTeamState,isTeamServerConnected
 });
