@@ -278,7 +278,7 @@ function dismountIslandTank() {
   s.human.y = s.player.y + 8;
   s.human.z = 0;
   const hint = document.getElementById("island-world-hint");
-  if (hint) hint.textContent = "🚶 已下坦克：方向键步行 · 靠近坦克按空格上车 · J跳跃";
+  if (hint) hint.textContent = "🚶 已下坦克：左侧摇杆步行 · 靠近坦克按空格上车 · J跳跃";
 }
 
 function tryMountIslandTank() {
