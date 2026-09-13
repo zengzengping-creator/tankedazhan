@@ -664,11 +664,11 @@
       addLights(islandScene);
 
       const sea = new THREE.Mesh(
-        new THREE.PlaneGeometry(82, 52),
+        new THREE.PlaneGeometry(150, 78),
         new THREE.MeshStandardMaterial({ color: 0x176d91, roughness: 0.55, metalness: 0.08 })
       );
       sea.rotation.x = -Math.PI / 2;
-      sea.position.set(10, -0.16, 0);
+      sea.position.set(24, -0.16, 4);
       sea.receiveShadow = true;
       islandScene.add(sea);
 
@@ -1117,6 +1117,114 @@
         }
       }
 
+      // 超巨型剧情迷宫区：独立大平台、跳台、高墙、剧情节点和出口门。
+      {
+        const mazeCfg = globalThis.GIANT_STORY_MAZE;
+        if (mazeCfg) {
+          const b = mazeCfg.bounds;
+          const cx = (b.x1 + b.x2) / 2;
+          const cy = (b.y1 + b.y2) / 2;
+          const center = islandCoord(cx, cy, 0);
+
+          const beach = new THREE.Mesh(
+            new THREE.BoxGeometry((b.x2-b.x1)/26 + 1.1, .34, (b.y2-b.y1)/26 + 1.1),
+            new THREE.MeshStandardMaterial({color:0xe5cd82,roughness:1})
+          );
+          beach.position.set(center.x,.02,center.z);
+          beach.receiveShadow=true;
+          islandScene.add(beach);
+
+          const platform = new THREE.Mesh(
+            new THREE.BoxGeometry((b.x2-b.x1)/26, .42, (b.y2-b.y1)/26),
+            new THREE.MeshStandardMaterial({color:0x557f49,roughness:.95})
+          );
+          platform.position.set(center.x,.18,center.z);
+          platform.castShadow=true; platform.receiveShadow=true;
+          islandScene.add(platform);
+
+          // 跨海跳台。
+          (mazeCfg.jumpPads||[]).forEach((q,i)=>{
+            const p=islandCoord(q.x,q.y,0);
+            const pad=new THREE.Mesh(
+              new THREE.CylinderGeometry(.7,.78,.22,24),
+              new THREE.MeshStandardMaterial({color:i===0?0xffd65e:0x61cfff,roughness:.48})
+            );
+            pad.position.set(p.x,.34,p.z);
+            pad.castShadow=true;islandScene.add(pad);
+          });
+
+          // 入口招牌。
+          const signCanvas=document.createElement("canvas");
+          signCanvas.width=512;signCanvas.height=128;
+          const sctx=signCanvas.getContext("2d");
+          sctx.fillStyle="#f6c84f";sctx.fillRect(0,0,512,128);
+          sctx.strokeStyle="#fff";sctx.lineWidth=10;sctx.strokeRect(6,6,500,116);
+          sctx.fillStyle="#25313a";sctx.font="bold 52px Microsoft YaHei,sans-serif";
+          sctx.textAlign="center";sctx.textBaseline="middle";sctx.fillText("巨型剧情迷宫",256,66);
+          const st=new THREE.CanvasTexture(signCanvas);st.colorSpace=THREE.SRGBColorSpace;
+          const sp=islandCoord(1425,540,0);
+          const sign=new THREE.Mesh(new THREE.PlaneGeometry(4.5,1.1),new THREE.MeshBasicMaterial({map:st}));
+          sign.position.set(sp.x,3.2,sp.z);islandScene.add(sign);
+          const poleMat=new THREE.MeshStandardMaterial({color:0x55d6ef,roughness:.45});
+          [-1.85,1.85].forEach(dx=>{
+            const pole=new THREE.Mesh(new THREE.CylinderGeometry(.11,.15,3.7,12),poleMat);
+            pole.position.set(sp.x+dx,1.85,sp.z);islandScene.add(pole);
+          });
+
+          // 迷宫高墙。
+          const wallMat=new THREE.MeshStandardMaterial({color:0x3f4c52,roughness:.78,metalness:.08});
+          (mazeCfg.walls||[]).forEach(w=>{
+            const p=islandCoord(w.x+w.w/2,w.y+w.h/2,0);
+            const wall=new THREE.Mesh(new THREE.BoxGeometry(w.w/26,1.75,w.h/26),wallMat);
+            wall.position.set(p.x,1.1,p.z);
+            wall.castShadow=true;wall.receiveShadow=true;
+            wall.userData.giantMazeWall=true;
+            islandScene.add(wall);
+          });
+
+          // 跳跃断层。
+          const pitMat=new THREE.MeshStandardMaterial({color:0x101820,emissive:0x062030,emissiveIntensity:.45,roughness:.65});
+          (mazeCfg.pits||[]).forEach(q=>{
+            const p=islandCoord(q.x+q.w/2,q.y+q.h/2,0);
+            const pit=new THREE.Mesh(new THREE.BoxGeometry(q.w/26,.05,q.h/26),pitMat);
+            pit.position.set(p.x,.42,p.z);
+            islandScene.add(pit);
+          });
+
+          // 三个剧情信标。
+          (mazeCfg.storyNodes||[]).forEach((n,i)=>{
+            const p=islandCoord(n.x,n.y,0);
+            const beacon=new THREE.Group();
+            beacon.position.set(p.x,.42,p.z);
+            beacon.userData.giantMazeNode=i;
+            const base=new THREE.Mesh(new THREE.CylinderGeometry(.5,.58,.18,24),
+              new THREE.MeshStandardMaterial({color:0x6f7b84,roughness:.55}));
+            base.position.y=.1;beacon.add(base);
+            const orb=new THREE.Mesh(new THREE.SphereGeometry(.28,18,12),
+              new THREE.MeshStandardMaterial({color:0xffd65e,emissive:0x6e5000,emissiveIntensity:.75}));
+            orb.position.y=.78;beacon.add(orb);
+            islandScene.add(beacon);
+          });
+
+          // 出口门。
+          const ep=islandCoord(mazeCfg.exit.x,mazeCfg.exit.y,0);
+          const exitGroup=new THREE.Group();
+          exitGroup.position.set(ep.x,.4,ep.z);
+          exitGroup.userData.giantMazeExit=true;
+          const exitMat=new THREE.MeshStandardMaterial({color:0x68727a,emissive:0x101820,emissiveIntensity:.25,roughness:.45});
+          [-.75,.75].forEach(x=>{
+            const pole=new THREE.Mesh(new THREE.BoxGeometry(.22,2.8,.22),exitMat);
+            pole.position.set(x,1.4,0);exitGroup.add(pole);
+          });
+          const top=new THREE.Mesh(new THREE.BoxGeometry(1.72,.25,.25),exitMat);
+          top.position.set(0,2.72,0);exitGroup.add(top);
+          const portal=new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.15),
+            new THREE.MeshBasicMaterial({color:0x66e28a,transparent:true,opacity:.22,side:THREE.DoubleSide}));
+          portal.position.set(0,1.4,.03);exitGroup.add(portal);
+          islandScene.add(exitGroup);
+        }
+      }
+
       islandStaticBuilt = true;
     }
 
@@ -1326,6 +1434,26 @@
       if(movingPlatform)movingPlatform.position.x=Math.sin((funState?.phase||performance.now()/1000)*1.5)*1.62;
       const seesaw=islandScene.children.find(o=>o.userData?.amusementRide==="seesaw");
       if(seesaw)seesaw.rotation.z=Math.sin(performance.now()/520)*0.07;
+
+      // 剧情迷宫信标和出口随进度变化。
+      const mazeStage=islandWorldState?.giantMaze?.stage||0;
+      islandScene.children.forEach(o=>{
+        if(Number.isInteger(o.userData?.giantMazeNode)){
+          const idx=o.userData.giantMazeNode;
+          const orb=o.children?.[1];
+          if(orb?.material?.color){
+            orb.material.color.setHex(idx<mazeStage?0x68e58a:(idx===mazeStage?0xffd65e:0x78838b));
+            orb.rotation.y+=0.025;
+          }
+        }
+      });
+      const mazeExit=islandScene.children.find(o=>o.userData?.giantMazeExit);
+      if(mazeExit){
+        const unlocked=mazeStage>=3;
+        mazeExit.children?.forEach(ch=>{
+          if(ch.material?.color && !ch.material.transparent) ch.material.color.setHex(unlocked?0x66e28a:0x68727a);
+        });
+      }
 
       islandRenderer.render(islandScene, islandCameraSetup.camera);
     }
