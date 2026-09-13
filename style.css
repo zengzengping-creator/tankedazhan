@@ -3142,3 +3142,206 @@ button:disabled {
     grid-template-columns:1fr;
   }
 }
+
+
+/* VIP系统 */
+.meta-vip-top {
+  border-color: rgba(255,208,74,.72) !important;
+  background: linear-gradient(180deg,rgba(91,64,14,.94),rgba(47,34,10,.94)) !important;
+  color: #ffe58a !important;
+}
+
+.meta-vip-top b {
+  font-size: 9px;
+}
+
+.vip-loading {
+  padding:24px;
+  text-align:center;
+  color:#9eb6c0;
+  font-size:10px;
+}
+
+.vip-hero {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px;
+  border:1px solid #6d5a27;
+  border-radius:10px;
+  background:linear-gradient(120deg,rgba(98,70,16,.32),rgba(28,39,45,.88));
+}
+
+.vip-crown {
+  font-size:34px;
+}
+
+.vip-hero > div:last-child {
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.vip-hero b {
+  color:#ffe58a;
+  font-size:14px;
+}
+
+.vip-hero small {
+  color:#c3d3da;
+  font-size:9px;
+}
+
+.vip-level-5,
+.vip-level-6 {
+  border-color:#d4b14b;
+  box-shadow:0 0 18px rgba(223,184,65,.10) inset;
+}
+
+.vip-progress-card {
+  margin-top:8px;
+  padding:8px;
+  border:1px solid #355867;
+  border-radius:8px;
+  background:rgba(255,255,255,.045);
+}
+
+.vip-progress-card > div:first-child {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:5px;
+  font-size:9px;
+}
+
+.vip-progress-card span { color:#ffd86b; }
+.vip-progress-card b { color:#b9ccd4; font-weight:500; }
+
+.vip-benefits {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  margin-top:8px;
+}
+
+.vip-benefits > div {
+  min-height:68px;
+  padding:6px;
+  border:1px solid #3a5966;
+  border-radius:8px;
+  background:rgba(255,255,255,.045);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+}
+
+.vip-benefits strong {
+  color:#ffe58a;
+  font-size:13px;
+}
+
+.vip-benefits span {
+  color:#a8bdc6;
+  font-size:8px;
+}
+
+.vip-daily-btn {
+  display:block;
+  width:min(320px,100%);
+  margin:8px auto;
+  padding:8px;
+  border:1px solid #d3a943;
+  border-radius:7px;
+  background:#72551b;
+  color:#fff4c4;
+  font-size:10px;
+  font-weight:700;
+}
+
+.vip-daily-btn:disabled {
+  opacity:.48;
+}
+
+.vip-level-list {
+  display:grid;
+  gap:5px;
+  margin-top:8px;
+}
+
+.vip-level-list > div {
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:center;
+  padding:7px;
+  border:1px solid #334d59;
+  border-radius:7px;
+  background:rgba(0,0,0,.14);
+}
+
+.vip-level-list > div.current {
+  border-color:#d2aa43;
+  background:rgba(123,91,24,.16);
+}
+
+.vip-level-list span {
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.vip-level-list b {
+  color:#eaf8ff;
+  font-size:9px;
+}
+
+.vip-level-list small {
+  color:#8fa8b3;
+  font-size:8px;
+}
+
+.vip-level-list em {
+  color:#ffd86b;
+  font-size:8px;
+  font-style:normal;
+  text-align:right;
+}
+
+.party-server-scope {
+  color:#99b6c1;
+  font-size:8px;
+  line-height:1.4;
+}
+
+.party-server-actions {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+}
+
+.party-server-health {
+  min-height:18px;
+  padding:4px 6px;
+  border-radius:6px;
+  background:rgba(0,0,0,.15);
+  color:#9ed6b8;
+  font-size:8px;
+  line-height:1.4;
+}
+
+@media (max-width:540px) {
+  .vip-benefits {
+    grid-template-columns:repeat(2,1fr);
+  }
+  .vip-level-list > div {
+    grid-template-columns:1fr;
+  }
+  .vip-level-list em {
+    text-align:left;
+  }
+  .party-server-actions {
+    grid-template-columns:1fr;
+  }
+}
