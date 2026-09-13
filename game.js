@@ -256,11 +256,12 @@ class Tank {
     return { x: this.x, y: this.y, w: this.size, h: this.size };
   }
 
-  tryMove(dir) {
+  tryMove(dir, speedScale = 1) {
     this.dir = dir;
     const v = DIR_VEC[dir];
-    const nx = this.x + v.x * this.speed;
-    const ny = this.y + v.y * this.speed;
+    const step = this.speed * Math.max(0.22, Math.min(1, speedScale || 1));
+    const nx = this.x + v.x * step;
+    const ny = this.y + v.y * step;
     if (!this.collides(nx, ny)) {
       this.x = nx;
       this.y = ny;
@@ -606,7 +607,16 @@ function update() {
 
   if (player && player.alive) {
     let moved = false;
-    if (keys["ArrowUp"]) { player.tryMove(DIR.UP); moved = true; }
+    const joy = globalThis.mobileJoystickState;
+    if (joy?.active && joy.magnitude > 0.02) {
+      // 主战场仍保持四方向坦克规则，但直接读取摇杆，不靠连续键盘事件。
+      const horizontal = Math.abs(joy.x) > Math.abs(joy.y);
+      const dir = horizontal
+        ? (joy.x < 0 ? DIR.LEFT : DIR.RIGHT)
+        : (joy.y < 0 ? DIR.UP : DIR.DOWN);
+      player.tryMove(dir, Math.max(.36, joy.magnitude));
+      moved = true;
+    } else if (keys["ArrowUp"]) { player.tryMove(DIR.UP); moved = true; }
     else if (keys["ArrowDown"]) { player.tryMove(DIR.DOWN); moved = true; }
     else if (keys["ArrowLeft"]) { player.tryMove(DIR.LEFT); moved = true; }
     else if (keys["ArrowRight"]) { player.tryMove(DIR.RIGHT); moved = true; }
