@@ -790,7 +790,7 @@ button:disabled {
   left: 8px;
   right: 62px;
   top: 8px;
-  z-index: 18;
+  z-index: 38;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -833,7 +833,7 @@ button:disabled {
 
 #meta-rightbar {
   position: absolute;
-  z-index: 18;
+  z-index: 38;
   right: 8px;
   top: 54px;
   display: flex;
@@ -2239,5 +2239,108 @@ button:disabled {
   }
   .party-command-dock button span {
     font-size: 8px;
+  }
+}
+
+
+/* 新坦克岛HUD：顶部宠物/皮肤商城，右侧快捷表情 */
+.meta-emote-quickbar {
+  top: 82px !important;
+}
+
+.meta-emote-quickbar button {
+  width: 44px !important;
+  min-height: 42px !important;
+  font-size: 20px !important;
+  padding: 4px !important;
+  border-radius: 12px !important;
+}
+
+.meta-emote-quickbar button span {
+  font-size: 8px !important;
+}
+
+.pet-shop-grid,
+.skin-direct-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.pet-shop-grid button,
+.skin-direct-grid button {
+  min-height: 92px;
+  padding: 8px;
+  border: 1px solid #315b6b;
+  border-radius: 9px;
+  background: rgba(255,255,255,.055);
+  color: #eefaff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.pet-shop-grid button.selected,
+.skin-direct-grid button.selected {
+  border-color: #65dfb8;
+  background: rgba(75,171,143,.16);
+  box-shadow: 0 0 0 1px rgba(101,223,184,.26) inset;
+}
+
+.pet-shop-grid strong {
+  font-size: 30px;
+}
+
+.pet-shop-grid b,
+.skin-direct-grid b {
+  font-size: 10px;
+}
+
+.pet-shop-grid small,
+.skin-direct-grid small {
+  color: #a9c2ce;
+  font-size: 9px;
+}
+
+.pet-shop-grid span,
+.skin-direct-grid span {
+  color: #ffd86b;
+  font-size: 9px;
+}
+
+.skin-direct-grid i {
+  display: block;
+  width: 38px;
+  height: 30px;
+  border-radius: 7px;
+  margin-bottom: 3px;
+}
+
+@media (max-width: 900px), (pointer: coarse) {
+  #meta-topbar {
+    top: max(30px, env(safe-area-inset-top)) !important;
+    right: 52px;
+    flex-wrap: wrap;
+  }
+  #meta-topbar button {
+    min-height: 32px;
+  }
+  .meta-emote-quickbar {
+    top: max(88px, calc(env(safe-area-inset-top) + 66px)) !important;
+  }
+  .meta-emote-quickbar button {
+    width: 40px !important;
+    min-height: 38px !important;
+    font-size: 18px !important;
+  }
+}
+
+@media (max-width: 540px) {
+  .pet-shop-grid,
+  .skin-direct-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
