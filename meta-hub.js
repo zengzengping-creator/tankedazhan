@@ -59,6 +59,8 @@ function metaDefaultData() {
     claimedSeason: {},
     event: { kills: 0, clears: 0, islandVisits: 0, skinDraws: 0 },
     claimedTasks: {},
+    crewOwned: {},
+    equippedCrew: "",
     selectedEmote: "😀",
     selectedAction: "挥手",
   };
@@ -71,6 +73,7 @@ function loadMetaData() {
       event: Object.assign(metaDefaultData().event, raw?.event || {}),
       claimedSeason: raw?.claimedSeason || {},
       claimedTasks: raw?.claimedTasks || {},
+      crewOwned: raw?.crewOwned || {},
     });
   } catch (_) {
     return metaDefaultData();
@@ -177,9 +180,17 @@ const CURRENCY_INFO = {
 };
 
 const BLIND_BOXES = [
-  { id:"basic", name:"基础迷彩盲盒", icon:"📦", cost:100, currency:"coins", rarities:["普通","普通","稀有"] },
-  { id:"mid", name:"中级坦克盲盒", icon:"🎁", cost:20, currency:"midTankCoins", rarities:["稀有","稀有","史诗"] },
-  { id:"high", name:"高级坦克盲盒", icon:"✨", cost:20, currency:"highTankCoins", rarities:["史诗","传说","传说"] },
+  { id:"mid", name:"中级坦克盲盒", icon:"🎁", cost:1, currency:"midTankCoins", rarities:["稀有","稀有","史诗"] },
+  { id:"high", name:"高级坦克盲盒", icon:"✨", cost:1, currency:"highTankCoins", rarities:["史诗","传说","传说"] },
+];
+
+const CREW_MEMBERS = [
+  {id:"driver",name:"王牌驾驶员",icon:"🧑‍✈️",rarity:"普通"},
+  {id:"gunner",name:"精准炮手",icon:"🎯",rarity:"普通"},
+  {id:"loader",name:"极速装填手",icon:"⚙️",rarity:"稀有"},
+  {id:"repair",name:"战地维修员",icon:"🔧",rarity:"稀有"},
+  {id:"scoutcrew",name:"前线侦察员",icon:"🔭",rarity:"史诗"},
+  {id:"commander",name:"钢铁指挥官",icon:"🪖",rarity:"史诗"},
 ];
 
 function createMetaHud() {
@@ -479,30 +490,40 @@ async function renderVip(title, body) {
 }
 
 function renderCurrencyWallet(title, body) {
-  title.textContent = "🔷 坦克币兑换";
+  title.textContent = "🔷 坦克币中心";
   const tank = islandData.tankCoins || 0;
   const mid = islandData.midTankCoins || 0;
   const high = islandData.highTankCoins || 0;
   body.innerHTML = `
     <div class="tank-currency-wallet">
-      <div><strong>🔷 ${tank.toLocaleString()}</strong><span>坦克币</span></div>
+      <div><strong>🔷 ${tank.toLocaleString()}</strong><span>普通坦克币</span></div>
       <div><strong>🟣 ${mid.toLocaleString()}</strong><span>中级坦克币</span></div>
       <div><strong>💎 ${high.toLocaleString()}</strong><span>高级坦克币</span></div>
     </div>
+
     <div class="tank-currency-exchange">
       <div>
-        <span><b>5 🔷 → 1 🟣</b><small>中级坦克币用于抽中级坦克盲盒</small></span>
+        <span><b>1 🔷 → 10 🪙</b><small>普通坦克币可以直接兑换普通金币</small></span>
+        <button data-gold-exchange="1" ${tank<1?"disabled":""}>换10金币</button>
+        <button data-gold-exchange="10" ${tank<10?"disabled":""}>换100金币</button>
+      </div>
+      <div>
+        <span><b>5 🔷 → 1 🟣</b><small>中级坦克币：1个可抽1次中级盲盒</small></span>
         <button data-exchange="mid" ${tank<5?"disabled":""}>兑换1个</button>
         <button data-exchange-batch="mid" ${tank<50?"disabled":""}>兑换10个</button>
       </div>
       <div>
-        <span><b>10 🔷 → 1 💎</b><small>高级坦克币用于抽高级坦克盲盒</small></span>
+        <span><b>10 🔷 → 1 💎</b><small>高级坦克币：1个可抽1次高级盲盒</small></span>
         <button data-exchange="high" ${tank<10?"disabled":""}>兑换1个</button>
         <button data-exchange-batch="high" ${tank<100?"disabled":""}>兑换10个</button>
       </div>
     </div>
-    <div class="meta-payment-warning">兑换后不可反向换回坦克币。</div>
-    <button class="tank-currency-box-link" id="open-special-boxes">🎁 去抽中级 / 高级坦克盲盒</button>`;
+
+    <div class="tank-coin-uses">
+      <button id="open-normal-tank-box">📦 1坦克币 · 普通坦克盲盒</button>
+      <button id="open-crew-box">🧑‍✈️ 1坦克币 · 乘员盲盒</button>
+      <button id="open-special-boxes">🎁 中级 / 高级盲盒</button>
+    </div>`;
 
   const exchange=(type,count)=>{
     const ratio=type==="high"?10:5;
@@ -515,9 +536,83 @@ function renderCurrencyWallet(title, body) {
     metaToast(type==="high"?`💎 获得高级坦克币 x${count}`:`🟣 获得中级坦克币 x${count}`);
     renderCurrencyWallet(title,body);
   };
+
+  body.querySelectorAll("[data-gold-exchange]").forEach(btn=>btn.onclick=()=>{
+    const count=Number(btn.dataset.goldExchange)||1;
+    if((islandData.tankCoins||0)<count){metaToast("坦克币不足");return;}
+    islandData.tankCoins-=count;
+    islandData.coins=(islandData.coins||0)+count*10;
+    saveIslandData();refreshMetaHud();
+    metaToast(`🪙 已兑换 ${count*10} 金币`);
+    renderCurrencyWallet(title,body);
+  });
   body.querySelectorAll("[data-exchange]").forEach(btn=>btn.onclick=()=>exchange(btn.dataset.exchange,1));
   body.querySelectorAll("[data-exchange-batch]").forEach(btn=>btn.onclick=()=>exchange(btn.dataset.exchangeBatch,10));
+  body.querySelector("#open-normal-tank-box")?.addEventListener("click",()=>renderNormalTankBox(title,body));
+  body.querySelector("#open-crew-box")?.addEventListener("click",()=>renderCrewBox(title,body));
   body.querySelector("#open-special-boxes")?.addEventListener("click",()=>renderBoxes(title,body));
+}
+
+function drawNormalTankBox() {
+  if((islandData.tankCoins||0)<1){metaToast("坦克币不足");return;}
+  islandData.tankCoins-=1;
+  const pool=typeof TANK_SHOP_PRICES!=="undefined"?Object.keys(TANK_SHOP_PRICES):["elite","base","weaken","flight","evolution","omni"];
+  const type=pool[Math.floor(Math.random()*pool.length)];
+  islandData.unlocked=islandData.unlocked||{};
+  const duplicate=!!islandData.unlocked[type];
+  islandData.unlocked[type]=true;
+  if(duplicate)islandData.coins=(islandData.coins||0)+50;
+  saveIslandData();refreshMetaHud();
+  if(typeof refreshTankLockUI==="function")refreshTankLockUI();
+  metaToast(duplicate?`重复坦克【${PLAYER_TANK_CLASSES[type]?.name||type}】，返还50金币`:`获得坦克【${PLAYER_TANK_CLASSES[type]?.name||type}】`);
+}
+
+function renderNormalTankBox(title, body) {
+  title.textContent="📦 普通坦克盲盒";
+  body.innerHTML=`
+    <div class="normal-box-hero"><strong>📦 普通坦克盲盒</strong><span>每次消耗 🔷 1普通坦克币</span></div>
+    <div class="meta-payment-warning">可随机获得可购买坦克；抽到已拥有坦克时返还50金币。</div>
+    <button id="draw-normal-tank-box" class="tank-currency-box-link" ${(islandData.tankCoins||0)<1?"disabled":""}>🔷 1 · 抽一次普通坦克盲盒</button>
+    <button id="normal-box-back" class="tank-currency-box-link secondary">返回坦克币中心</button>`;
+  body.querySelector("#draw-normal-tank-box")?.addEventListener("click",()=>{drawNormalTankBox();renderNormalTankBox(title,body);});
+  body.querySelector("#normal-box-back")?.addEventListener("click",()=>renderCurrencyWallet(title,body));
+}
+
+function drawCrewBox() {
+  if((islandData.tankCoins||0)<1){metaToast("坦克币不足");return;}
+  islandData.tankCoins-=1;
+  const crew=CREW_MEMBERS[Math.floor(Math.random()*CREW_MEMBERS.length)];
+  metaData.crewOwned=metaData.crewOwned||{};
+  const duplicate=!!metaData.crewOwned[crew.id];
+  metaData.crewOwned[crew.id]=(metaData.crewOwned[crew.id]||0)+1;
+  if(!metaData.equippedCrew)metaData.equippedCrew=crew.id;
+  if(duplicate)islandData.coins=(islandData.coins||0)+20;
+  saveMetaData();saveIslandData();refreshMetaHud();
+  metaToast(duplicate?`重复乘员【${crew.name}】，返还20金币`:`获得乘员【${crew.rarity}·${crew.name}】`);
+}
+
+function renderCrewBox(title, body) {
+  title.textContent="🧑‍✈️ 乘员盲盒";
+  body.innerHTML=`
+    <div class="normal-box-hero"><strong>🧑‍✈️ 乘员盲盒</strong><span>每次消耗 🔷 1普通坦克币</span></div>
+    <button id="draw-crew-box" class="tank-currency-box-link" ${(islandData.tankCoins||0)<1?"disabled":""}>🔷 1 · 抽一次乘员</button>
+    <div class="crew-collection">
+      ${CREW_MEMBERS.map(x=>{
+        const count=metaData.crewOwned?.[x.id]||0;
+        return `<button data-equip-crew="${x.id}" class="${metaData.equippedCrew===x.id?"selected":""}" ${count?"":"disabled"}>
+          <strong>${x.icon}</strong><b>${x.name}</b><small>${x.rarity} · ${count?"拥有 x"+count:"未获得"}</small>
+        </button>`;
+      }).join("")}
+    </div>
+    <button id="crew-box-back" class="tank-currency-box-link secondary">返回坦克币中心</button>`;
+  body.querySelector("#draw-crew-box")?.addEventListener("click",()=>{drawCrewBox();renderCrewBox(title,body);});
+  body.querySelectorAll("[data-equip-crew]").forEach(btn=>btn.onclick=()=>{
+    if(!metaData.crewOwned?.[btn.dataset.equipCrew])return;
+    metaData.equippedCrew=btn.dataset.equipCrew;saveMetaData();
+    metaToast("🧑‍✈️ 已设为当前乘员");
+    renderCrewBox(title,body);
+  });
+  body.querySelector("#crew-box-back")?.addEventListener("click",()=>renderCurrencyWallet(title,body));
 }
 
 function skinPoolForBox(box) {
