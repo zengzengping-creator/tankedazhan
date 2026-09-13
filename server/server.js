@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = process.env.MAPS_FILE || path.join(__dirname,"data","maps.json");
 const ORDERS_FILE = process.env.ORDERS_FILE || path.join(__dirname,"data","orders.json");
+const VIP_CLAIMS_FILE = process.env.VIP_CLAIMS_FILE || path.join(__dirname,"data","vip-claims.json");
 const PORT = Number(process.env.PORT || 8787);
 const PAYMENT_CHECKOUT_URL = String(process.env.PAYMENT_CHECKOUT_URL || "").trim();
 const PAYMENT_WEBHOOK_SECRET = String(process.env.PAYMENT_WEBHOOK_SECRET || "").trim();
@@ -19,6 +20,16 @@ const RECHARGE_PACKS = [
   {id:"r30", yuan:30, baseTankCoins:3000, bonusTankCoins:300},
   {id:"r68", yuan:68, baseTankCoins:6800, bonusTankCoins:1000},
   {id:"r128", yuan:128, baseTankCoins:12800, bonusTankCoins:2500}
+];
+
+const VIP_LEVELS = [
+  {level:0, threshold:0,   title:"普通车长", dailyCoins:0,   dailyTankCoins:0, shopDiscount:0,  boxDiscount:0},
+  {level:1, threshold:6,   title:"VIP青铜", dailyCoins:50,  dailyTankCoins:0, shopDiscount:2,  boxDiscount:2},
+  {level:2, threshold:30,  title:"VIP白银", dailyCoins:100, dailyTankCoins:5, shopDiscount:3,  boxDiscount:4},
+  {level:3, threshold:68,  title:"VIP黄金", dailyCoins:180, dailyTankCoins:10,shopDiscount:5,  boxDiscount:6},
+  {level:4, threshold:128, title:"VIP铂金", dailyCoins:300, dailyTankCoins:20,shopDiscount:7,  boxDiscount:8},
+  {level:5, threshold:328, title:"VIP钻石", dailyCoins:500, dailyTankCoins:30,shopDiscount:10, boxDiscount:10},
+  {level:6, threshold:648, title:"VIP至尊", dailyCoins:800, dailyTankCoins:50,shopDiscount:12, boxDiscount:12}
 ];
 
 const app = express();
@@ -123,7 +134,71 @@ function makeCheckoutUrl(order){
 }
 loadRechargeOrders();
 
-app.get("/api/health",(req,res)=>res.json({ok:true,maps:maps.length,teams:teams.size,now:new Date().toISOString()}));
+let vipClaims=[];
+function loadVipClaims(){
+  try{
+    const parsed=JSON.parse(fs.readFileSync(VIP_CLAIMS_FILE,"utf8"));
+    vipClaims=Array.isArray(parsed)?parsed:[];
+  }catch(_){vipClaims=[];}
+}
+function saveVipClaims(){
+  try{
+    fs.mkdirSync(path.dirname(VIP_CLAIMS_FILE),{recursive:true});
+    fs.writeFileSync(VIP_CLAIMS_FILE,JSON.stringify(vipClaims.slice(-10000),null,2));
+  }catch(err){
+    console.warn("VIP claim persistence unavailable:",err.message);
+  }
+}
+function vipPaidYuan(playerId){
+  return rechargeOrders
+    .filter(o=>o.playerId===playerId&&(o.status==="paid"||o.status==="claimed"))
+    .reduce((sum,o)=>sum+Math.max(0,Number(o.yuan)||0),0);
+}
+function vipInfoForPlayer(playerId){
+  const paidYuan=vipPaidYuan(playerId);
+  let current=VIP_LEVELS[0];
+  for(const row of VIP_LEVELS){
+    if(paidYuan>=row.threshold)current=row;
+  }
+  const next=VIP_LEVELS.find(row=>row.level===current.level+1)||null;
+  const today=new Date().toISOString().slice(0,10);
+  const dailyClaimed=vipClaims.some(x=>x.playerId===playerId&&x.date===today);
+  return {
+    ...current,
+    paidYuan,
+    nextLevel:next,
+    dailyClaimed,
+    progress:next?Math.min(1,Math.max(0,(paidYuan-current.threshold)/(next.threshold-current.threshold))):1
+  };
+}
+loadVipClaims();
+
+app.get("/api/health",(req,res)=>res.json({
+  ok:true,maps:maps.length,teams:teams.size,now:new Date().toISOString(),
+  features:{teams:true,maps:true,recharge:true,vip:true,paymentConfigured:!!(PAYMENT_CHECKOUT_URL&&PAYMENT_WEBHOOK_SECRET)}
+}));
+
+app.get("/api/vip",(req,res)=>{
+  const playerId=safeText(req.query.playerId,100);
+  if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
+  res.json({vip:vipInfoForPlayer(playerId),levels:VIP_LEVELS});
+});
+
+app.post("/api/vip/daily-claim",(req,res)=>{
+  const playerId=safeText(req.body?.playerId,100);
+  if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
+  const vip=vipInfoForPlayer(playerId);
+  if(vip.level<=0)return res.status(403).json({error:"VIP1起可领取每日奖励"});
+  if(vip.dailyClaimed)return res.status(409).json({error:"今天已经领取过VIP奖励"});
+  const today=new Date().toISOString().slice(0,10);
+  vipClaims.push({playerId,date:today,level:vip.level,claimedAt:new Date().toISOString()});
+  saveVipClaims();
+  res.json({
+    ok:true,
+    reward:{coins:vip.dailyCoins,tankCoins:vip.dailyTankCoins},
+    vip:{...vip,dailyClaimed:true}
+  });
+});
 
 app.get("/api/recharge/config",(req,res)=>{
   res.json({
