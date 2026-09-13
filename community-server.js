@@ -26,7 +26,7 @@ function getCommunityPlayer(){
   try{data=JSON.parse(localStorage.getItem(TANK_PARTY_PLAYER_KEY)||"null");}catch(_){}
   if(!data||!data.id){
     data={
-      id:crypto?.randomUUID?.() || ("p-"+Date.now()+"-"+Math.random().toString(36).slice(2,8)),
+      id:globalThis.crypto?.randomUUID?.() || ("p-"+Date.now()+"-"+Math.random().toString(36).slice(2,8)),
       name:"车长"+Math.floor(1000+Math.random()*9000)
     };
     localStorage.setItem(TANK_PARTY_PLAYER_KEY,JSON.stringify(data));
