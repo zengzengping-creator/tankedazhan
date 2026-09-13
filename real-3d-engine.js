@@ -429,6 +429,10 @@
     if (id === "mall" || id === "blindbox") return 2.5;
     if (id === "range") return 1.2;
     if (id === "soccer") return 0.18;
+    if (["modehall","rankhall","seasonhall","eventhall","onlinehub","backpackhub","scenic","rechargehall"].includes(id)) return 2.35;
+    if (id === "carousel") return 2.2;
+    if (id === "slidepark") return 2.8;
+    if (id === "photozone") return 2.4;
     return 2.0;
   }
 
@@ -470,6 +474,117 @@
       const mid = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.02, d * 0.92), lineMat);
       mid.position.y = 0.13;
       group.add(mid);
+      return group;
+    }
+
+    // 派对主城功能建筑改成更圆润、鲜艳的原创3D造型。
+    if (["modehall","rankhall","seasonhall","eventhall","onlinehub","backpackhub","scenic","rechargehall"].includes(b.id)) {
+      const baseMat = new THREE.MeshStandardMaterial({ color: colorValue(b.color), roughness: .48, metalness: .06 });
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0xf7e38b, roughness: .42, metalness: .10 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0xa7e8ff, emissive: 0x164659, emissiveIntensity: .22, roughness: .22 });
+
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(w * .56, w * .62, h * .78, 24), baseMat);
+      base.position.y = h * .39;
+      group.add(base);
+
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(w * .54, 24, 14, 0, Math.PI * 2, 0, Math.PI / 2), baseMat);
+      dome.scale.z = Math.max(.72, d / w);
+      dome.position.y = h * .78;
+      group.add(dome);
+
+      const trim = new THREE.Mesh(new THREE.TorusGeometry(w * .48, .07, 10, 32), trimMat);
+      trim.rotation.x = Math.PI / 2;
+      trim.position.y = h * .74;
+      group.add(trim);
+
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        const win = new THREE.Mesh(new THREE.BoxGeometry(.30,.34,.05), glassMat);
+        win.position.set(Math.cos(a) * w * .47, h * .42, Math.sin(a) * Math.max(.45,d * .44));
+        win.rotation.y = -a;
+        group.add(win);
+      }
+
+      const orb = new THREE.Mesh(
+        new THREE.SphereGeometry(.24,16,12),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: colorValue(b.color), emissiveIntensity: .7, roughness: .18 })
+      );
+      orb.position.y = h + .42;
+      group.add(orb);
+
+      setMeshShadow(group);
+      return group;
+    }
+
+    if (b.id === "carousel") {
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.55,1.7,.30,36),
+        new THREE.MeshStandardMaterial({color:0xf0c35d,roughness:.6})
+      );
+      base.position.y=.18; group.add(base);
+
+      const poleMat = new THREE.MeshStandardMaterial({color:0xf5e8cf,roughness:.45});
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,2.7,14),poleMat);
+      pole.position.y=1.55; group.add(pole);
+
+      const canopy = new THREE.Mesh(
+        new THREE.ConeGeometry(1.75,.72,32),
+        new THREE.MeshStandardMaterial({color:0xff7f9c,roughness:.5})
+      );
+      canopy.position.y=2.55; group.add(canopy);
+
+      const seatColors=[0x65d8ff,0xffd75e,0x75e89a,0xb18cff];
+      for(let i=0;i<8;i++){
+        const a=i/8*Math.PI*2;
+        const arm=new THREE.Mesh(new THREE.BoxGeometry(.05,1.1,.05),poleMat);
+        arm.position.set(Math.cos(a)*1.1,1.55,Math.sin(a)*1.1);
+        group.add(arm);
+        const seat=makeTankMesh("#ffd23f",.38);
+        seat.position.set(Math.cos(a)*1.1,.82,Math.sin(a)*1.1);
+        seat.rotation.y=-a;
+        seat.children?.[0]?.material?.color?.setHex?.(seatColors[i%seatColors.length]);
+        group.add(seat);
+      }
+      setMeshShadow(group);
+      return group;
+    }
+
+    if (b.id === "slidepark") {
+      const pink=new THREE.MeshStandardMaterial({color:0xff7f9a,roughness:.58});
+      const cyan=new THREE.MeshStandardMaterial({color:0x64d8ff,roughness:.58});
+      const yellow=new THREE.MeshStandardMaterial({color:0xffd75e,roughness:.58});
+      const tower=new THREE.Mesh(new THREE.CylinderGeometry(.72,.82,2.6,20),cyan);
+      tower.position.set(-1.05,1.45,0); group.add(tower);
+      const top=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.05,.18,24),yellow);
+      top.position.set(-1.05,2.82,0); group.add(top);
+      const ramp1=new THREE.Mesh(new THREE.BoxGeometry(2.4,.18,.88),pink);
+      ramp1.position.set(.15,2.0,0); ramp1.rotation.z=-.34; group.add(ramp1);
+      const ramp2=new THREE.Mesh(new THREE.BoxGeometry(2.5,.18,.88),cyan);
+      ramp2.position.set(2.0,1.15,0); ramp2.rotation.z=-.34; group.add(ramp2);
+      const landing=new THREE.Mesh(new THREE.CylinderGeometry(.95,1.08,.18,24),yellow);
+      landing.position.set(3.25,.34,0); group.add(landing);
+      setMeshShadow(group);
+      return group;
+    }
+
+    if (b.id === "photozone") {
+      const cyan=new THREE.MeshStandardMaterial({color:0x62d8ff,roughness:.48});
+      const gold=new THREE.MeshStandardMaterial({color:0xffd35d,roughness:.45,metalness:.12});
+      const left=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,2.5,12),cyan);
+      const right=left.clone();
+      left.position.set(-1.55,1.4,0); right.position.set(1.55,1.4,0);
+      const arch=new THREE.Mesh(new THREE.TorusGeometry(1.55,.13,10,32,Math.PI),cyan);
+      arch.rotation.z=Math.PI; arch.position.y=2.65;
+      group.add(left,right,arch);
+      const cannon=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,3.4,16),gold);
+      cannon.rotation.z=Math.PI/2;
+      cannon.position.set(0,1.25,0);
+      group.add(cannon);
+      const tank=makeTankMesh("#f6b82e",1.45);
+      tank.position.set(0,.36,.15);
+      tank.rotation.y=Math.PI/2;
+      group.add(tank);
+      setMeshShadow(group);
       return group;
     }
 
