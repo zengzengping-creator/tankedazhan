@@ -76,6 +76,32 @@ const EVENT_TASKS = [
 const EMOTES = ["😀","😂","😎","🔥","❤️","👍","🎉","💥","🤝","👑"];
 const ACTIONS = ["挥手","跳舞","敬礼","鼓掌","坐下"];
 
+const ISLAND_PETS = [
+  {id:"scout",name:"侦察小虎机",icon:"🐯",price:0},
+  {id:"drone",name:"蓝光无人机",icon:"🛸",price:180},
+  {id:"bot",name:"迷你维修机器人",icon:"🤖",price:260},
+  {id:"fox",name:"机械小狐狸",icon:"🦊",price:360},
+  {id:"dragon",name:"钢铁小龙",icon:"🐲",price:520},
+];
+
+function ensurePetData() {
+  if (typeof islandData === "undefined") return;
+  islandData.pets = islandData.pets || {};
+  islandData.pets.scout = true;
+  if (!islandData.equippedPet) islandData.equippedPet = "scout";
+  saveIslandData();
+}
+
+function activeIslandPet() {
+  ensurePetData();
+  return ISLAND_PETS.find(p=>p.id===islandData?.equippedPet) || ISLAND_PETS[0];
+}
+globalThis.activeIslandPet = activeIslandPet;
+
+function skinDirectPrice(skin) {
+  return skin?.rarity==="传说" ? 500 : skin?.rarity==="史诗" ? 320 : skin?.rarity==="稀有" ? 200 : 120;
+}
+
 const BLIND_BOXES = [
   { id:"basic", name:"基础迷彩盲盒", icon:"📦", cost:100, rarities:["普通","普通","稀有"] },
   { id:"elite", name:"精英涂装盲盒", icon:"🎁", cost:180, rarities:["稀有","稀有","史诗"] },
@@ -90,18 +116,20 @@ function createMetaHud() {
   top.innerHTML = `
     <button class="meta-avatar" data-meta-panel="profile" title="头像">👤</button>
     <div class="meta-coins">🪙 <b id="meta-coins">0</b></div>
-    <button data-meta-panel="season">🏆 赛季</button>
-    <button data-meta-panel="manual">📘 手册</button>
+    <button data-meta-panel="pets">🐾 宠物</button>
+    <button data-meta-panel="skinshop">🎨 皮肤商城</button>
   `;
 
   const right = document.createElement("div");
   right.id = "meta-rightbar";
+  right.className = "meta-emote-quickbar";
   right.innerHTML = `
-    <button data-meta-panel="warehouse">📦<span>仓库</span></button>
-    <button data-meta-panel="tasks">📋<span>活动任务</span></button>
-    <button data-meta-panel="social">😀<span>表情动作</span></button>
-    <button data-meta-panel="boxes">🎁<span>盲盒</span></button>
-    <button data-meta-panel="recharge">💎<span>充值</span></button>
+    <button data-emote-quick="😀" title="开心">😀</button>
+    <button data-emote-quick="😂" title="大笑">😂</button>
+    <button data-emote-quick="🔥" title="厉害">🔥</button>
+    <button data-emote-quick="👍" title="点赞">👍</button>
+    <button data-emote-quick="❤️" title="喜欢">❤️</button>
+    <button data-meta-panel="social">🎭<span>动作</span></button>
   `;
 
   const modal = document.createElement("div");
@@ -123,6 +151,11 @@ function createMetaHud() {
   wrap.appendChild(modal);
 
   wrap.addEventListener("click", (e) => {
+    const quick = e.target.closest("[data-emote-quick]");
+    if (quick) {
+      useEmote(quick.dataset.emoteQuick);
+      return;
+    }
     const btn = e.target.closest("[data-meta-panel]");
     if (!btn) return;
     openMetaPanel(btn.dataset.metaPanel);
@@ -151,6 +184,8 @@ function openMetaPanel(type) {
   else if (type === "social") renderSocial(title, body);
   else if (type === "boxes") renderBoxes(title, body);
   else if (type === "recharge") renderRecharge(title, body);
+  else if (type === "pets") renderPets(title, body);
+  else if (type === "skinshop") renderSkinShop(title, body);
 }
 
 function renderProfile(title, body) {
@@ -335,6 +370,77 @@ function renderBoxes(title, body) {
   });
 }
 
+function renderPets(title, body) {
+  ensurePetData();
+  title.textContent = "🐾 宠物";
+  body.innerHTML = `
+    <div class="meta-recharge-rate">
+      <b>选择跟随宠物</b>
+      <small>购买后永久拥有，装备后会跟在坦克/人物旁边。</small>
+    </div>
+    <div class="pet-shop-grid">
+      ${ISLAND_PETS.map(p=>{
+        const owned=!!islandData.pets[p.id];
+        const equipped=islandData.equippedPet===p.id;
+        return `<button data-pet="${p.id}" class="${equipped?"selected":""}">
+          <strong>${p.icon}</strong><b>${p.name}</b>
+          <small>${equipped?"✅ 跟随中":owned?"已拥有":p.price+"金币"}</small>
+          <span>${equipped?"已装备":owned?"装备":"购买"}</span>
+        </button>`;
+      }).join("")}
+    </div>`;
+  body.querySelectorAll("[data-pet]").forEach(btn=>btn.onclick=()=>{
+    const pet=ISLAND_PETS.find(p=>p.id===btn.dataset.pet);
+    if(!pet)return;
+    if(!islandData.pets[pet.id]){
+      if((islandData.coins||0)<pet.price){metaToast("金币不足");return;}
+      islandData.coins-=pet.price;
+      islandData.pets[pet.id]=true;
+    }
+    islandData.equippedPet=pet.id;
+    saveIslandData();refreshMetaHud();
+    metaToast(`${pet.icon} ${pet.name} 已装备`);
+    renderPets(title,body);
+  });
+}
+
+function renderSkinShop(title, body) {
+  title.textContent = "🎨 皮肤商城";
+  islandData.skins=islandData.skins||{};
+  const skins=typeof ISLAND_SKINS!=="undefined"?ISLAND_SKINS:[];
+  body.innerHTML = `
+    <div class="meta-recharge-rate">
+      <b>坦克皮肤直接购买</b>
+      <small>不需要抽盲盒，选中喜欢的皮肤可直接用金币购买并装备。</small>
+    </div>
+    <div class="skin-direct-grid">
+      ${skins.map(s=>{
+        const owned=!!islandData.skins[s.id];
+        const equipped=islandData.equippedSkin===s.id;
+        const price=skinDirectPrice(s);
+        return `<button data-direct-skin="${s.id}" class="${equipped?"selected":""}">
+          <i style="background:${s.color};box-shadow:inset 0 0 0 3px ${s.accent}"></i>
+          <b>${s.name}</b><small>${s.rarity}</small>
+          <span>${equipped?"✅ 已装备":owned?"装备":price+"金币购买"}</span>
+        </button>`;
+      }).join("")}
+    </div>`;
+  body.querySelectorAll("[data-direct-skin]").forEach(btn=>btn.onclick=()=>{
+    const skin=skins.find(s=>s.id===btn.dataset.directSkin);
+    if(!skin)return;
+    if(!islandData.skins[skin.id]){
+      const price=skinDirectPrice(skin);
+      if((islandData.coins||0)<price){metaToast("金币不足");return;}
+      islandData.coins-=price;
+      islandData.skins[skin.id]=true;
+    }
+    islandData.equippedSkin=skin.id;
+    saveIslandData();refreshMetaHud();
+    metaToast(`🎨 ${skin.name} 已装备`);
+    renderSkinShop(title,body);
+  });
+}
+
 function renderRecharge(title, body) {
   title.textContent = "💎 金币充值中心";
   const packs=[1,6,18,30,68,128];
@@ -391,6 +497,7 @@ function updateMetaHudLocation() {
   if (!onIsland && modal && !modal.classList.contains("hidden")) modal.classList.add("hidden");
 }
 
+ensurePetData();
 createMetaHud();
 refreshMetaHud();
 updateMetaHudLocation();
