@@ -365,6 +365,7 @@ function renderPartyScenic(title, body) {
     ["🎠","坦克旋转乐园","彩色坦克座舱游乐设施"],
     ["🌈","彩虹滑行坡","大型滑行与竞速景点"],
     ["📸","巨炮打卡区","主岛拍照与社交地标"],
+    ["🧩","巨型剧情迷宫","跳跃进入、剧情节点与出口挑战"],
   ];
   body.innerHTML = `
     <div class="party-scenic-grid">
