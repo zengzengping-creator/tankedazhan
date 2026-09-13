@@ -383,6 +383,9 @@ const ISLAND_WORLD_BUILDINGS = [
   { id: "onlinehub", name: "联机中心", icon: "🌐", x: 890, y: 475, w: 112, h: 76, color: "#456f8c" },
   { id: "backpackhub", name: "背包站", icon: "🎒", x: 610, y: 475, w: 100, h: 72, color: "#6c7451" },
   { id: "scenic", name: "景点中心", icon: "📍", x: 760, y: 505, w: 108, h: 74, color: "#5c8d62" },
+  { id: "carousel", name: "坦克旋转乐园", icon: "🎠", x: 1070, y: 505, w: 110, h: 92, color: "#e18a52" },
+  { id: "slidepark", name: "彩虹滑行坡", icon: "🌈", x: 1080, y: 75, w: 120, h: 86, color: "#e96d86" },
+  { id: "photozone", name: "巨炮打卡区", icon: "📸", x: 510, y: 78, w: 105, h: 76, color: "#58a8b6" },
 ];
 
 const ISLAND_PARKOUR_PADS = [
