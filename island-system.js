@@ -136,8 +136,11 @@ selectPlayerTank = function (type) {
 };
 
 function buyIslandTank(type) {
-  const price = TANK_SHOP_PRICES[type];
-  if (price == null || isTankUnlocked(type)) return;
+  const basePrice = TANK_SHOP_PRICES[type];
+  if (basePrice == null || isTankUnlocked(type)) return;
+  const price = typeof globalThis.getVipDiscountedPrice === "function"
+    ? globalThis.getVipDiscountedPrice(basePrice,"shop")
+    : basePrice;
 
   if (islandData.coins < price) {
     setIslandNotice(`金币不足：还差 ${price - islandData.coins} 金币。`);
@@ -202,10 +205,13 @@ function renderTankIsland() {
   refreshTankLockUI();
   if (!islandPanel) return;
 
-  const shopHtml = Object.entries(TANK_SHOP_PRICES).map(([type, price]) => {
+  const shopHtml = Object.entries(TANK_SHOP_PRICES).map(([type, basePrice]) => {
     const cfg = PLAYER_TANK_CLASSES[type];
     const owned = isTankUnlocked(type);
-    return `<div class="island-shop-row"><span>${cfg?.name || type}<small>${owned ? "✅ 已拥有" : `${price} 金币`}</small></span>${owned ? "" : `<button class="island-mini-btn" data-buy="${type}">购买</button>`}</div>`;
+    const price = typeof globalThis.getVipDiscountedPrice === "function"
+      ? globalThis.getVipDiscountedPrice(basePrice,"shop")
+      : basePrice;
+    return `<div class="island-shop-row"><span>${cfg?.name || type}<small>${owned ? "✅ 已拥有" : `${price} 金币${price<basePrice?" · VIP价":""}`}</small></span>${owned ? "" : `<button class="island-mini-btn" data-buy="${type}">购买</button>`}</div>`;
   }).join("");
 
   islandPanel.innerHTML = `
