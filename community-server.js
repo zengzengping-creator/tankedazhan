@@ -105,6 +105,14 @@ async function getRechargeOrderOnline(orderId){
     "?playerId="+encodeURIComponent(player.id));
 }
 
+async function claimRechargeOrderOnline(orderId){
+  const player=getCommunityPlayer();
+  return communityFetch("/api/recharge/orders/"+encodeURIComponent(String(orderId||""))+"/claim",{
+    method:"POST",
+    body:JSON.stringify({playerId:player.id})
+  });
+}
+
 function teamWebSocketUrl(){
   const base=getCommunityServerUrl();
   if(!base)return "";
@@ -213,7 +221,7 @@ function isTeamServerConnected(){return teamConnected;}
 Object.assign(globalThis,{
   getCommunityServerUrl,setCommunityServerUrl,getCommunityPlayer,setCommunityPlayerName,
   searchCommunityMapsOnline,publishCommunityMapOnline,checkCommunityServer,
-  getRechargeConfigOnline,createRechargeOrderOnline,getRechargeOrdersOnline,getRechargeOrderOnline,
+  getRechargeConfigOnline,createRechargeOrderOnline,getRechargeOrdersOnline,getRechargeOrderOnline,claimRechargeOrderOnline,
   ensureTeamConnection,onTeamServerEvent,createOnlineTeam,joinOnlineTeam,leaveOnlineTeam,
   setOnlineTeamReady,startOnlineTeamGame,getOnlineTeamState,isTeamServerConnected
 });
