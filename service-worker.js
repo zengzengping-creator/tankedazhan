@@ -1,4 +1,4 @@
-const CACHE_NAME = "tank-party-v1";
+const CACHE_NAME = "tank-party-v2";
 const CORE = [
   "./",
   "./index.html",
@@ -13,7 +13,8 @@ const CORE = [
   "./task-rewards.js",
   "./battle-supplies.js",
   "./real-3d-engine.js",
-  "./touch-controls.js"
+  "./touch-controls.js",
+  "./music.js"
 ];
 
 self.addEventListener("install", (event) => {
