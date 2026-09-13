@@ -372,21 +372,7 @@ const ISLAND_WORLD_BUILDINGS = [
   { id: "garage", name: "改装车库", icon: "🔧", x: 335, y: 82, w: 82, h: 52, color: "#52606b" },
   { id: "museum", name: "坦克博物馆", icon: "🏛️", x: 80, y: 250, w: 88, h: 64, color: "#8a7b63" },
   { id: "park", name: "中央草坪", icon: "🌳", x: 250, y: 255, w: 90, h: 72, color: "#4b9d52" },
-  { id: "grandplaza", name: "主岛广场", icon: "⛲", x: 735, y: 250, w: 120, h: 92, color: "#7894a6" },
-  { id: "warehouse", name: "岛屿仓库", icon: "📦", x: 600, y: 150, w: 100, h: 70, color: "#806245" },
-  { id: "seasonhall", name: "赛季大厅", icon: "🏆", x: 820, y: 130, w: 100, h: 72, color: "#9a7539" },
-  { id: "eventhall", name: "活动中心", icon: "📋", x: 890, y: 300, w: 105, h: 75, color: "#4d7596" },
-  { id: "socialpark", name: "社交草坪", icon: "😀", x: 690, y: 390, w: 118, h: 86, color: "#4e9e5a" },
-  { id: "rechargehall", name: "金币中心", icon: "💎", x: 535, y: 330, w: 95, h: 68, color: "#6c58a5" },
-  { id: "modehall", name: "模式大厅", icon: "🎮", x: 1010, y: 165, w: 118, h: 82, color: "#3f6fa8" },
-  { id: "rankhall", name: "排位竞技场", icon: "🏅", x: 1015, y: 350, w: 122, h: 88, color: "#9a6637" },
-  { id: "onlinehub", name: "联机中心", icon: "🌐", x: 890, y: 475, w: 112, h: 76, color: "#456f8c" },
-  { id: "backpackhub", name: "背包站", icon: "🎒", x: 610, y: 475, w: 100, h: 72, color: "#6c7451" },
-  { id: "scenic", name: "景点中心", icon: "📍", x: 760, y: 505, w: 108, h: 74, color: "#5c8d62" },
-  { id: "carousel", name: "坦克旋转乐园", icon: "🎠", x: 1070, y: 505, w: 110, h: 92, color: "#e18a52" },
-  { id: "slidepark", name: "彩虹滑行坡", icon: "🌈", x: 1080, y: 75, w: 120, h: 86, color: "#e96d86" },
-  { id: "photozone", name: "巨炮打卡区", icon: "📸", x: 510, y: 78, w: 105, h: 76, color: "#58a8b6" },
-];
+]
 
 const ISLAND_PARKOUR_PADS = [
   { x: 388, y: 365 },
@@ -419,7 +405,7 @@ function ensureIslandWorldModal() {
         <button type="button" id="island-world-exit">离开岛屿</button>
       </div>
       <canvas id="island-world-canvas" width="2000" height="950"></canvas>
-      <div id="island-world-hint" class="island-world-hint">方向键移动 · J跳跃 · E互动 · 两座岛直接步行/驾驶互通</div>
+      <div id="island-world-hint" class="island-world-hint">方向键移动 · J跳跃 · E互动 · 模式/商城/表情都在屏幕快捷栏</div>
     </div>`;
 
   document.querySelector("#canvas-wrap")?.appendChild(modal);
@@ -520,45 +506,32 @@ function islandWorldTankSpeed() {
 }
 
 function clampPlayerToIsland(p) {
-  // 8字形双岛：左侧保留旧岛，右侧新增更大的主岛。
+  // 第二个大型主岛已删除。保留原始坦克岛，以及独立的游乐园和巨型剧情迷宫玩法区。
   const small = { x: 250, y: 300, r: 260 };
-  const large = { x: 830, y: 260, r: 430 };
   const amusement = { x: 1060, y: 590, r: 245 };
   const maze = { x1: 1380, x2: 1900, y1: 390, y2: 800 };
-  const bridge = { x1: 455, x2: 545, y1: 205, y2: 355 };
-  const funBridge = { x1: 900, x2: 1040, y1: 430, y2: 520 };
   const mazeJumpPads = [{x:1318,y:590,r:17},{x:1344,y:590,r:17},{x:1370,y:590,r:17}];
 
-  const insideCircle = (c) => Math.hypot(p.x - c.x, p.y - c.y) <= c.r;
-  const insideRect = (r) => p.x >= r.x1 && p.x <= r.x2 && p.y >= r.y1 && p.y <= r.y2;
-  const insideBridge = p.x >= bridge.x1 && p.x <= bridge.x2 && p.y >= bridge.y1 && p.y <= bridge.y2;
-  const insideFunBridge = p.x >= funBridge.x1 && p.x <= funBridge.x2 && p.y >= funBridge.y1 && p.y <= funBridge.y2;
-  const onMazePad = mazeJumpPads.some(q => Math.hypot(p.x-q.x,p.y-q.y) <= q.r);
-  // J键刚按下时先产生vz、下一帧才增加z；把“正在起跳”也算作合法跨海状态，
-  // 避免坦克还没离地就被边界吸回去。
-  const airborneMazeJump = p.x >= 1288 && p.x <= 1395 && p.y >= 542 && p.y <= 638 &&
-    ((p.z || 0) > 0.2 || (p.vz || 0) > 0.1) &&
-    (!islandWorldState || islandWorldState.mounted !== false);
+  const insideCircle = (q) => Math.hypot(p.x-q.x,p.y-q.y) <= q.r;
+  const insideRect = (r) => p.x>=r.x1&&p.x<=r.x2&&p.y>=r.y1&&p.y<=r.y2;
+  const onMazePad = mazeJumpPads.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<=q.r);
+  const airborneMazeJump = p.x>=1288&&p.x<=1395&&p.y>=542&&p.y<=638 &&
+    ((p.z||0)>0.2||(p.vz||0)>0.1) &&
+    (!islandWorldState||islandWorldState.mounted!==false);
 
-  if (insideCircle(small) || insideCircle(large) || insideCircle(amusement) ||
-      insideRect(maze) || insideBridge || insideFunBridge || onMazePad || airborneMazeJump) return;
+  if (insideCircle(small)||insideCircle(amusement)||insideRect(maze)||onMazePad||airborneMazeJump) return;
 
-  // 超出双岛范围时，吸附到最近岛屿边缘。
-  const clampToCircle = (c) => {
-    const dx = p.x - c.x;
-    const dy = p.y - c.y;
-    const d = Math.hypot(dx, dy) || 1;
-    return { x: c.x + (dx / d) * c.r, y: c.y + (dy / d) * c.r, dist: Math.abs(d - c.r) };
+  const clampToCircle = (q) => {
+    const dx=p.x-q.x, dy=p.y-q.y, d=Math.hypot(dx,dy)||1;
+    return {x:q.x+dx/d*q.r,y:q.y+dy/d*q.r,dist:Math.abs(d-q.r)};
   };
-  const a = clampToCircle(small);
-  const b = clampToCircle(large);
-  const c2 = clampToCircle(amusement);
-  const mazeX = Math.max(maze.x1, Math.min(maze.x2, p.x));
-  const mazeY = Math.max(maze.y1, Math.min(maze.y2, p.y));
-  const mazeClamp = {x:mazeX,y:mazeY,dist:Math.hypot(p.x-mazeX,p.y-mazeY)};
-  const best = [a,b,c2,mazeClamp].sort((u,v)=>u.dist-v.dist)[0];
-  p.x = best.x;
-  p.y = best.y;
+  const a=clampToCircle(small);
+  const b=clampToCircle(amusement);
+  const mazeX=Math.max(maze.x1,Math.min(maze.x2,p.x));
+  const mazeY=Math.max(maze.y1,Math.min(maze.y2,p.y));
+  const m={x:mazeX,y:mazeY,dist:Math.hypot(p.x-mazeX,p.y-mazeY)};
+  const best=[a,b,m].sort((u,v)=>u.dist-v.dist)[0];
+  p.x=best.x;p.y=best.y;
 }
 
 function getNearestIslandBuilding(p) {
@@ -754,20 +727,14 @@ function drawIslandWorld() {
   ctx2.fillStyle = sea;
   ctx2.fillRect(0, 0, 2000, 950);
 
-  // 8字形双岛：旧岛 + 旁边更大的新主岛，中间陆地直接连接。
+  // 原始坦克岛 + 独立游乐园。第二个大型主岛及连接陆地已经删除。
   ctx2.fillStyle = "#e3cf87";
-  ctx2.beginPath(); ctx2.arc(250, 300, 260, 0, Math.PI * 2); ctx2.fill();
-  ctx2.beginPath(); ctx2.arc(830, 260, 430, 0, Math.PI * 2); ctx2.fill();
-  ctx2.beginPath(); ctx2.arc(1060, 590, 245, 0, Math.PI * 2); ctx2.fill();
-  ctx2.fillRect(455, 205, 90, 150);
-  ctx2.fillRect(900, 430, 140, 90);
+  ctx2.beginPath(); ctx2.arc(250,300,260,0,Math.PI*2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(1060,590,245,0,Math.PI*2); ctx2.fill();
 
   ctx2.fillStyle = "#4f9f52";
-  ctx2.beginPath(); ctx2.arc(250, 300, 242, 0, Math.PI * 2); ctx2.fill();
-  ctx2.beginPath(); ctx2.arc(830, 260, 408, 0, Math.PI * 2); ctx2.fill();
-  ctx2.beginPath(); ctx2.arc(1060, 590, 228, 0, Math.PI * 2); ctx2.fill();
-  ctx2.fillRect(460, 215, 85, 130);
-  ctx2.fillRect(910, 440, 130, 70);
+  ctx2.beginPath(); ctx2.arc(250,300,242,0,Math.PI*2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(1060,590,228,0,Math.PI*2); ctx2.fill();
 
   // 巨型剧情迷宫平台：整片区域都是迷宫，和游乐园之间留海面跳跃断层。
   ctx2.fillStyle = "#e3cf87";
@@ -781,14 +748,12 @@ function drawIslandWorld() {
     ctx2.beginPath();ctx2.arc(x,y,18,0,Math.PI*2);ctx2.fill();
   });
 
-  // 双岛主路与连接路
+  // 原始岛主路。
   ctx2.strokeStyle = "#c7b580";
   ctx2.lineWidth = 20;
   ctx2.beginPath();
-  ctx2.moveTo(90, 300); ctx2.lineTo(510, 300);
-  ctx2.moveTo(250, 90); ctx2.lineTo(250, 500);
-  ctx2.moveTo(470, 300); ctx2.lineTo(1160, 300);
-  ctx2.moveTo(830, -120); ctx2.lineTo(830, 650);
+  ctx2.moveTo(90,300);ctx2.lineTo(510,300);
+  ctx2.moveTo(250,90);ctx2.lineTo(250,500);
   ctx2.stroke();
 
   // 建筑
