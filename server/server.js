@@ -7,7 +7,19 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = process.env.MAPS_FILE || path.join(__dirname,"data","maps.json");
+const ORDERS_FILE = process.env.ORDERS_FILE || path.join(__dirname,"data","orders.json");
 const PORT = Number(process.env.PORT || 8787);
+const PAYMENT_CHECKOUT_URL = String(process.env.PAYMENT_CHECKOUT_URL || "").trim();
+const PAYMENT_WEBHOOK_SECRET = String(process.env.PAYMENT_WEBHOOK_SECRET || "").trim();
+
+const RECHARGE_PACKS = [
+  {id:"r1", yuan:1, coins:300},
+  {id:"r6", yuan:6, coins:1800},
+  {id:"r18", yuan:18, coins:5400},
+  {id:"r30", yuan:30, coins:9000},
+  {id:"r68", yuan:68, coins:20400},
+  {id:"r128", yuan:128, coins:38400}
+];
 
 const app = express();
 app.use(express.json({limit:"256kb"}));
@@ -70,7 +82,117 @@ function saveMaps(){
 }
 loadMaps();
 
+let rechargeOrders=[];
+function loadRechargeOrders(){
+  try{
+    const parsed=JSON.parse(fs.readFileSync(ORDERS_FILE,"utf8"));
+    rechargeOrders=Array.isArray(parsed)?parsed:[];
+  }catch(_){rechargeOrders=[];}
+}
+function saveRechargeOrders(){
+  try{
+    fs.mkdirSync(path.dirname(ORDERS_FILE),{recursive:true});
+    fs.writeFileSync(ORDERS_FILE,JSON.stringify(rechargeOrders.slice(-3000),null,2));
+  }catch(err){
+    console.warn("Order persistence unavailable:",err.message);
+  }
+}
+function publicRechargeOrder(order){
+  return {
+    id:order.id,playerId:order.playerId,playerName:order.playerName,
+    packId:order.packId,yuan:order.yuan,coins:order.coins,status:order.status,
+    createdAt:order.createdAt,paidAt:order.paidAt||"",claimedAt:order.claimedAt||"",
+    checkoutUrl:order.checkoutUrl||""
+  };
+}
+function makeCheckoutUrl(order){
+  if(!PAYMENT_CHECKOUT_URL)return "";
+  try{
+    const u=new URL(PAYMENT_CHECKOUT_URL);
+    u.searchParams.set("orderId",order.id);
+    u.searchParams.set("amountFen",String(order.yuan*100));
+    u.searchParams.set("playerId",order.playerId);
+    return u.toString();
+  }catch(_){return "";}
+}
+loadRechargeOrders();
+
 app.get("/api/health",(req,res)=>res.json({ok:true,maps:maps.length,teams:teams.size,now:new Date().toISOString()}));
+
+app.get("/api/recharge/config",(req,res)=>{
+  res.json({
+    rate:"1元=300金币",
+    paymentConfigured:!!(PAYMENT_CHECKOUT_URL&&PAYMENT_WEBHOOK_SECRET),
+    packs:RECHARGE_PACKS
+  });
+});
+
+app.post("/api/recharge/orders",(req,res)=>{
+  const playerId=safeText(req.body?.playerId,100);
+  const playerName=safeText(req.body?.playerName,24)||"车长";
+  const pack=RECHARGE_PACKS.find(p=>p.id===safeText(req.body?.packId,20));
+  if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
+  if(!pack)return res.status(400).json({error:"充值套餐不存在"});
+
+  const order={
+    id:"ord-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9),
+    playerId,playerName,packId:pack.id,yuan:pack.yuan,coins:pack.coins,
+    status:"pending",createdAt:new Date().toISOString()
+  };
+  order.checkoutUrl=makeCheckoutUrl(order);
+  rechargeOrders.push(order);
+  saveRechargeOrders();
+  res.status(201).json({
+    order:publicRechargeOrder(order),
+    paymentConfigured:!!order.checkoutUrl
+  });
+});
+
+app.get("/api/recharge/orders",(req,res)=>{
+  const playerId=safeText(req.query.playerId,100);
+  if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
+  const orders=rechargeOrders
+    .filter(o=>o.playerId===playerId)
+    .slice(-30).reverse().map(publicRechargeOrder);
+  res.json({orders});
+});
+
+app.get("/api/recharge/orders/:id",(req,res)=>{
+  const playerId=safeText(req.query.playerId,100);
+  const order=rechargeOrders.find(o=>o.id===req.params.id&&o.playerId===playerId);
+  if(!order)return res.status(404).json({error:"订单不存在"});
+  res.json({order:publicRechargeOrder(order)});
+});
+
+app.post("/api/recharge/orders/:id/claim",(req,res)=>{
+  const playerId=safeText(req.body?.playerId,100);
+  const order=rechargeOrders.find(o=>o.id===req.params.id&&o.playerId===playerId);
+  if(!order)return res.status(404).json({error:"订单不存在"});
+  if(order.status==="claimed")return res.status(409).json({error:"该订单已经领取"});
+  if(order.status!=="paid")return res.status(409).json({error:"订单尚未支付"});
+  order.status="claimed";
+  order.claimedAt=new Date().toISOString();
+  saveRechargeOrders();
+  res.json({ok:true,coins:order.coins,order:publicRechargeOrder(order)});
+});
+
+app.post("/api/recharge/webhook",(req,res)=>{
+  const secret=String(req.headers["x-payment-secret"]||"");
+  if(!PAYMENT_WEBHOOK_SECRET||secret!==PAYMENT_WEBHOOK_SECRET){
+    return res.status(401).json({error:"支付回调验证失败"});
+  }
+  const orderId=safeText(req.body?.orderId,100);
+  const paid=!!req.body?.paid;
+  const order=rechargeOrders.find(o=>o.id===orderId);
+  if(!order)return res.status(404).json({error:"订单不存在"});
+  if(!paid)return res.status(400).json({error:"支付状态不是成功"});
+  if(order.status==="pending"){
+    order.status="paid";
+    order.paidAt=new Date().toISOString();
+    saveRechargeOrders();
+  }
+  res.json({ok:true,order:publicRechargeOrder(order)});
+});
 
 app.get("/api/maps",(req,res)=>{
   const q=safeText(req.query.name,50).toLowerCase();
