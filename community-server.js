@@ -121,15 +121,20 @@ function ensureTeamConnection(){
 
   return new Promise((resolve,reject)=>{
     let settled=false;
-    try{teamSocket=new WebSocket(url);}catch(error){reject(error);return;}
+    let socket;
+    try{
+      socket=new WebSocket(url);
+      teamSocket=socket;
+    }catch(error){reject(error);return;}
     const timer=setTimeout(()=>{
       if(settled)return;
       settled=true;
-      try{teamSocket.close();}catch(_){}
+      try{socket.close();}catch(_){}
       reject(new Error("服务器连接超时"));
     },7000);
 
-    teamSocket.onopen=()=>{
+    socket.onopen=()=>{
+      if(teamSocket!==socket)return;
       teamConnected=true;
       const p=getCommunityPlayer();
       teamPendingHello=true;
@@ -138,7 +143,8 @@ function ensureTeamConnection(){
       if(!settled){settled=true;resolve(true);}
       emitTeamEvent({type:"connected"});
     };
-    teamSocket.onmessage=(event)=>{
+    socket.onmessage=(event)=>{
+      if(teamSocket!==socket)return;
       let msg=null;
       try{msg=JSON.parse(event.data);}catch(_){return;}
       if(msg.type==="team_state")teamState=msg.team||null;
@@ -146,14 +152,16 @@ function ensureTeamConnection(){
       if(msg.type==="hello_ack")teamPendingHello=false;
       emitTeamEvent(msg);
     };
-    teamSocket.onerror=()=>{
+    socket.onerror=()=>{
+      if(teamSocket!==socket)return;
       emitTeamEvent({type:"socket_error",message:"WebSocket连接失败"});
       if(!settled){
         clearTimeout(timer);settled=true;reject(new Error("服务器连接失败"));
       }
     };
-    teamSocket.onclose=()=>{
-      teamConnected=false;teamSocket=null;
+    socket.onclose=()=>{
+      if(teamSocket!==socket)return;
+      teamConnected=false;teamSocket=null;teamState=null;
       emitTeamEvent({type:"disconnected"});
     };
   });
