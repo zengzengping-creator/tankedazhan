@@ -116,7 +116,7 @@ function teamCode(){
 }
 
 function send(ws,obj){
-  if(ws.readyState===ws.OPEN)ws.send(JSON.stringify(obj));
+  if(ws.readyState===1)ws.send(JSON.stringify(obj));
 }
 function publicTeam(team){
   return {
