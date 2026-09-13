@@ -36,6 +36,8 @@ function partyRankInfo(points = partyHubData.rankPoints) {
 
 const PARTY_LOCAL_CHAT_KEY = "tankPartyLocalChat_v1";
 const PARTY_CREATION_KEY = "tankPartyCreation_v1";
+let partyTeamPanelContext = null;
+let partyModResultCache = [];
 
 const PARTY_MODE_INFO = {
   story:["💥","经典闯关"],
@@ -189,31 +191,113 @@ function renderPartyChat(title, body) {
 }
 
 function renderPartyTeam(title, body) {
-  title.textContent = "👥 组队";
-  const size = Math.max(1, Math.min(4, Number(partyHubData.teamSize) || 1));
+  title.textContent = "👥 在线组队";
+  partyTeamPanelContext = {title,body};
+
+  const player = typeof getCommunityPlayer==="function" ? getCommunityPlayer() : {id:"",name:"车长"};
+  const serverUrl = typeof getCommunityServerUrl==="function" ? getCommunityServerUrl() : "";
+  const connected = typeof isTeamServerConnected==="function" && isTeamServerConnected();
+  const team = typeof getOnlineTeamState==="function" ? getOnlineTeamState() : null;
+  const me = team?.members?.find(m=>m.id===player.id);
+
+  const slots = team
+    ? Array.from({length:4},(_,i)=>team.members[i]||null)
+    : Array.from({length:4},()=>null);
+
   body.innerHTML = `
-    <div class="party-team-summary"><b>本地队伍预设 · ${size}/4</b><small>真实好友邀请和房间同步需要多人服务器；这里先完成组队框和队伍预设。</small></div>
-    <div class="party-team-slots">
-      ${Array.from({length:4},(_,i)=>`<div class="${i<size?"filled":""}"><strong>${i===0?"🪖":"🤖"}</strong><b>${i===0?"我":i<size?"预设队友 "+i:"空位"}</b><small>${i===0?"队长":i<size?"本地预设":"等待加入"}</small></div>`).join("")}
+    <div class="party-server-card">
+      <div><b>组队服务器</b><span class="${connected?"online":"offline"}">${connected?"● 已连接":"● 未连接"}</span></div>
+      <label>服务器地址<input id="party-server-url" placeholder="https://你的服务器地址" value="${escapePartyHtml(serverUrl)}"></label>
+      <label>玩家名字<input id="party-player-name" maxlength="18" value="${escapePartyHtml(player.name)}"></label>
+      <button id="party-server-save">保存并连接</button>
     </div>
-    <div class="party-team-actions">
-      <button data-team-change="add" ${size>=4?"disabled":""}>＋ 添加队友位</button>
-      <button data-team-change="remove" ${size<=1?"disabled":""}>－ 减少队友位</button>
-      <button disabled>邀请好友 · 待服务器</button>
-    </div>`;
-  body.querySelectorAll("[data-team-change]").forEach(btn => btn.onclick = () => {
-    partyHubData.teamSize = btn.dataset.teamChange === "add" ? Math.min(4,size+1) : Math.max(1,size-1);
-    savePartyHubData();
-    renderPartyTeam(title, body);
+
+    ${team ? `
+      <div class="party-team-summary">
+        <b>队伍码：<strong>${escapePartyHtml(team.code)}</strong></b>
+        <small>${team.hostId===player.id?"你是房主":"等待房主开始"} · 当前模式：${escapePartyHtml(partyModeLabel())}</small>
+        <button id="party-copy-team">复制队伍码</button>
+      </div>
+      <div class="party-team-slots">
+        ${slots.map(member=>member
+          ? `<div class="filled"><strong>${member.host?"👑":"🪖"}</strong><b>${escapePartyHtml(member.name)}</b><small>${member.host?"房主":member.ready?"✅ 已准备":"⏳ 未准备"}</small></div>`
+          : `<div><strong>＋</strong><b>空位</b><small>等待玩家加入</small></div>`
+        ).join("")}
+      </div>
+      <div class="party-team-actions">
+        ${team.hostId===player.id
+          ? `<button id="party-team-start">▶ 房主开始游戏</button>`
+          : `<button id="party-team-ready">${me?.ready?"取消准备":"准备"}</button>`}
+        <button id="party-team-leave">离开队伍</button>
+      </div>
+    ` : `
+      <div class="party-team-summary">
+        <b>最多4人在线组队</b>
+        <small>创建后会得到6位队伍码，其他玩家输入队伍码即可加入。</small>
+      </div>
+      <div class="party-team-join">
+        <button id="party-team-create">＋ 创建队伍</button>
+        <input id="party-team-code" maxlength="6" placeholder="输入6位队伍码">
+        <button id="party-team-join-btn">加入队伍</button>
+      </div>
+    `}
+  `;
+
+  const saveSettings = async () => {
+    const url=body.querySelector("#party-server-url")?.value.trim()||"";
+    const name=body.querySelector("#party-player-name")?.value.trim()||player.name;
+    if(typeof setCommunityServerUrl==="function")setCommunityServerUrl(url);
+    if(typeof setCommunityPlayerName==="function")setCommunityPlayerName(name);
+    try{
+      if(typeof ensureTeamConnection==="function")await ensureTeamConnection();
+      metaToast("🌐 组队服务器已连接");
+      renderPartyTeam(title,body);
+      return true;
+    }catch(err){
+      metaToast("服务器连接失败：" + (err?.message||"未知错误"));
+      return false;
+    }
+  };
+
+  body.querySelector("#party-server-save")?.addEventListener("click",saveSettings);
+
+  body.querySelector("#party-team-create")?.addEventListener("click",async()=>{
+    const ok=connected || await saveSettings();
+    if(!ok)return;
+    try{await createOnlineTeam();}catch(err){metaToast(err.message);}
+  });
+
+  body.querySelector("#party-team-join-btn")?.addEventListener("click",async()=>{
+    const code=body.querySelector("#party-team-code")?.value.trim().toUpperCase();
+    if(!code){metaToast("请输入队伍码");return;}
+    const ok=connected || await saveSettings();
+    if(!ok)return;
+    try{await joinOnlineTeam(code);}catch(err){metaToast(err.message);}
+  });
+
+  body.querySelector("#party-team-ready")?.addEventListener("click",()=>{
+    try{setOnlineTeamReady(!me?.ready);}catch(err){metaToast(err.message);}
+  });
+
+  body.querySelector("#party-team-leave")?.addEventListener("click",()=>{
+    try{leaveOnlineTeam();}catch(err){metaToast(err.message);}
+  });
+
+  body.querySelector("#party-team-start")?.addEventListener("click",()=>{
+    try{startOnlineTeamGame(partyHubData.lastMode||"story");}catch(err){metaToast(err.message);}
+  });
+
+  body.querySelector("#party-copy-team")?.addEventListener("click",async()=>{
+    try{await navigator.clipboard?.writeText(team.code);metaToast("📋 队伍码已复制");}
+    catch(_){metaToast("队伍码："+team.code);}
   });
 }
-
 function renderPartyCreate(title, body) {
   title.textContent = "🛠 创作";
   const draft = loadPartyCreation();
   body.innerHTML = `
     <div class="party-create-card">
-      <b>地图创作草稿</b>
+      <b>地图创作</b>
       <label>地图名称<input id="party-create-name" maxlength="24" value="${escapePartyHtml(draft.name)}"></label>
       <label>主题<select id="party-create-theme">
         ${["欢乐岛","钢铁基地","海上迷宫","霓虹城市"].map(v=>`<option ${v===draft.theme?"selected":""}>${v}</option>`).join("")}
@@ -222,87 +306,127 @@ function renderPartyCreate(title, body) {
         ${["小型","中型","大型","超大型"].map(v=>`<option ${v===draft.size?"selected":""}>${v}</option>`).join("")}
       </select></label>
       <div class="party-create-actions">
-        <button id="party-create-save">保存创作草稿</button>
-        <button id="party-create-code">生成地图码</button>
+        <button id="party-create-save">保存草稿</button>
+        <button id="party-create-publish">🌐 发布到社区</button>
       </div>
-      <textarea id="party-create-code-output" class="party-map-code" readonly placeholder="生成后，这里会出现 TM1 地图码，可以发给别人。"></textarea>
-      <small>地图码可以直接发给其他玩家；对方在“模组”里粘贴后就能游玩。</small>
+      <small>发布后，其他玩家直接搜索地图名字就能找到并游玩，不再需要地图码。</small>
     </div>`;
 
-  const readDraft = () => ({
-    name: body.querySelector("#party-create-name")?.value.trim() || "我的坦克地图",
-    theme: body.querySelector("#party-create-theme")?.value || "欢乐岛",
-    size: body.querySelector("#party-create-size")?.value || "中型",
+  const readDraft=()=>({
+    name:body.querySelector("#party-create-name")?.value.trim()||"我的坦克地图",
+    theme:body.querySelector("#party-create-theme")?.value||"欢乐岛",
+    size:body.querySelector("#party-create-size")?.value||"中型",
   });
 
-  body.querySelector("#party-create-save")?.addEventListener("click", () => {
-    const next = readDraft();
-    localStorage.setItem(PARTY_CREATION_KEY, JSON.stringify(next));
+  body.querySelector("#party-create-save")?.addEventListener("click",()=>{
+    const next=readDraft();
+    localStorage.setItem(PARTY_CREATION_KEY,JSON.stringify(next));
     metaToast("🛠 创作草稿已保存");
   });
 
-  body.querySelector("#party-create-code")?.addEventListener("click", async () => {
-    if (typeof createMapFromDraft !== "function" || typeof encodeCommunityMap !== "function") {
-      metaToast("模组引擎还没有加载完成");
+  body.querySelector("#party-create-publish")?.addEventListener("click",async()=>{
+    if(typeof createMapFromDraft!=="function"||typeof publishCommunityMapOnline!=="function"){
+      metaToast("社区模组系统未加载");
       return;
     }
-    const next = readDraft();
-    localStorage.setItem(PARTY_CREATION_KEY, JSON.stringify(next));
-    const code = encodeCommunityMap(createMapFromDraft(next));
-    const out = body.querySelector("#party-create-code-output");
-    if (out) out.value = code;
-    try {
-      await navigator.clipboard?.writeText(code);
-      metaToast("📋 地图码已生成并复制");
-    } catch (_) {
-      metaToast("📋 地图码已生成，可手动复制");
+    if(!(typeof getCommunityServerUrl==="function"&&getCommunityServerUrl())){
+      metaToast("请先在“模组”或“组队”里配置服务器地址");
+      return;
+    }
+    const next=readDraft();
+    localStorage.setItem(PARTY_CREATION_KEY,JSON.stringify(next));
+    const map=createMapFromDraft(next);
+    try{
+      const published=await publishCommunityMapOnline(map,getCommunityPlayer?.().name||"玩家");
+      metaToast("🌐 已发布："+(published?.name||next.name));
+    }catch(err){
+      metaToast("发布失败："+(err?.message||"服务器错误"));
     }
   });
 }
-
 function renderPartyMods(title, body) {
-  title.textContent = "🧩 模组 · 社区地图";
-  const maps = typeof getCommunityModMaps === "function" ? getCommunityModMaps() : [];
+  title.textContent = "🧩 模组 · 搜索社区地图";
+  const serverUrl=typeof getCommunityServerUrl==="function"?getCommunityServerUrl():"";
   body.innerHTML = `
     <div class="party-mod-intro">
-      <b>玩别人做的地图</b>
-      <small>内置社区地图可以直接玩；别人发给你的 TM1 地图码也可以粘贴导入。</small>
+      <b>直接搜索别人做的地图</b>
+      <small>输入地图名字，搜到后直接点“游玩”。不需要地图码。</small>
     </div>
-    <div class="party-mod-grid">
-      ${maps.map(m=>`
-        <button data-mod-play="${escapePartyHtml(m.id)}">
-          <strong>${escapePartyHtml(m.icon||"🧩")}</strong>
-          <b>${escapePartyHtml(m.name)}</b>
-          <small>作者：${escapePartyHtml(m.author||"匿名")} · ${escapePartyHtml(m.difficulty||"自定义")}</small>
-          <span>${escapePartyHtml(m.desc||"玩家创作地图")}</span>
-          <em>▶ 游玩</em>
-        </button>`).join("")}
+    <div class="party-server-card compact">
+      <label>社区服务器<input id="party-mod-server-url" placeholder="https://你的服务器地址" value="${escapePartyHtml(serverUrl)}"></label>
+      <button id="party-mod-server-save">保存服务器</button>
     </div>
-    <div class="party-mod-import">
-      <b>📥 导入别人发来的地图码</b>
-      <textarea id="party-mod-code" class="party-map-code" placeholder="粘贴 TM1. 开头的地图码"></textarea>
-      <button id="party-mod-import-btn">导入并游玩</button>
-      <small>当前是地图码分享，不需要服务器。真正的在线“社区广场/排行榜/点赞”以后接后端后再开放。</small>
-    </div>`;
+    <div class="party-mod-search">
+      <input id="party-mod-search-input" maxlength="40" placeholder="搜索地图名字，例如：霓虹迷城">
+      <button id="party-mod-search-btn">🔎 搜索</button>
+    </div>
+    <div id="party-mod-status" class="party-mod-status"></div>
+    <div id="party-mod-results" class="party-mod-grid"></div>
+  `;
 
-  body.querySelectorAll("[data-mod-play]").forEach(btn => btn.onclick = () => {
-    if (typeof openCommunityModMap === "function") openCommunityModMap(btn.dataset.modPlay);
-  });
+  const resultsEl=body.querySelector("#party-mod-results");
+  const statusEl=body.querySelector("#party-mod-status");
 
-  body.querySelector("#party-mod-import-btn")?.addEventListener("click", () => {
-    const code = body.querySelector("#party-mod-code")?.value.trim();
-    if (!code) return;
-    try {
-      const map = decodeCommunityMap(code);
-      if (typeof saveImportedCommunityMap === "function") saveImportedCommunityMap(map);
-      renderPartyMods(title, body);
-      setTimeout(() => openCommunityModMap(map), 0);
-    } catch (err) {
-      metaToast("地图码无效");
+  const drawResults=(maps)=>{
+    partyModResultCache=maps;
+    if(!maps.length){
+      resultsEl.innerHTML='<div class="party-mod-empty">没有找到这个名字的地图</div>';
+      return;
     }
-  });
-}
+    resultsEl.innerHTML=maps.map((m,i)=>`
+      <button data-mod-index="${i}">
+        <strong>${escapePartyHtml(m.icon||"🧩")}</strong>
+        <b>${escapePartyHtml(m.name)}</b>
+        <small>作者：${escapePartyHtml(m.author||"匿名")} · ${escapePartyHtml(m.difficulty||"自定义")}</small>
+        <span>${escapePartyHtml(m.desc||"玩家创作地图")}</span>
+        <em>▶ 直接游玩</em>
+      </button>`).join("");
+  };
 
+  const search=async()=>{
+    const q=body.querySelector("#party-mod-search-input")?.value.trim()||"";
+    const local=(typeof getCommunityModMaps==="function"?getCommunityModMaps():[])
+      .filter(m=>!q||m.name.toLowerCase().includes(q.toLowerCase())||String(m.author||"").toLowerCase().includes(q.toLowerCase()));
+    let remote=[];
+    if(typeof getCommunityServerUrl==="function"&&getCommunityServerUrl()){
+      statusEl.textContent="正在搜索社区服务器…";
+      try{
+        remote=await searchCommunityMapsOnline(q);
+        statusEl.textContent=`找到 ${remote.length} 张在线地图`;
+      }catch(err){
+        statusEl.textContent="在线搜索失败："+(err?.message||"服务器不可用")+"；已显示本地社区地图。";
+      }
+    }else{
+      statusEl.textContent="尚未配置社区服务器；当前显示内置地图。配置后即可搜索所有玩家发布的地图。";
+    }
+    const merged=[];
+    const seen=new Set();
+    for(const m of [...remote,...local]){
+      const key=(m.id||m.name+"|"+m.author);
+      if(seen.has(key))continue;
+      seen.add(key);merged.push(m);
+    }
+    drawResults(merged);
+  };
+
+  resultsEl.addEventListener("click",e=>{
+    const btn=e.target.closest("[data-mod-index]");
+    if(!btn)return;
+    const map=partyModResultCache[Number(btn.dataset.modIndex)];
+    if(map&&typeof openCommunityModMap==="function")openCommunityModMap(map);
+  });
+
+  body.querySelector("#party-mod-search-btn")?.addEventListener("click",search);
+  body.querySelector("#party-mod-search-input")?.addEventListener("keydown",e=>{if(e.key==="Enter")search();});
+  body.querySelector("#party-mod-server-save")?.addEventListener("click",()=>{
+    const url=body.querySelector("#party-mod-server-url")?.value.trim()||"";
+    if(typeof setCommunityServerUrl==="function")setCommunityServerUrl(url);
+    metaToast(url?"🌐 社区服务器已保存":"已清除服务器地址");
+    search();
+  });
+
+  search();
+}
 function renderPartyMap(title, body) {
   title.textContent = "🗺️ 坦克岛地图";
   const places = [
@@ -582,6 +706,25 @@ closeIslandWorld = function() {
   setPartyDockVisible(false);
   return closeIslandWorldPartyDockBase();
 };
+
+if (typeof onTeamServerEvent === "function") {
+  onTeamServerEvent((event)=>{
+    if(event?.type==="error")metaToast(event.message||"组队服务器错误");
+    if(event?.type==="game_start"){
+      const mode=event.mode||"story";
+      partyHubData.lastMode=mode;
+      savePartyHubData();
+      setPartyDockVisible(!!islandWorldActive);
+      metaToast("👥 房主已开始："+partyModeLabel(mode));
+      setTimeout(()=>startSelectedPartyMode(),180);
+    }
+    const ctx=partyTeamPanelContext;
+    const modal=document.getElementById("meta-modal");
+    if(ctx && modal && !modal.classList.contains("hidden") && ctx.title.textContent.includes("组队")){
+      renderPartyTeam(ctx.title,ctx.body);
+    }
+  });
+}
 
 addPartyHubButtons();
 ensurePartyCommandDock();
