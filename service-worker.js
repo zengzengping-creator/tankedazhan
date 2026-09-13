@@ -1,4 +1,4 @@
-const CACHE_NAME = "tank-party-v14";
+const CACHE_NAME = "tank-party-v15";
 const CORE = [
   "./",
   "./index.html",
@@ -8,6 +8,7 @@ const CORE = [
   "./island-system.js",
   "./island-games.js",
   "./island-life.js",
+  "./community-server.js",
   "./community-mods.js",
   "./party-island-hub.js",
   "./party-special-modes.js",
