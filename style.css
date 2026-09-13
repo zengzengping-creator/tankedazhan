@@ -1946,3 +1946,281 @@ button:disabled {
     font-size: 19px;
   }
 }
+
+
+/* 坦克岛主功能栏：聊天 / 组队 / 模式 / 开始 / 创作 / 地图 */
+.party-command-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 34px;
+  z-index: 40;
+  transform: translateX(-50%);
+  width: min(470px, calc(100% - 70px));
+  padding: 6px;
+  border: 1px solid rgba(115,220,255,.38);
+  border-radius: 12px;
+  background: rgba(8,22,30,.90);
+  box-shadow: 0 6px 22px rgba(0,0,0,.38);
+  backdrop-filter: blur(5px);
+  display: grid;
+  grid-template-columns: repeat(6,1fr);
+  gap: 5px;
+}
+
+.party-command-dock.hidden { display:none !important; }
+
+.party-command-dock button {
+  min-width: 0;
+  min-height: 48px;
+  padding: 5px 3px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px;
+  background: #15333f;
+  color: #effaff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 17px;
+}
+
+.party-command-dock button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8px;
+}
+
+.party-command-dock .party-command-start {
+  background: linear-gradient(180deg,#34a86e,#247f56);
+  border-color: #6be1a2;
+  color: #fff;
+}
+
+.party-mode-grid button.selected {
+  border-color: #6be1a2;
+  box-shadow: 0 0 0 2px rgba(107,225,162,.22) inset;
+  background: #1a4a43;
+}
+
+.party-mode-start {
+  display: block;
+  width: min(320px,95%);
+  margin: 10px auto 0;
+  padding: 9px 12px;
+  border: 1px solid #68e1a4;
+  border-radius: 8px;
+  background: #268457;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.party-chat-note,
+.party-team-summary,
+.party-create-card,
+.party-map-board {
+  padding: 9px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.055);
+  color: #eaf8ff;
+}
+
+.party-chat-note,
+.party-team-summary small,
+.party-create-card small,
+.party-map-board small {
+  color: #a9c3cf;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.party-chat-log {
+  height: 230px;
+  overflow-y: auto;
+  margin: 8px 0;
+  padding: 7px;
+  border: 1px solid #294d5c;
+  border-radius: 8px;
+  background: #091820;
+}
+
+.party-chat-log > div {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 6px;
+  align-items: start;
+  padding: 5px 2px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+.party-chat-log b { color:#75e7c1; font-size:10px; }
+.party-chat-log span { color:#eef8fc; font-size:10px; word-break:break-word; }
+.party-chat-log small { color:#758d98; font-size:8px; }
+.party-chat-log p { color:#8199a4; text-align:center; font-size:10px; }
+
+.party-chat-compose {
+  display: grid;
+  grid-template-columns: 1fr 64px;
+  gap: 6px;
+}
+
+.party-chat-compose input,
+.party-create-card input,
+.party-create-card select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px;
+  border: 1px solid #356274;
+  border-radius: 6px;
+  background: #102630;
+  color: #fff;
+  font-size: 10px;
+}
+
+.party-chat-compose button,
+.party-team-actions button,
+.party-create-card button,
+.party-map-grid button {
+  border: 1px solid #3a6a7c;
+  border-radius: 7px;
+  background: #163642;
+  color: #fff;
+}
+
+.party-team-summary {
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  text-align:center;
+}
+
+.party-team-slots {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  margin-top:8px;
+}
+
+.party-team-slots > div {
+  min-height:78px;
+  padding:7px 4px;
+  border:1px dashed #3e5964;
+  border-radius:8px;
+  background:rgba(255,255,255,.03);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  color:#7f98a2;
+}
+
+.party-team-slots > div.filled {
+  border-style:solid;
+  border-color:#4eb991;
+  background:rgba(63,150,119,.12);
+  color:#eafff6;
+}
+
+.party-team-slots strong { font-size:24px; }
+.party-team-slots b { font-size:9px; }
+.party-team-slots small { font-size:8px; color:#9db3bc; }
+
+.party-team-actions {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  margin-top:8px;
+}
+
+.party-team-actions button {
+  padding:7px 5px;
+  font-size:9px;
+}
+
+.party-create-card {
+  display:grid;
+  gap:8px;
+}
+
+.party-create-card > b {
+  text-align:center;
+  color:#82e6ff;
+}
+
+.party-create-card label {
+  display:grid;
+  gap:3px;
+  color:#b9d0d9;
+  font-size:9px;
+}
+
+.party-create-card button {
+  padding:8px;
+  background:#26634f;
+  border-color:#54b88d;
+}
+
+.party-map-mini {
+  position:relative;
+  height:125px;
+  margin-bottom:6px;
+  border-radius:8px;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 20% 55%, #5cab5b 0 18%, transparent 19%),
+    radial-gradient(circle at 48% 46%, #67b765 0 27%, transparent 28%),
+    radial-gradient(circle at 70% 66%, #70b85f 0 18%, transparent 19%),
+    linear-gradient(180deg,#2382a7,#155d7e);
+}
+
+.party-map-mini span,
+.party-map-mini b,
+.party-map-mini i,
+.party-map-mini em {
+  position:absolute;
+  padding:3px 5px;
+  border-radius:5px;
+  background:rgba(8,20,27,.74);
+  color:#fff;
+  font-size:8px;
+  font-style:normal;
+}
+
+.party-map-mini span { left:10%; top:50%; }
+.party-map-mini b { left:42%; top:32%; }
+.party-map-mini i { left:63%; top:62%; }
+.party-map-mini em { right:4%; top:18%; }
+
+.party-map-grid {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:6px;
+  margin-top:8px;
+}
+
+.party-map-grid button {
+  min-height:54px;
+  padding:6px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  text-align:left;
+}
+
+.party-map-grid strong { font-size:20px; }
+.party-map-grid b { font-size:10px; }
+
+@media (max-width: 540px) {
+  .party-command-dock {
+    bottom: 30px;
+    width: min(330px, calc(100% - 58px));
+    grid-template-columns: repeat(3,1fr);
+  }
+  .party-command-dock button { min-height:40px; font-size:15px; }
+  .party-team-slots { grid-template-columns:repeat(2,1fr); }
+  .party-team-actions { grid-template-columns:1fr; }
+}
