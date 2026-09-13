@@ -793,18 +793,19 @@
       gateTop.position.set(towerCenter.x,3.45,towerCenter.z+3.0);
       islandScene.add(gateLeft,gateRight,gateTop);
 
-      // 大型“游乐园游乐区”：独立半岛 + 8个可驾驶游乐设施。
+      // 游乐岛：已搬到初始岛与迷宫岛之间偏下 + 7个可驾驶游乐设施。
       if (typeof AMUSEMENT_ZONE !== "undefined") {
         const funCenter = islandCoord(AMUSEMENT_ZONE.center.x, AMUSEMENT_ZONE.center.y, 0);
+        const funRadius = (AMUSEMENT_ZONE.center.r || 210) / 26;
         const funLand = new THREE.Mesh(
-          new THREE.CylinderGeometry(9.35,9.65,.46,72),
+          new THREE.CylinderGeometry(funRadius-.12,funRadius+.18,.46,72),
           new THREE.MeshStandardMaterial({color:0x68b75c,roughness:.96})
         );
         funLand.position.set(funCenter.x,0,funCenter.z);
         funLand.castShadow=true; funLand.receiveShadow=true; islandScene.add(funLand);
 
         const funBeach = new THREE.Mesh(
-          new THREE.TorusGeometry(9.5,.38,10,72),
+          new THREE.TorusGeometry(funRadius+.05,.38,10,72),
           new THREE.MeshStandardMaterial({color:0xe5cd82,roughness:1})
         );
         funBeach.rotation.x=Math.PI/2;
@@ -815,7 +816,7 @@
           new THREE.BoxGeometry(7.0,.08,2.0),
           new THREE.MeshStandardMaterial({color:0xe0c78f,roughness:.9})
         );
-        const funEntrance = islandCoord(990,470,0);
+        const funEntrance = islandCoord(AMUSEMENT_ZONE.center.x-70,AMUSEMENT_ZONE.center.y-120,0);
         funRoad.position.set(funEntrance.x,.28,funEntrance.z);
         funRoad.rotation.y=-.33;
         islandScene.add(funRoad);
@@ -831,8 +832,8 @@
         signCtx.fillText("游乐园游乐区",256,66);
         const signTexture=new THREE.CanvasTexture(signCanvas);
         signTexture.colorSpace=THREE.SRGBColorSpace;
-        const signMat=new THREE.MeshBasicMaterial({map:signTexture});
-        const gatePos=islandCoord(1000,452,0);
+        const signMat=new THREE.MeshBasicMaterial({map:signTexture,side:THREE.DoubleSide});
+        const gatePos=islandCoord(AMUSEMENT_ZONE.center.x-60,AMUSEMENT_ZONE.center.y-138,0);
         const sign=new THREE.Mesh(new THREE.PlaneGeometry(4.6,1.15),signMat);
         sign.position.set(gatePos.x,3.15,gatePos.z);
         islandScene.add(sign);
@@ -919,7 +920,7 @@
 
         // 6 彩虹跳台
         {
-          const pads=[[1118,620],[1135,603],[1153,588],[1172,575],[1190,562],[1208,548]];
+          const pads=[[698,600],[715,583],[733,568],[752,555],[770,542],[788,528]];
           const colors=[0xff6f86,0xffa84d,0xffe05b,0x6edb8a,0x61cfff,0x9a78ff];
           pads.forEach((q,i)=>{
             const p=islandCoord(q[0],q[1],0);
