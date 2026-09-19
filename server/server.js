@@ -24,11 +24,15 @@ const RECHARGE_PACKS = [
 
 const VIP_CONFIG = {
   priceYuan:12,
+  firstDays:60,
+  renewalDays:30,
+  dailyTankCoins:1,
   rewardHighTankCoins:12,
-  title:"永久VIP",
+  title:"限时VIP",
   shopDiscount:5,
   boxDiscount:0
 };
+const VIP_DAY_MS = 24*60*60*1000;
 
 const app = express();
 app.use(express.json({limit:"256kb"}));
@@ -133,20 +137,72 @@ function makeCheckoutUrl(order){
 }
 loadRechargeOrders();
 
-function vipOrderForPlayer(playerId){
-  return rechargeOrders.find(o=>o.playerId===playerId&&o.kind==="vip"&&(o.status==="paid"||o.status==="claimed"))||null;
+let vipClaims=[];
+function loadVipClaims(){
+  try{
+    const rows=JSON.parse(fs.readFileSync(VIP_CLAIMS_FILE,"utf8"));
+    vipClaims=Array.isArray(rows)?rows:[];
+  }catch(_){vipClaims=[];}
+}
+function saveVipClaims(){
+  try{
+    fs.mkdirSync(path.dirname(VIP_CLAIMS_FILE),{recursive:true});
+    fs.writeFileSync(VIP_CLAIMS_FILE,JSON.stringify(vipClaims.slice(-10000),null,2));
+  }catch(err){console.warn("VIP daily storage unavailable:",err.message);}
+}
+loadVipClaims();
+
+function vipDayKey(date=new Date()){
+  const p=new Intl.DateTimeFormat("en-US",{
+    timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit"
+  }).formatToParts(date);
+  const get=(type)=>p.find(v=>v.type===type)?.value||"00";
+  return get("year")+"-"+get("month")+"-"+get("day");
+}
+function paidVipOrders(playerId){
+  return rechargeOrders
+    .filter(o=>o.playerId===playerId&&o.kind==="vip"&&(o.status==="paid"||o.status==="claimed"))
+    .sort((a,b)=>Date.parse(a.paidAt||a.createdAt||0)-Date.parse(b.paidAt||b.createdAt||0));
+}
+// 历史永久VIP订单迁移：第一张从原支付日计算60天。新续费叠加30天。
+function ensureVipTimeline(playerId){
+  const orders=paidVipOrders(playerId);
+  let previousEnd=0,changed=false;
+  orders.forEach((order,i)=>{
+    const paidTime=Date.parse(order.paidAt||order.createdAt||"")||Date.now();
+    const days=i===0?VIP_CONFIG.firstDays:VIP_CONFIG.renewalDays;
+    let expiry=Date.parse(order.expiresAt||"");
+    if(!Number.isFinite(expiry)){
+      expiry=Math.max(paidTime,previousEnd)+days*VIP_DAY_MS;
+      order.expiresAt=new Date(expiry).toISOString();
+      changed=true;
+    }
+    if(order.durationDays!==days){order.durationDays=days;changed=true;}
+    previousEnd=Math.max(previousEnd,expiry);
+  });
+  if(changed)saveRechargeOrders();
+  return orders;
 }
 function vipInfoForPlayer(playerId){
-  const order=vipOrderForPlayer(playerId);
+  const orders=ensureVipTimeline(playerId);
+  const last=orders[orders.length-1];
+  const expiresAt=last?.expiresAt||"";
+  const active=!!last&&Date.parse(expiresAt)>Date.now();
   return {
-    active:!!order,
-    title:order?"永久VIP":"普通车长",
+    active,
+    everPurchased:orders.length>0,
+    title:active?"VIP会员":"普通车长",
     priceYuan:VIP_CONFIG.priceYuan,
+    firstDays:VIP_CONFIG.firstDays,
+    renewalDays:VIP_CONFIG.renewalDays,
+    dailyTankCoins:VIP_CONFIG.dailyTankCoins,
     rewardHighTankCoins:VIP_CONFIG.rewardHighTankCoins,
-    shopDiscount:order?VIP_CONFIG.shopDiscount:0,
-    boxDiscount:order?VIP_CONFIG.boxDiscount:0,
-    orderId:order?.id||"",
-    claimed:order?.status==="claimed"
+    shopDiscount:active?VIP_CONFIG.shopDiscount:0,
+    boxDiscount:active?VIP_CONFIG.boxDiscount:0,
+    expiresAt,
+    remainingDays:active?Math.ceil((Date.parse(expiresAt)-Date.now())/VIP_DAY_MS):0,
+    dailyClaimed:vipClaims.some(x=>x.playerId===playerId&&x.date===vipDayKey()),
+    unclaimedOrderIds:orders.filter(o=>o.status==="paid").map(o=>o.id)
   };
 }
 
