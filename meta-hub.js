@@ -433,10 +433,9 @@ function renderSocial(title, body) {
 }
 
 async function renderVip(title, body) {
-  title.textContent = "👑 永久VIP";
+  title.textContent = "👑 VIP会员";
   body.innerHTML = '<div class="vip-loading">正在同步VIP状态…</div>';
   await syncVipStatus(true);
-
   let config=VIP_FALLBACK_CONFIG;
   try{
     if(typeof getVipStatusOnline==="function"&&typeof getCommunityServerUrl==="function"&&getCommunityServerUrl()){
@@ -447,45 +446,70 @@ async function renderVip(title, body) {
   }catch(_){}
 
   const vip=metaVipCache;
+  const active=vipCurrentlyActive();
+  const expiry=vip.expiresAt?new Date(vip.expiresAt):null;
+  const expiresText=expiry&&Number.isFinite(expiry.getTime())
+    ? expiry.toLocaleString("zh-CN",{timeZone:"Asia/Shanghai",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})
+    :"尚未开通";
+
   body.innerHTML = `
-    <div class="vip-fixed-card ${vip.active?"active":""}">
+    <div class="vip-fixed-card ${active?"active":""}">
       <div class="vip-crown">👑</div>
       <div class="vip-fixed-main">
-        <b>${vip.active?"永久VIP已开通":"永久VIP"}</b>
+        <b>${active?"VIP已开通":vip.everPurchased?"VIP已到期":"首次开通VIP"}</b>
         <strong>¥${config.priceYuan}</strong>
-        <small>一次购买永久有效，不再分VIP1～VIP6。</small>
+        <small>${active?"剩余约 "+vip.remainingDays+" 天":vip.everPurchased?"续费恢复VIP权益":"首次购买赠送60天"}</small>
       </div>
     </div>
 
     <div class="vip-fixed-reward">
-      <strong>💎 购买立即返还 ${config.rewardHighTankCoins} 个高级坦克币</strong>
-      <span>1个高级坦克币可以抽1次高级坦克盲盒。</span>
+      <strong>🎁 ${vip.everPurchased?"续费增加 "+config.renewalDays+" 天":"首次购买获得 "+config.firstDays+" 天"}</strong>
+      <span>每次支付成功返还 💎${config.rewardHighTankCoins} 个高级坦克币。剩余天数可以叠加续费。</span>
     </div>
 
     <div class="vip-benefits">
-      <div><strong>永久</strong><span>VIP身份徽章</span></div>
-      <div><strong>${vip.active?(vip.shopDiscount||config.shopDiscount||0):config.shopDiscount||0}%</strong><span>商城优惠</span></div>
-      <div><strong>💎${config.rewardHighTankCoins}</strong><span>一次性返还</span></div>
-      <div><strong>1币1抽</strong><span>高级盲盒</span></div>
+      <div><strong>${active?vip.remainingDays+"天":"未开通"}</strong><span>剩余有效期</span></div>
+      <div><strong>🔷1</strong><span>每日坦克币</span></div>
+      <div><strong>${config.shopDiscount||0}%</strong><span>有效期内商城折扣</span></div>
+      <div><strong>💎12</strong><span>每次购买返还</span></div>
     </div>
 
-    ${vip.active
-      ? `<button class="vip-daily-btn" disabled>✅ 永久VIP已拥有</button>`
-      : `<button id="vip-buy-fixed" class="vip-daily-btn">¥${config.priceYuan} 购买永久VIP</button>`}
-    <div class="meta-payment-warning">真实购买仍由服务器支付回调确认；未接支付渠道时不会假装扣款或发放VIP奖励。</div>`;
+    <div class="vip-expiry-note">到期时间（北京时间）：${expiresText}</div>
+    <button id="vip-daily-claim" class="vip-daily-btn" ${!active||vip.dailyClaimed?"disabled":""}>
+      ${!active?"VIP到期后不可领取":vip.dailyClaimed?"✅ 今日已领取":"🔷 领取今日1个普通坦克币"}
+    </button>
+    <button id="vip-buy-fixed" class="vip-daily-btn">
+      ¥${config.priceYuan} ${vip.everPurchased?"续费VIP · 增加"+config.renewalDays+"天":"开通VIP · 首次"+config.firstDays+"天"}
+    </button>
+    <div class="meta-payment-warning">每日奖励按北京时间每日限领一次；过期后停止领取。VIP及返还须经服务器确认支付。</div>`;
+
+  body.querySelector("#vip-daily-claim")?.addEventListener("click",async()=>{
+    const btn=body.querySelector("#vip-daily-claim");
+    if(btn)btn.disabled=true;
+    try{
+      const result=await claimVipDailyOnline();
+      const coins=Number(result?.tankCoins)||0;
+      if(coins>0)metaAddTankCoins(coins);
+      if(result?.vip)saveVipCache(result.vip);
+      metaToast("🔷 VIP每日奖励到账：普通坦克币 +"+coins);
+      renderVip(title,body);
+    }catch(err){
+      metaToast("VIP领取失败："+(err?.message||"服务器错误"));
+      if(btn)btn.disabled=false;
+    }
+  });
 
   body.querySelector("#vip-buy-fixed")?.addEventListener("click",async()=>{
     if(!(typeof getCommunityServerUrl==="function"&&getCommunityServerUrl())){
       metaToast("请先配置统一服务器地址");
       return;
     }
+    const btn=body.querySelector("#vip-buy-fixed");if(btn)btn.disabled=true;
     try{
       const result=await createVipOrderOnline();
       const order=result?.order;
       if(order?.status==="paid"){
-        await syncVipStatus(false);
-        renderVip(title,body);
-        return;
+        await syncVipStatus(false);renderVip(title,body);return;
       }
       if(order?.checkoutUrl){
         window.open(order.checkoutUrl,"_blank","noopener,noreferrer");
@@ -495,7 +519,7 @@ async function renderVip(title, body) {
       }
     }catch(err){
       metaToast("VIP购买失败："+(err?.message||"服务器错误"));
-    }
+    }finally{if(btn)btn.disabled=false;}
   });
 }
 
