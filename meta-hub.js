@@ -3,56 +3,64 @@ const META_STORAGE_KEY = "tankBattleMeta_v1";
 const VIP_CACHE_KEY = "tankBattleVipCache_v1";
 
 const VIP_FALLBACK_CONFIG = {
-  priceYuan:12,
-  rewardHighTankCoins:12,
-  title:"永久VIP",
-  shopDiscount:5,
-  boxDiscount:0
+  priceYuan:12,firstDays:60,renewalDays:30,dailyTankCoins:1,
+  rewardHighTankCoins:12,title:"限时VIP",shopDiscount:5,boxDiscount:0
 };
 
 function loadVipCache(){
-  const fresh={active:false,title:"普通车长",priceYuan:12,rewardHighTankCoins:12,shopDiscount:0,boxDiscount:0,claimed:false};
+  const fresh={
+    active:false,everPurchased:false,title:"普通车长",
+    priceYuan:12,firstDays:60,renewalDays:30,dailyTankCoins:1,
+    rewardHighTankCoins:12,shopDiscount:0,boxDiscount:0,
+    expiresAt:"",remainingDays:0,dailyClaimed:false,unclaimedOrderIds:[]
+  };
   try{
     const v=JSON.parse(localStorage.getItem(VIP_CACHE_KEY)||"null");
-    // 旧版VIP1~VIP6缓存不再沿用，必须以新的12元永久VIP服务器状态为准。
-    return v&&typeof v==="object"&&typeof v.active==="boolean"?Object.assign(fresh,v):fresh;
-  }catch(_){
-    return fresh;
-  }
+    // 旧版永久VIP缓存没有到期时间，不继承其永久权益。
+    return v&&typeof v==="object"&&"expiresAt" in v?Object.assign(fresh,v):fresh;
+  }catch(_){return fresh;}
 }
 let metaVipCache=loadVipCache();
-
+function vipCurrentlyActive(){
+  const expiry=Date.parse(metaVipCache.expiresAt||"");
+  return !!metaVipCache.active&&Number.isFinite(expiry)&&expiry>Date.now();
+}
 function saveVipCache(vip){
   metaVipCache=Object.assign({},metaVipCache,vip||{});
   try{localStorage.setItem(VIP_CACHE_KEY,JSON.stringify(metaVipCache));}catch(_){}
   refreshMetaHud();
 }
-
 function vipDiscountedPrice(base,kind="shop"){
-  const pct=kind==="box"?(metaVipCache.boxDiscount||0):(metaVipCache.shopDiscount||0);
+  const pct=vipCurrentlyActive()?(kind==="box"?(metaVipCache.boxDiscount||0):(metaVipCache.shopDiscount||0)):0;
   return Math.max(1,Math.floor(Number(base||0)*(100-pct)/100));
 }
 globalThis.getVipDiscountedPrice=vipDiscountedPrice;
 
+let vipSyncPromise=null;
 async function syncVipStatus(silent=true){
   if(typeof getCommunityServerUrl!=="function"||!getCommunityServerUrl()||typeof getVipStatusOnline!=="function")return metaVipCache;
-  try{
-    const result=await getVipStatusOnline();
-    if(result?.vip)saveVipCache(result.vip);
-    if(result?.vip?.active && !result.vip.claimed && typeof claimVipPurchaseOnline==="function"){
-      try{
-        const claim=await claimVipPurchaseOnline();
-        const reward=Number(claim?.highTankCoins)||0;
-        if(reward>0)metaAddHighTankCoins(reward);
-        if(claim?.vip)saveVipCache(claim.vip);
-        if(!silent&&reward>0)metaToast("👑 VIP返还到账：💎 高级坦克币 x"+reward);
-      }catch(_){}
-    }
-    return metaVipCache;
-  }catch(err){
-    if(!silent)metaToast("VIP服务器连接失败："+(err?.message||"未知错误"));
-    return metaVipCache;
-  }
+  if(vipSyncPromise)return vipSyncPromise;
+  vipSyncPromise=(async()=>{
+    try{
+      const result=await getVipStatusOnline();
+      if(result?.vip)saveVipCache(result.vip);
+      // 返还按订单逐笔领取；到期后尚未领取的购买返还也可补领。
+      for(const orderId of result?.vip?.unclaimedOrderIds||[]){
+        try{
+          const claim=await claimVipPurchaseOnline(orderId);
+          const reward=Number(claim?.highTankCoins)||0;
+          if(reward>0)metaAddHighTankCoins(reward);
+          if(claim?.vip)saveVipCache(claim.vip);
+          if(!silent&&reward>0)metaToast("👑 VIP购买返还：💎 高级坦克币 x"+reward);
+        }catch(_){}
+      }
+      return metaVipCache;
+    }catch(err){
+      if(!silent)metaToast("VIP服务器连接失败："+(err?.message||"未知错误"));
+      return metaVipCache;
+    }finally{vipSyncPromise=null;}
+  })();
+  return vipSyncPromise;
 }
 
 function metaDefaultData() {
@@ -259,7 +267,7 @@ function refreshMetaHud() {
   const vipEl = document.getElementById("meta-vip-level");
   if (el && typeof islandData !== "undefined") el.textContent = islandData.coins || 0;
   if (tankEl && typeof islandData !== "undefined") tankEl.textContent = islandData.tankCoins || 0;
-  if (vipEl) vipEl.textContent = metaVipCache.active ? "VIP" : "VIP¥12";
+  if (vipEl) vipEl.textContent = vipCurrentlyActive() ? "VIP" : (metaVipCache.everPurchased?"VIP续费":"VIP¥12");
 }
 
 function openMetaPanel(type) {
