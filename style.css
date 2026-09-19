@@ -3491,3 +3491,15 @@ button:disabled {
     grid-template-columns:1fr 1fr;
   }
 }
+
+/* 限时VIP：到期时间与每日领取状态 */
+.vip-expiry-note {
+  margin: 9px 0 7px;
+  padding: 8px;
+  border: 1px solid rgba(215,178,86,.4);
+  border-radius: 7px;
+  background: rgba(215,178,86,.08);
+  color: #f3deae;
+  font-size: 10px;
+  text-align: center;
+}
