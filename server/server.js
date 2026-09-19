@@ -119,6 +119,8 @@ function publicRechargeOrder(order){
     kind:order.kind||"recharge",packId:order.packId,yuan:order.yuan,
     baseTankCoins,bonusTankCoins,totalTankCoins,
     highTankCoins:Number(order.highTankCoins||0),
+    durationDays:Number(order.durationDays||0),
+    expiresAt:order.expiresAt||"",
     firstDouble:!!order.firstDouble,
     status:order.status,
     createdAt:order.createdAt,paidAt:order.paidAt||"",claimedAt:order.claimedAt||"",
@@ -221,14 +223,16 @@ app.post("/api/vip/order",(req,res)=>{
   const playerId=safeText(req.body?.playerId,100);
   const playerName=safeText(req.body?.playerName,24)||"车长";
   if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
-  const existing=rechargeOrders.find(o=>o.playerId===playerId&&o.kind==="vip"&&["pending","paid","claimed"].includes(o.status));
+  const existing=rechargeOrders.find(o=>o.playerId===playerId&&o.kind==="vip"&&o.status==="pending");
   if(existing)return res.json({order:publicRechargeOrder(existing),paymentConfigured:!!existing.checkoutUrl,alreadyExists:true});
 
+  const history=ensureVipTimeline(playerId);
+  const durationDays=history.length?VIP_CONFIG.renewalDays:VIP_CONFIG.firstDays;
   const order={
     id:"vip-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9),
     kind:"vip",playerId,playerName,packId:"vip12",yuan:VIP_CONFIG.priceYuan,
     baseTankCoins:0,bonusTankCoins:0,totalTankCoins:0,
-    highTankCoins:VIP_CONFIG.rewardHighTankCoins,
+    highTankCoins:VIP_CONFIG.rewardHighTankCoins,durationDays,
     firstDouble:false,status:"pending",createdAt:new Date().toISOString()
   };
   order.checkoutUrl=makeCheckoutUrl(order);
@@ -238,11 +242,27 @@ app.post("/api/vip/order",(req,res)=>{
 
 app.post("/api/vip/claim",(req,res)=>{
   const playerId=safeText(req.body?.playerId,100);
-  const order=rechargeOrders.find(o=>o.playerId===playerId&&o.kind==="vip"&&(o.status==="paid"||o.status==="claimed"));
-  if(!order)return res.status(404).json({error:"还没有已支付的VIP订单"});
-  if(order.status==="claimed")return res.status(409).json({error:"VIP返还奖励已经领取"});
+  const orderId=safeText(req.body?.orderId,100);
+  if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
+  const eligible=ensureVipTimeline(playerId).filter(o=>o.status==="paid");
+  const order=orderId?eligible.find(o=>o.id===orderId):eligible[0];
+  if(!order)return res.status(409).json({error:"没有待领取的VIP返还奖励"});
   order.status="claimed";order.claimedAt=new Date().toISOString();saveRechargeOrders();
-  res.json({ok:true,highTankCoins:Number(order.highTankCoins||VIP_CONFIG.rewardHighTankCoins),vip:vipInfoForPlayer(playerId),order:publicRechargeOrder(order)});
+  res.json({
+    ok:true,highTankCoins:Number(order.highTankCoins||VIP_CONFIG.rewardHighTankCoins),
+    vip:vipInfoForPlayer(playerId),order:publicRechargeOrder(order)
+  });
+});
+
+app.post("/api/vip/daily-claim",(req,res)=>{
+  const playerId=safeText(req.body?.playerId,100);
+  if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
+  const vip=vipInfoForPlayer(playerId);
+  if(!vip.active)return res.status(403).json({error:"VIP未开通或已到期"});
+  if(vip.dailyClaimed)return res.status(409).json({error:"今天已经领取过VIP坦克币"});
+  vipClaims.push({playerId,date:vipDayKey(),claimedAt:new Date().toISOString()});
+  saveVipClaims();
+  res.json({ok:true,tankCoins:VIP_CONFIG.dailyTankCoins,vip:vipInfoForPlayer(playerId)});
 });
 
 app.get("/api/recharge/config",(req,res)=>{
@@ -328,6 +348,8 @@ app.post("/api/recharge/webhook",(req,res)=>{
     if((order.kind||"recharge")==="vip"){
       order.status="paid";
       order.paidAt=new Date().toISOString();
+      // 结算时固定有效期；续费从现有到期时间后再延长30天。
+      ensureVipTimeline(order.playerId);
     }else{
       const hadEarlierPaid=rechargeOrders.some(o=>
         o!==order && o.playerId===order.playerId && (o.kind||"recharge")==="recharge" &&
