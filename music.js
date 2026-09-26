@@ -4,6 +4,7 @@
   const MUSIC_KEY = "tankPartyMusic_v1";
   let ctx = null;
   let master = null;
+  let limiter = null;
   let musicOn = true;
   let unlocked = false;
   let currentTheme = "";
@@ -23,7 +24,7 @@
       bass: [48,48,53,53,45,45,50,50],
       chords: [[60,64,67],[65,69,72],[57,60,64],[62,65,69]],
       wave: "triangle",
-      gain: 0.050,
+      gain: 0.058,
     },
     battle: {
       bpm: 142,
@@ -31,7 +32,7 @@
       bass: [40,40,43,43,38,38,45,45],
       chords: [[52,55,59],[50,55,59],[50,53,57],[55,59,62]],
       wave: "sawtooth",
-      gain: 0.043,
+      gain: 0.050,
     },
     party: {
       bpm: 132,
@@ -39,7 +40,7 @@
       bass: [50,50,55,55,47,47,52,52],
       chords: [[62,66,69],[67,71,74],[59,62,66],[64,67,71]],
       wave: "square",
-      gain: 0.040,
+      gain: 0.047,
     }
   };
 
@@ -66,8 +67,15 @@
     if (!AudioCtx) return false;
     ctx = new AudioCtx();
     master = ctx.createGain();
-    master.gain.value = musicOn ? 0.62 : 0.0001;
-    master.connect(ctx.destination);
+    limiter = ctx.createDynamicsCompressor();
+    master.gain.value = musicOn ? 0.78 : 0.0001;
+    limiter.threshold.value = -8;
+    limiter.knee.value = 12;
+    limiter.ratio.value = 4;
+    limiter.attack.value = 0.006;
+    limiter.release.value = 0.18;
+    master.connect(limiter);
+    limiter.connect(ctx.destination);
     nextNoteTime = ctx.currentTime + 0.08;
     return true;
   }
@@ -167,7 +175,7 @@
     save();
     if (musicOn) {
       unlock();
-      if (master && ctx) master.gain.setTargetAtTime(.62,ctx.currentTime,.04);
+      if (master && ctx) master.gain.setTargetAtTime(.78,ctx.currentTime,.04);
       nextNoteTime=ctx ? ctx.currentTime+.05 : 0;
     } else if (master && ctx) {
       master.gain.setTargetAtTime(.0001,ctx.currentTime,.03);
