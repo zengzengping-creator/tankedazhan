@@ -954,6 +954,6 @@ drawIslandWorld = function(){
   ctx2.font="24px sans-serif";
   ctx2.textAlign="center";
   ctx2.textBaseline="middle";
-  ctx2.fillText(pet.icon,mover.x-24,mover.y-mover.z+18-bob);
+  ctx2.fillText(pet.icon,mover.x-12,mover.y-mover.z+12-bob);
   ctx2.restore();
 };
