@@ -508,7 +508,7 @@ function islandWorldTankSpeed() {
 function clampPlayerToIsland(p) {
   // 第二个大型主岛已删除。保留原始坦克岛，以及独立的游乐园和巨型剧情迷宫玩法区。
   const small = { x: 250, y: 300, r: 260 };
-  const amusement = { x: 640, y: 570, r: 210 };
+  const amusement = { x: 620, y: 555, r: 210 };
   const maze = { x1: 560, x2: 1080, y1: 30, y2: 330 };
   const mazeJumpPads = [{x:500,y:245,r:18},{x:570,y:245,r:18}];
 
@@ -730,11 +730,11 @@ function drawIslandWorld() {
   // 原始坦克岛 + 搬到初始岛/迷宫岛之间偏下的游乐岛。
   ctx2.fillStyle = "#e3cf87";
   ctx2.beginPath(); ctx2.arc(250,300,260,0,Math.PI*2); ctx2.fill();
-  ctx2.beginPath(); ctx2.arc(640,570,210,0,Math.PI*2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(620,555,210,0,Math.PI*2); ctx2.fill();
 
   ctx2.fillStyle = "#4f9f52";
   ctx2.beginPath(); ctx2.arc(250,300,242,0,Math.PI*2); ctx2.fill();
-  ctx2.beginPath(); ctx2.arc(640,570,194,0,Math.PI*2); ctx2.fill();
+  ctx2.beginPath(); ctx2.arc(620,555,194,0,Math.PI*2); ctx2.fill();
 
   // 第三个岛（巨型剧情迷宫）搬到原始岛旁边，中间保留水面断层。
   ctx2.fillStyle = "#e3cf87";
