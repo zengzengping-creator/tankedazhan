@@ -920,7 +920,7 @@
 
         // 6 彩虹跳台
         {
-          const pads=[[698,600],[715,583],[733,568],[752,555],[770,542],[788,528]];
+          const pads=[[678,585],[695,568],[713,553],[732,540],[750,527],[768,513]];
           const colors=[0xff6f86,0xffa84d,0xffe05b,0x6edb8a,0x61cfff,0x9a78ff];
           pads.forEach((q,i)=>{
             const p=islandCoord(q[0],q[1],0);
