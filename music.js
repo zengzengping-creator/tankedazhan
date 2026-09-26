@@ -68,7 +68,7 @@
     ctx = new AudioCtx();
     master = ctx.createGain();
     limiter = ctx.createDynamicsCompressor();
-    master.gain.value = musicOn ? 1.28 : 0.0001;
+    master.gain.value = musicOn ? 1.82 : 0.0001;
     limiter.threshold.value = -8;
     limiter.knee.value = 12;
     limiter.ratio.value = 4;
@@ -175,7 +175,7 @@
     save();
     if (musicOn) {
       unlock();
-      if (master && ctx) master.gain.setTargetAtTime(1.28,ctx.currentTime,.04);
+      if (master && ctx) master.gain.setTargetAtTime(1.82,ctx.currentTime,.04);
       nextNoteTime=ctx ? ctx.currentTime+.05 : 0;
     } else if (master && ctx) {
       master.gain.setTargetAtTime(.0001,ctx.currentTime,.03);
