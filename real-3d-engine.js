@@ -1181,7 +1181,7 @@
         islandScene.add(islandPetMesh);
       }
       const mover = s.mounted ? s.player : s.human;
-      const follow = islandCoord(mover.x - 22, mover.y + 20, 0);
+      const follow = islandCoord(mover.x - 12, mover.y + 12, 0);
       islandPetMesh.position.set(follow.x, .25 + (mover.z||0)/24 + Math.abs(Math.sin(performance.now()/260))*.12, follow.z);
       islandPetMesh.rotation.y = performance.now()/900;
       islandPetMesh.visible = true;
