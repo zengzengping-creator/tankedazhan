@@ -98,6 +98,78 @@ const ENEMY_TYPES = {
   },
 };
 
+const ENEMY_GUIDE_ORDER = ["normal","fast","armor","firepower","elite","fortress","destroyer","suicide","boss6","boss10"];
+const ENEMY_GUIDE_SPECIAL = {
+  normal:"基础型敌军，属性均衡。",
+  fast:"移速快，适合从侧面快速逼近。",
+  armor:"高血量低移速，需要连续命中。",
+  firepower:"射击频率高，远距离压制更强。",
+  elite:"血量、速度、射速都较高的综合强化型。",
+  fortress:"5滴血重型敌军，防御很强。",
+  destroyer:"5滴血且射速极快，属于高威胁火力单位。",
+  suicide:"无敌追踪玩家，靠近后自爆造成2滴伤害；不会伤害基地。",
+  boss6:"10滴血BOSS。召唤物存活时本体无敌，清光后眩晕5秒才可攻击。",
+  boss10:"20滴血最终BOSS，单发2伤害。召唤物存活时无敌，清光后进入5秒弱点期。"
+};
+
+function enemyGuideStatRow(label,value){
+  return `<span><small>${label}</small><b>${value}</b></span>`;
+}
+
+function renderEnemyTankGuide(){
+  const panel=document.getElementById("enemy-guide-panel");
+  const btn=document.getElementById("enemy-guide-btn");
+  if(!panel||!btn)return;
+  const keys=ENEMY_GUIDE_ORDER.filter(type=>ENEMY_TYPES[type]);
+  panel.innerHTML=`
+    <div class="enemy-guide-head">
+      <b>👾 敌方坦克属性图鉴</b>
+      <small>数据直接读取当前游戏敌军配置</small>
+    </div>
+    <div class="enemy-guide-grid">
+      ${keys.map(type=>{
+        const s=ENEMY_TYPES[type];
+        const damage=Number(s.damage||1);
+        const fireRate=s.fireChance>0 ? (s.fireChance*100).toFixed(1)+"%/帧" : "不射击";
+        const cooldown=s.shotCooldown>=999 ? "—" : s.shotCooldown+"帧";
+        const hp=type==="suicide" ? "无敌" : s.hp+"";
+        return `<article class="enemy-guide-card enemy-${type}">
+          <div class="enemy-guide-title"><i style="background:${s.color}"></i><b>${s.name}</b><em>${s.mark||"敌"}</em></div>
+          <div class="enemy-guide-stats">
+            ${enemyGuideStatRow("生命",hp)}
+            ${enemyGuideStatRow("移速",s.speed)}
+            ${enemyGuideStatRow("单发伤害",damage)}
+            ${enemyGuideStatRow("子弹速度",s.bulletSpeed||"—")}
+            ${enemyGuideStatRow("射击间隔",cooldown)}
+            ${enemyGuideStatRow("开火概率",fireRate)}
+            ${enemyGuideStatRow("击破分数",s.score||0)}
+            ${enemyGuideStatRow("掉落率",Math.round((s.dropChance||0)*100)+"%")}
+          </div>
+          <p>${ENEMY_GUIDE_SPECIAL[type]||"敌方作战单位。"}</p>
+        </article>`;
+      }).join("")}
+    </div>`;
+}
+
+function setupEnemyTankGuide(){
+  const btn=document.getElementById("enemy-guide-btn");
+  const panel=document.getElementById("enemy-guide-panel");
+  if(!btn||!panel||btn.dataset.ready)return;
+  btn.dataset.ready="1";
+  btn.addEventListener("click",()=>{
+    const opening=panel.classList.contains("hidden");
+    if(opening){
+      renderEnemyTankGuide();
+      panel.classList.remove("hidden");
+      btn.textContent="👾 收起敌方坦克图鉴";
+    }else{
+      panel.classList.add("hidden");
+      btn.textContent="👾 敌方坦克图鉴 · 查看属性";
+    }
+  });
+}
+setupEnemyTankGuide();
+
 const POWERUP_TYPES = ["shield", "speed", "fire", "life", "bomb"];
 const POWERUP_INFO = {
   shield: { icon: "🛡️", label: "护盾", bg: "#16a085" },
