@@ -331,16 +331,38 @@ function renderSeason(title, body) {
   });
 }
 
+function playerTankRole(type) {
+  return ({
+    normal:"均衡型",fast:"机动型",elite:"火力型",armor:"防御型",
+    base:"支援型",weaken:"控制型",flight:"空战型",evolution:"成长型",omni:"全能型"
+  })[type] || "特殊型";
+}
+
 function renderManual(title, body) {
   title.textContent = "📘 坦克手册";
+  const tanks = typeof PLAYER_TANK_CLASSES !== "undefined" ? Object.entries(PLAYER_TANK_CLASSES) : [];
   body.innerHTML = `
     <div class="meta-manual-grid">
-      <div><b>🎮 战斗</b><small>方向键移动，空格射击，Shift+空格高射，Q技能。</small></div>
+      <div><b>🎮 战斗</b><small>方向键/手机摇杆移动，空格射击，Shift+空格高射，Q技能。</small></div>
       <div><b>🖱️ 3D相机</b><small>左键旋转、滚轮缩放、右键平移、C重置相机。</small></div>
       <div><b>🏝️ 坦克岛</b><small>B下车，靠近坦克空格上车，J跳跃，E互动。</small></div>
       <div><b>🧬 进化</b><small>双人时优先进化队友，单人强化自己并积累连击。</small></div>
       <div><b>✈️ 飞行</b><small>升空3格后无视地面障碍和普通地面炮火。</small></div>
       <div><b>🎁 皮肤</b><small>皮肤可通过不同盲盒获得并永久保存。</small></div>
+    </div>
+    <div class="player-tank-manual">
+      <h4>🛡️ 己方坦克介绍</h4>
+      <div class="player-tank-manual-grid">
+        ${tanks.map(([type,cfg])=>`
+          <div class="player-tank-manual-card">
+            <i style="background:${cfg.color||"#708090"}">${cfg.mark||"坦"}</i>
+            <span>
+              <b>${cfg.name||type} · ${playerTankRole(type)}</b>
+              <small>生命 ${cfg.maxHp||"-"} · 速度 ${cfg.speed||"-"} · 伤害 ${cfg.damage||1}</small>
+              <em>Q ${cfg.skillName||"特殊技能"}：${cfg.skillDesc||"暂无说明"}</em>
+            </span>
+          </div>`).join("")}
+      </div>
     </div>`;
 }
 
