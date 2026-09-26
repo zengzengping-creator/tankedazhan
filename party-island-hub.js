@@ -132,7 +132,7 @@ function startSelectedPartyMode() {
   if (mode === "amusement") {
     if (islandWorldState) {
       const mover = islandWorldState.mounted ? islandWorldState.player : islandWorldState.human;
-      if (mover) { mover.x=480; mover.y=555; mover.z=0; mover.vz=0; }
+      if (mover) { mover.x=450; mover.y=535; mover.z=0; mover.vz=0; }
     }
     metaToast("🎪 已进入游乐园巡游区");
     return;
@@ -447,7 +447,7 @@ function renderPartyMap(title, body) {
     ["🌳","原始坦克岛中心",250,300],
     ["🏢","坦克大楼",250,190],
     ["🛍️","原始岛商城",120,170],
-    ["🎪","游乐园游乐区",480,555],
+    ["🎪","游乐园游乐区",450,535],
     ["🧩","巨型剧情迷宫起跳台",485,245],
     ["🗼","跑酷塔",390,285],
     ["🎯","射击靶场",350,350],
