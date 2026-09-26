@@ -273,10 +273,33 @@ function fireIslandWorldTank(s) {
 function dismountIslandTank() {
   const s = islandWorldState;
   if (!s || !s.mounted) return;
+
+  // 如果正在游乐设施里，先彻底释放设施状态，避免下车后仍被动画锁住。
+  const a = s.amusement;
+  if (a) {
+    a.swing = 0;
+    a.spinner = 0;
+    a.slide = 0;
+    a.cooldown = Math.max(a.cooldown || 0, 60);
+  }
+
+  s.player.z = 0;
+  s.player.vz = 0;
   s.mounted = false;
-  s.human.x = s.player.x + 25;
-  s.human.y = s.player.y + 8;
+
+  // 人物落到坦克旁边稍远的位置，避免仍停留在秋千触发圈内。
+  const swing = typeof rideById === "function" ? rideById("swing") : null;
+  if (swing && Math.hypot(s.player.x - swing.x, s.player.y - swing.y) < swing.r + 12) {
+    s.human.x = swing.x + swing.r + 24;
+    s.human.y = swing.y + 18;
+  } else {
+    s.human.x = s.player.x + 25;
+    s.human.y = s.player.y + 8;
+  }
   s.human.z = 0;
+  s.human.vz = 0;
+  if (typeof clampPlayerToIsland === "function") clampPlayerToIsland(s.human);
+
   const hint = document.getElementById("island-world-hint");
   if (hint) hint.textContent = "🚶 已下坦克：左侧摇杆步行 · 靠近坦克按空格上车 · J跳跃";
 }
@@ -639,6 +662,17 @@ updateIslandWorld=function(){
     p.y=swing.y;
     p.z=6+Math.abs(Math.sin(t))*18;
     a.swing--;
+
+    // 一轮结束后自动离开触发圈，避免冷却结束马上再次被吸回秋千。
+    if(a.swing<=0){
+      p.x=swing.x+swing.r+26;
+      p.y=swing.y+18;
+      p.z=0;
+      p.vz=0;
+      a.cooldown=Math.max(a.cooldown,70);
+      const hint=document.getElementById("island-world-hint");
+      if(hint)hint.textContent="🎪 秋千结束！已经自动回到地面，可继续驾驶或按 B 下车。";
+    }
   }
 
   const tramp=rideById("trampoline");
