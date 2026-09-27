@@ -547,11 +547,14 @@ async function renderVip(title, body) {
 
 function renderCurrencyWallet(title, body) {
   title.textContent = "🔷 坦克币中心";
+  const gold = islandData.coins || 0;
   const tank = islandData.tankCoins || 0;
   const mid = islandData.midTankCoins || 0;
   const high = islandData.highTankCoins || 0;
+
   body.innerHTML = `
     <div class="tank-currency-wallet">
+      <div><strong>🪙 ${gold.toLocaleString()}</strong><span>普通金币</span></div>
       <div><strong>🔷 ${tank.toLocaleString()}</strong><span>普通坦克币</span></div>
       <div><strong>🟣 ${mid.toLocaleString()}</strong><span>中级坦克币</span></div>
       <div><strong>💎 ${high.toLocaleString()}</strong><span>高级坦克币</span></div>
@@ -559,9 +562,9 @@ function renderCurrencyWallet(title, body) {
 
     <div class="tank-currency-exchange">
       <div>
-        <span><b>1 🔷 → 10 🪙</b><small>普通坦克币可以直接兑换普通金币</small></span>
-        <button data-gold-exchange="1" ${tank<1?"disabled":""}>换10金币</button>
-        <button data-gold-exchange="10" ${tank<10?"disabled":""}>换100金币</button>
+        <span><b>🔷 ↔ 🪙 普通币双向兑换</b><small>1坦克币 → 10金币；12金币 → 1坦克币</small></span>
+        <button data-tank-to-gold="1" ${tank<1?"disabled":""}>1🔷 → 10🪙</button>
+        <button data-gold-to-tank="1" ${gold<12?"disabled":""}>12🪙 → 1🔷</button>
       </div>
       <div>
         <span><b>5 🔷 → 1 🟣</b><small>中级坦克币：1个可抽1次中级盲盒</small></span>
@@ -573,6 +576,15 @@ function renderCurrencyWallet(title, body) {
         <button data-exchange="high" ${tank<10?"disabled":""}>兑换1个</button>
         <button data-exchange-batch="high" ${tank<100?"disabled":""}>兑换10个</button>
       </div>
+      <div>
+        <span><b>🟣 ↔ 💎 中高级互换</b><small>2中级坦克币 → 1高级坦克币；1高级坦克币 → 2中级坦克币</small></span>
+        <button data-mid-to-high="1" ${mid<2?"disabled":""}>2🟣 → 1💎</button>
+        <button data-high-to-mid="1" ${high<1?"disabled":""}>1💎 → 2🟣</button>
+      </div>
+    </div>
+
+    <div class="meta-payment-warning">
+      金币兑换回坦克币需要12金币，坦克币换金币只得到10金币，避免反复兑换刷币；中级/高级按2:1等值互换。
     </div>
 
     <div class="tank-coin-uses">
@@ -581,29 +593,64 @@ function renderCurrencyWallet(title, body) {
       <button id="open-special-boxes">🎁 中级 / 高级盲盒</button>
     </div>`;
 
-  const exchange=(type,count)=>{
+  const saveAndRefresh=()=>{
+    saveIslandData();
+    refreshMetaHud();
+    renderCurrencyWallet(title,body);
+  };
+
+  const exchangeTankToTier=(type,count)=>{
     const ratio=type==="high"?10:5;
     const key=type==="high"?"highTankCoins":"midTankCoins";
     const need=ratio*count;
     if((islandData.tankCoins||0)<need){metaToast("坦克币不足");return;}
     islandData.tankCoins-=need;
     islandData[key]=(islandData[key]||0)+count;
-    saveIslandData();refreshMetaHud();
     metaToast(type==="high"?`💎 获得高级坦克币 x${count}`:`🟣 获得中级坦克币 x${count}`);
-    renderCurrencyWallet(title,body);
+    saveAndRefresh();
   };
 
-  body.querySelectorAll("[data-gold-exchange]").forEach(btn=>btn.onclick=()=>{
-    const count=Number(btn.dataset.goldExchange)||1;
+  body.querySelectorAll("[data-tank-to-gold]").forEach(btn=>btn.onclick=()=>{
+    const count=Math.max(1,Number(btn.dataset.tankToGold)||1);
     if((islandData.tankCoins||0)<count){metaToast("坦克币不足");return;}
     islandData.tankCoins-=count;
     islandData.coins=(islandData.coins||0)+count*10;
-    saveIslandData();refreshMetaHud();
     metaToast(`🪙 已兑换 ${count*10} 金币`);
-    renderCurrencyWallet(title,body);
+    saveAndRefresh();
   });
-  body.querySelectorAll("[data-exchange]").forEach(btn=>btn.onclick=()=>exchange(btn.dataset.exchange,1));
-  body.querySelectorAll("[data-exchange-batch]").forEach(btn=>btn.onclick=()=>exchange(btn.dataset.exchangeBatch,10));
+
+  body.querySelectorAll("[data-gold-to-tank]").forEach(btn=>btn.onclick=()=>{
+    const count=Math.max(1,Number(btn.dataset.goldToTank)||1);
+    const need=count*12;
+    if((islandData.coins||0)<need){metaToast("金币不足");return;}
+    islandData.coins-=need;
+    islandData.tankCoins=(islandData.tankCoins||0)+count;
+    metaToast(`🔷 已兑换普通坦克币 x${count}`);
+    saveAndRefresh();
+  });
+
+  body.querySelectorAll("[data-exchange]").forEach(btn=>btn.onclick=()=>exchangeTankToTier(btn.dataset.exchange,1));
+  body.querySelectorAll("[data-exchange-batch]").forEach(btn=>btn.onclick=()=>exchangeTankToTier(btn.dataset.exchangeBatch,10));
+
+  body.querySelectorAll("[data-mid-to-high]").forEach(btn=>btn.onclick=()=>{
+    const count=Math.max(1,Number(btn.dataset.midToHigh)||1);
+    const need=count*2;
+    if((islandData.midTankCoins||0)<need){metaToast("中级坦克币不足");return;}
+    islandData.midTankCoins-=need;
+    islandData.highTankCoins=(islandData.highTankCoins||0)+count;
+    metaToast(`💎 已兑换高级坦克币 x${count}`);
+    saveAndRefresh();
+  });
+
+  body.querySelectorAll("[data-high-to-mid]").forEach(btn=>btn.onclick=()=>{
+    const count=Math.max(1,Number(btn.dataset.highToMid)||1);
+    if((islandData.highTankCoins||0)<count){metaToast("高级坦克币不足");return;}
+    islandData.highTankCoins-=count;
+    islandData.midTankCoins=(islandData.midTankCoins||0)+count*2;
+    metaToast(`🟣 已兑换中级坦克币 x${count*2}`);
+    saveAndRefresh();
+  });
+
   body.querySelector("#open-normal-tank-box")?.addEventListener("click",()=>renderNormalTankBox(title,body));
   body.querySelector("#open-crew-box")?.addEventListener("click",()=>renderCrewBox(title,body));
   body.querySelector("#open-special-boxes")?.addEventListener("click",()=>renderBoxes(title,body));
