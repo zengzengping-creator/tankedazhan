@@ -1,6 +1,6 @@
 // 特殊玩家坦克：虎式坦克·大虎 / 同化坦克
 // 虎式：Q循环变大/缩小，发射能量炮。
-// 同化：同化弹把敌军转成我方队友；友军统一变成玩家在初始界面选择的坦克；Boss不能同化。
+// 同化：同化弹把敌军转成我方队友；友军变成初始界面里的我方坦克；Boss/豹子不能同化。
 
 PLAYER_TANK_CLASSES.dahu = {
   name: "虎式坦克·大虎",
@@ -37,8 +37,20 @@ const DAHU_FORMS = {
 };
 const DAHU_FORM_ORDER = ["normal","giant","mini"];
 
-const ASSIMILATE_BLOCKED_TYPES = new Set(["boss6","boss10"]);
-const ASSIMILATE_SUICIDE_RANDOM_TYPES = ["omni","base"];
+const ASSIMILATE_BLOCKED_TYPES = new Set(["boss6","boss10","leopard"]);
+const ASSIMILATE_PLAYER_CLASS_MAP = {
+  normal:"normal",
+  fast:"fast",
+  armor:"armor",
+  firepower:"elite",
+  elite:"elite",
+  fortress:"armor",
+  destroyer:"base"
+};
+const ASSIMILATE_SUICIDE_RANDOM_TYPES = [
+  "normal","fast","elite","armor","base","weaken",
+  "flight","evolution","omni","dahu","assimilate"
+];
 
 let assimilatedAllies = [];
 globalThis.getAssimilatedAllies = () => assimilatedAllies;
@@ -94,9 +106,13 @@ function isAssimilationBlocked(enemy){
   return false;
 }
 
-function getSelectedFriendlyTankClass(){
-  const type=player?.playerClass || selectedPlayerTank || "normal";
-  return PLAYER_TANK_CLASSES[type] ? type : "normal";
+function playerClassForAssimilatedEnemy(enemyType){
+  return ASSIMILATE_PLAYER_CLASS_MAP[enemyType] || "normal";
+}
+
+function randomInitialFriendlyTankClass(){
+  const pool=ASSIMILATE_SUICIDE_RANDOM_TYPES.filter(type=>PLAYER_TANK_CLASSES[type]);
+  return pool[Math.floor(rnd()*pool.length)] || "normal";
 }
 
 function configureAssimilatedAllyAsPlayerTank(tank,classType){
@@ -147,16 +163,20 @@ function assimilateEnemyToAlly(enemy){
   if(isAssimilationBlocked(enemy)) return false;
 
   const originalType=enemy.type;
-  const friendlyClass=getSelectedFriendlyTankClass();
+  const friendlyClass=originalType==="suicide"
+    ? randomInitialFriendlyTankClass()
+    : playerClassForAssimilatedEnemy(originalType);
 
   const idx=enemies.indexOf(enemy);
   if(idx>=0) enemies.splice(idx,1);
 
-  // 无论原来是普通、快速、重甲还是自爆，都会变成玩家初始界面选中的那辆坦克。
+  // 同化后改成初始界面里的我方坦克：普通→普通、快速→快速、重甲→重甲；
+  // 其他敌军映射到对应我方坦克，自爆坦克则随机变成一辆初始界面坦克。
   configureAssimilatedAllyAsPlayerTank(enemy,friendlyClass);
 
   enemy.isAssimilated=true;
   enemy.friendlyAlly=true;
+  enemy.assimilatedFromSuicide=originalType==="suicide";
   enemy.assimilatedOriginalType=originalType;
   enemy.cooldown=Math.min(enemy.cooldown||0,12);
   enemy.aiTimer=0;
