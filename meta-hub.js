@@ -124,6 +124,13 @@ function metaAddHighTankCoins(amount) {
   refreshMetaHud();
 }
 
+function metaAddUltimateTankCoins(amount) {
+  if (typeof islandData === "undefined") return;
+  islandData.ultimateTankCoins = Math.max(0, (islandData.ultimateTankCoins || 0) + Math.floor(Number(amount)||0));
+  if (typeof saveIslandData === "function") saveIslandData();
+  refreshMetaHud();
+}
+
 function metaToast(text) {
   let el = document.getElementById("meta-toast");
   if (!el) {
@@ -187,6 +194,7 @@ const CURRENCY_INFO = {
   tankCoins:{icon:"🔷",name:"坦克币"},
   midTankCoins:{icon:"🟣",name:"中级坦克币"},
   highTankCoins:{icon:"💎",name:"高级坦克币"},
+  ultimateTankCoins:{icon:"🌟",name:"终极坦克币"},
 };
 
 const BLIND_BOXES = [
@@ -216,6 +224,7 @@ function createMetaHud() {
     <button data-meta-panel="pets">🐾 宠物</button>
     <button data-meta-panel="skinshop">🎨 皮肤商城</button>
     <button data-meta-panel="recharge" class="meta-recharge-top">💎 充值</button>
+    <button data-meta-panel="serverevent" class="meta-server-event-top">🎊 全服活动</button>
   `;
 
   const right = document.createElement("div");
@@ -288,6 +297,7 @@ function openMetaPanel(type) {
   else if (type === "currency") renderCurrencyWallet(title, body);
   else if (type === "vip") renderVip(title, body);
   else if (type === "recharge") renderRecharge(title, body);
+  else if (type === "serverevent") renderServerMilestoneEvent(title, body);
   else if (type === "pets") renderPets(title, body);
   else if (type === "skinshop") renderSkinShop(title, body);
 }
@@ -551,6 +561,7 @@ function renderCurrencyWallet(title, body) {
   const tank = islandData.tankCoins || 0;
   const mid = islandData.midTankCoins || 0;
   const high = islandData.highTankCoins || 0;
+  const ultimate = islandData.ultimateTankCoins || 0;
 
   body.innerHTML = `
     <div class="tank-currency-wallet">
@@ -558,6 +569,7 @@ function renderCurrencyWallet(title, body) {
       <div><strong>🔷 ${tank.toLocaleString()}</strong><span>普通坦克币</span></div>
       <div><strong>🟣 ${mid.toLocaleString()}</strong><span>中级坦克币</span></div>
       <div><strong>💎 ${high.toLocaleString()}</strong><span>高级坦克币</span></div>
+      <div><strong>🌟 ${ultimate.toLocaleString()}</strong><span>终极坦克币</span></div>
     </div>
 
     <div class="tank-currency-exchange">
@@ -874,6 +886,78 @@ function renderSkinShop(title, body) {
   });
 }
 
+async function renderServerMilestoneEvent(title, body) {
+  title.textContent = "🎊 全服1000人活动";
+  const serverUrl=typeof getCommunityServerUrl==="function"?getCommunityServerUrl():"";
+  if(!serverUrl){
+    body.innerHTML=`
+      <div class="server-event-card locked">
+        <div class="server-event-icon">🎊</div>
+        <b>全服1000人里程碑</b>
+        <small>需要先配置统一服务器地址，进入游戏人数才会计入全服活动。</small>
+      </div>`;
+    return;
+  }
+
+  body.innerHTML='<div class="vip-loading">正在登记并同步全服活动…</div>';
+  try{
+    const joined=typeof enterServerMilestoneEventOnline==="function"
+      ? await enterServerMilestoneEventOnline()
+      : await getServerMilestoneEventOnline();
+    const ev=joined?.event||{};
+    const count=Math.max(0,Number(ev.entrants)||0);
+    const target=Math.max(1,Number(ev.targetPlayers)||1000);
+    const pct=Math.min(100,count/target*100);
+    const reward=ev.reward||{};
+    body.innerHTML=`
+      <div class="server-event-card ${ev.unlocked?"unlocked":"locked"}">
+        <div class="server-event-icon">${ev.unlocked?"🎉":"🚩"}</div>
+        <b>${ev.unlocked?"全服1000人达成！":"全服1000人冲刺"}</b>
+        <strong>${count.toLocaleString()} / ${target.toLocaleString()}</strong>
+        <div class="meta-progress"><i style="width:${pct}%"></i></div>
+        <small>${ev.unlocked?"大奖已经解锁，每个登记玩家可领取一次。":"每个不同玩家ID首次进入服务器只计1人。"}</small>
+      </div>
+      <div class="server-event-rewards">
+        <div><strong>🎨 全皮肤</strong><span>16款现有坦克皮肤全部解锁</span></div>
+        <div><strong>🔷 ${Number(reward.tankCoins||100000).toLocaleString()}</strong><span>坦克币</span></div>
+        <div><strong>🪙 ${Number(reward.coins||200000).toLocaleString()}</strong><span>金币</span></div>
+        <div><strong>🌟 ${Number(reward.ultimateTankCoins||100000).toLocaleString()}</strong><span>终极坦克币</span></div>
+        <div><strong>💎 ${Number(reward.highTankCoins||50000).toLocaleString()}</strong><span>高级坦克币</span></div>
+      </div>
+      <button id="server-event-claim" class="server-event-claim" ${!ev.unlocked||ev.claimed?"disabled":""}>
+        ${ev.claimed?"✅ 已领取":ev.unlocked?"🎁 领取全服大奖":"🔒 达到1000人后解锁"}
+      </button>
+      <button id="server-event-refresh" class="tank-currency-box-link secondary">刷新全服人数</button>`;
+
+    body.querySelector("#server-event-claim")?.addEventListener("click",async()=>{
+      const btn=body.querySelector("#server-event-claim");
+      if(btn)btn.disabled=true;
+      try{
+        const result=await claimServerMilestoneEventOnline();
+        const r=result?.reward||{};
+        islandData.coins=(islandData.coins||0)+(Number(r.coins)||0);
+        islandData.tankCoins=(islandData.tankCoins||0)+(Number(r.tankCoins)||0);
+        islandData.highTankCoins=(islandData.highTankCoins||0)+(Number(r.highTankCoins)||0);
+        islandData.ultimateTankCoins=(islandData.ultimateTankCoins||0)+(Number(r.ultimateTankCoins)||0);
+        if(r.allSkins){
+          islandData.skins=islandData.skins||{};
+          const skins=typeof ISLAND_SKINS!=="undefined"?ISLAND_SKINS:[];
+          for(const skin of skins)islandData.skins[skin.id]=true;
+        }
+        saveIslandData();refreshMetaHud();
+        metaToast("🎉 全服大奖已到账！");
+        await renderServerMilestoneEvent(title,body);
+      }catch(err){
+        metaToast("活动领取失败："+(err?.message||"服务器错误"));
+        if(btn)btn.disabled=false;
+      }
+    });
+    body.querySelector("#server-event-refresh")?.addEventListener("click",()=>renderServerMilestoneEvent(title,body));
+  }catch(err){
+    body.innerHTML=`<div class="meta-payment-warning">⚠️ 全服活动服务器不可用：${escapeRechargeHtml(err?.message||"连接失败")}</div>`;
+  }
+}
+
 async function renderRecharge(title, body) {
   title.textContent = "💎 充值中心";
   const fallbackPacks=[
@@ -1084,6 +1168,11 @@ createMetaHud();
 refreshMetaHud();
 updateMetaHudLocation();
 setTimeout(()=>syncVipStatus(true),600);
+setTimeout(()=>{
+  if(typeof getCommunityServerUrl==="function"&&getCommunityServerUrl()&&typeof enterServerMilestoneEventOnline==="function"){
+    enterServerMilestoneEventOnline().catch(()=>{});
+  }
+},900);
 setInterval(() => {
   refreshMetaHud();
   updateMetaHudLocation();
