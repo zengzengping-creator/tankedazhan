@@ -11,6 +11,7 @@ const TANK_SHOP_PRICES = {
   evolution: 600,
   omni: 800,
   dahu: 1000,
+  assimilate: 1200,
 };
 
 function islandDefaultData() {
