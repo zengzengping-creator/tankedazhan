@@ -1,6 +1,6 @@
 // 特殊玩家坦克：虎式坦克·大虎 / 同化坦克
 // 虎式：Q循环变大/缩小，发射能量炮。
-// 同化：同化弹把敌军转成我方队友；Boss不能同化；自爆坦克会随机转成正常友军坦克。
+// 同化：同化弹把敌军转成我方队友；友军统一变成玩家在初始界面选择的坦克；Boss不能同化。
 
 PLAYER_TANK_CLASSES.dahu = {
   name: "虎式坦克·大虎",
@@ -94,32 +94,16 @@ function isAssimilationBlocked(enemy){
   return false;
 }
 
-function configureAssimilatedAllyFromType(tank,type){
-  const stats=ENEMY_TYPES[type] || ENEMY_TYPES.normal;
-  tank.type=type;
-  tank.baseSpeed=stats.speed;
-  tank.maxHp=stats.hp;
-  tank.hp=Math.max(1,stats.hp);
-  tank.color=stats.color;
-  tank.fireChance=0;
-  tank.shotCooldown=stats.shotCooldown;
-  tank.bulletSpeed=stats.bulletSpeed;
-  tank.damage=stats.damage||1;
-  tank.scoreValue=0;
-  tank.dropChance=0;
-  tank.mark=stats.mark;
-  tank.cooldown=10;
-  tank.aiTimer=0;
-  tank.weakenOriginalBaseSpeed=null;
-  tank.weakenedByPlayer=false;
-  tank.suicideExploded=false;
-  tank.suicideHitFlash=0;
+function getSelectedFriendlyTankClass(){
+  const type=player?.playerClass || selectedPlayerTank || "normal";
+  return PLAYER_TANK_CLASSES[type] ? type : "normal";
 }
 
-function configureSuicideAsPlayerAlly(tank,type){
-  const cfg=PLAYER_TANK_CLASSES[type] || PLAYER_TANK_CLASSES.base;
-  tank.type=type;
-  tank.assimilatedPlayerClass=type;
+function configureAssimilatedAllyAsPlayerTank(tank,classType){
+  const cfg=PLAYER_TANK_CLASSES[classType] || PLAYER_TANK_CLASSES.normal;
+  tank.type="ally_"+classType;
+  tank.assimilatedPlayerClass=classType;
+  tank.size=TILE-6;
   tank.baseSpeed=cfg.speed;
   tank.maxHp=cfg.maxHp;
   tank.hp=cfg.maxHp;
@@ -130,17 +114,32 @@ function configureSuicideAsPlayerAlly(tank,type){
   tank.damage=cfg.damage||1;
   tank.scoreValue=0;
   tank.dropChance=0;
-  tank.mark=cfg.mark;
+  tank.mark=cfg.mark||"友";
   tank.cooldown=10;
   tank.aiTimer=0;
+
+  // 清掉原敌军/自爆/削弱状态，避免同化后继续执行敌方特殊逻辑。
   tank.weakenOriginalBaseSpeed=null;
   tank.weakenedByPlayer=false;
   tank.suicideExploded=false;
   tank.suicideHitFlash=0;
-}
+  tank.bossConfigured=false;
+  tank.bossShielded=false;
+  tank.bossStunned=false;
+  tank.isFlying=false;
+  tank.flightTimer=0;
+  tank.evolvedTimer=0;
 
-function randomFriendlyTypeForSuicide(){
-  return ASSIMILATE_SUICIDE_RANDOM_TYPES[Math.floor(rnd()*ASSIMILATE_SUICIDE_RANDOM_TYPES.length)] || "base";
+  // 虎式友军按初始界面的正常形态出现，不继承玩家当前巨大/迷你状态。
+  if(classType==="dahu"){
+    tank.size=DAHU_FORMS.normal.size;
+    tank.baseSpeed=DAHU_FORMS.normal.speed;
+    tank.damage=DAHU_FORMS.normal.damage;
+    tank.shotCooldown=DAHU_FORMS.normal.cooldown;
+    tank.dahuForm="normal";
+  }else{
+    tank.dahuForm=null;
+  }
 }
 
 function assimilateEnemyToAlly(enemy){
@@ -148,21 +147,19 @@ function assimilateEnemyToAlly(enemy){
   if(isAssimilationBlocked(enemy)) return false;
 
   const originalType=enemy.type;
-  if(originalType==="suicide"){
-    const allyType=randomFriendlyTypeForSuicide();
-    configureSuicideAsPlayerAlly(enemy,allyType);
-    enemy.assimilatedFromSuicide=true;
-  }
+  const friendlyClass=getSelectedFriendlyTankClass();
 
   const idx=enemies.indexOf(enemy);
   if(idx>=0) enemies.splice(idx,1);
+
+  // 无论原来是普通、快速、重甲还是自爆，都会变成玩家初始界面选中的那辆坦克。
+  configureAssimilatedAllyAsPlayerTank(enemy,friendlyClass);
 
   enemy.isAssimilated=true;
   enemy.friendlyAlly=true;
   enemy.assimilatedOriginalType=originalType;
   enemy.cooldown=Math.min(enemy.cooldown||0,12);
   enemy.aiTimer=0;
-  // 除自爆坦克外，不改type / color / mark / hp / speed，保持原来的样子与属性。
   assimilatedAllies.push(enemy);
 
   if(typeof updateHUD==="function") updateHUD();
@@ -268,7 +265,7 @@ function updateSpecialPlayerBullet(b,mode){
   for(const enemy of [...enemies]){
     if(!enemy.alive || !rectsOverlap(rect,enemy.rect())) continue;
 
-    if((mode==="assimilate" || mode==="energy") && !isAssimilationBlocked(enemy)){
+    if(mode==="assimilate" && !isAssimilationBlocked(enemy)){
       assimilateEnemyToAlly(enemy);
       b.alive=false;
       return;
@@ -414,7 +411,7 @@ startLevel=function(n){
 function drawSpecialTankExtras(){
   for(const ally of assimilatedAllies){
     if(!ally?.alive)continue;
-    // 仍按原来的type、颜色和mark画，只加友军光圈，不改变坦克本体。
+    // 同化后显示成玩家在初始界面选中的坦克，只加绿色友军光圈。
     drawTank(ally,ally.color);
     ctx.save();
     ctx.strokeStyle="#52f1a9";
@@ -423,10 +420,8 @@ function drawSpecialTankExtras(){
     ctx.fillStyle="#bfffe3";
     ctx.font="bold 9px sans-serif";
     ctx.textAlign="center";
-    const allyLabel=ally.assimilatedFromSuicide
-      ? "队友·"+(PLAYER_TANK_CLASSES[ally.assimilatedPlayerClass]?.name||"友军")
-      : "我方队友";
-    ctx.fillText(allyLabel,ally.cx,ally.y-5);
+    const allyName=PLAYER_TANK_CLASSES[ally.assimilatedPlayerClass]?.name||"友军坦克";
+    ctx.fillText("队友·"+allyName,ally.cx,ally.y-5);
     ctx.restore();
   }
 
