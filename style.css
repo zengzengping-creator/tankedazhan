@@ -2981,7 +2981,7 @@ button:disabled {
 
 .tank-currency-exchange > div {
   display:grid;
-  grid-template-columns:1fr auto auto;
+  grid-template-columns:minmax(150px,1fr) repeat(4,auto);
   gap:6px;
   align-items:center;
   padding:8px;
@@ -3712,4 +3712,9 @@ button:disabled {
   .enemy-guide-stats {
     grid-template-columns: repeat(4, 1fr);
   }
+}
+
+.meta-recharge-card [data-recharge-pack] {
+  width: 100%;
+  min-height: 30px;
 }
