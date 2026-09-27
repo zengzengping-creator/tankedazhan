@@ -115,11 +115,16 @@ async function getRechargeConfigOnline(){
   return communityFetch("/api/recharge/config");
 }
 
-async function createRechargeOrderOnline(packId){
+async function createRechargeOrderOnline(packId,rewardType="tankCoins"){
   const player=getCommunityPlayer();
   return communityFetch("/api/recharge/orders",{
     method:"POST",
-    body:JSON.stringify({playerId:player.id,playerName:player.name,packId:String(packId||"")})
+    body:JSON.stringify({
+      playerId:player.id,
+      playerName:player.name,
+      packId:String(packId||""),
+      rewardType:rewardType==="coins"?"coins":"tankCoins"
+    })
   });
 }
 
