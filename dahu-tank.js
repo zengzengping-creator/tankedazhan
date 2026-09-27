@@ -1,4 +1,4 @@
-// 特殊玩家坦克：虎式坦克·大虎 / 同化坦克
+// 特殊玩家坦克：虎式坦克·大虎 / 童话坦克
 // 虎式：Q循环变大/缩小，发射能量炮。
 // 同化：同化弹把敌军转成我方队友；友军变成初始界面里的我方坦克；Boss/豹子不能同化。
 
@@ -17,7 +17,7 @@ PLAYER_TANK_CLASSES.dahu = {
 };
 
 PLAYER_TANK_CLASSES.assimilate = {
-  name: "同化坦克",
+  name: "童话坦克",
   color: "#55d6c2",
   mark: "同",
   speed: 2.30,
@@ -25,8 +25,8 @@ PLAYER_TANK_CLASSES.assimilate = {
   damage: 1,
   shotCooldown: 22,
   bulletSpeed: 6.2,
-  skillName: "同化脉冲",
-  skillDesc: "炮弹可把敌军变成队友；Q同化最近目标；Boss免疫",
+  skillName: "童化脉冲",
+  skillDesc: "把敌军随机童化成初始界面的我方坦克；Boss免疫",
   cooldown: 12 * 60,
 };
 
@@ -38,19 +38,11 @@ const DAHU_FORMS = {
 const DAHU_FORM_ORDER = ["normal","giant","mini"];
 
 const ASSIMILATE_BLOCKED_TYPES = new Set(["boss6","boss10","leopard"]);
-const ASSIMILATE_PLAYER_CLASS_MAP = {
-  normal:"normal",
-  fast:"fast",
-  armor:"armor",
-  firepower:"elite",
-  elite:"elite",
-  fortress:"armor",
-  destroyer:"base"
-};
-const ASSIMILATE_SUICIDE_RANDOM_TYPES = [
+const ASSIMILATE_RANDOM_PLAYER_CLASSES = [
   "normal","fast","elite","armor","base","weaken",
-  "flight","evolution","omni","dahu","assimilate"
+  "flight","evolution","omni","dahu"
 ];
+
 
 let assimilatedAllies = [];
 globalThis.getAssimilatedAllies = () => assimilatedAllies;
@@ -106,14 +98,11 @@ function isAssimilationBlocked(enemy){
   return false;
 }
 
-function playerClassForAssimilatedEnemy(enemyType){
-  return ASSIMILATE_PLAYER_CLASS_MAP[enemyType] || "normal";
-}
-
-function randomInitialFriendlyTankClass(){
-  const pool=ASSIMILATE_SUICIDE_RANDOM_TYPES.filter(type=>PLAYER_TANK_CLASSES[type]);
+function randomAssimilatedPlayerClass(){
+  const pool=ASSIMILATE_RANDOM_PLAYER_CLASSES.filter(type=>PLAYER_TANK_CLASSES[type]);
   return pool[Math.floor(rnd()*pool.length)] || "normal";
 }
+
 
 function configureAssimilatedAllyAsPlayerTank(tank,classType){
   const cfg=PLAYER_TANK_CLASSES[classType] || PLAYER_TANK_CLASSES.normal;
@@ -134,7 +123,7 @@ function configureAssimilatedAllyAsPlayerTank(tank,classType){
   tank.cooldown=10;
   tank.aiTimer=0;
 
-  // 清掉原敌军/自爆/削弱状态，避免同化后继续执行敌方特殊逻辑。
+  // 清掉原敌军/自爆/削弱状态，避免童化后继续执行敌方特殊逻辑。
   tank.weakenOriginalBaseSpeed=null;
   tank.weakenedByPlayer=false;
   tank.suicideExploded=false;
@@ -163,15 +152,12 @@ function assimilateEnemyToAlly(enemy){
   if(isAssimilationBlocked(enemy)) return false;
 
   const originalType=enemy.type;
-  const friendlyClass=originalType==="suicide"
-    ? randomInitialFriendlyTankClass()
-    : playerClassForAssimilatedEnemy(originalType);
+  const friendlyClass=randomAssimilatedPlayerClass();
 
   const idx=enemies.indexOf(enemy);
   if(idx>=0) enemies.splice(idx,1);
 
-  // 同化后改成初始界面里的我方坦克：普通→普通、快速→快速、重甲→重甲；
-  // 其他敌军映射到对应我方坦克，自爆坦克则随机变成一辆初始界面坦克。
+  // 童化后统一随机变成初始选择界面中的一辆我方坦克；童话坦克自身不进入随机池。
   configureAssimilatedAllyAsPlayerTank(enemy,friendlyClass);
 
   enemy.isAssimilated=true;
@@ -431,7 +417,7 @@ startLevel=function(n){
 function drawSpecialTankExtras(){
   for(const ally of assimilatedAllies){
     if(!ally?.alive)continue;
-    // 同化后显示成玩家在初始界面选中的坦克，只加绿色友军光圈。
+    // 童化后显示成玩家在初始界面选中的坦克，只加绿色友军光圈。
     drawTank(ally,ally.color);
     ctx.save();
     ctx.strokeStyle="#52f1a9";
@@ -460,7 +446,7 @@ function drawSpecialTankExtras(){
     ctx.strokeStyle="#55f2d5";ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(player.cx,player.cy,player.size/2+6,0,Math.PI*2);ctx.stroke();
     ctx.fillStyle="#c9fff5";ctx.font="bold 10px sans-serif";ctx.textAlign="center";
-    ctx.fillText("同化坦克",player.cx,player.y-7);
+    ctx.fillText("童话坦克",player.cx,player.y-7);
     ctx.restore();
   }
 
