@@ -1,6 +1,6 @@
 // 特殊玩家坦克：虎式坦克·大虎 / 童话坦克
 // 虎式：Q循环变大/缩小，发射能量炮。
-// 同化：同化弹把敌军转成我方队友；友军变成初始界面里的我方坦克；Boss/豹子不能同化。
+// 童话坦克：童化弹把敌军随机变成初始界面里的我方坦克；童话坦克自身不进入随机池；Boss/豹子不能童化。
 
 PLAYER_TANK_CLASSES.dahu = {
   name: "虎式坦克·大虎",
@@ -19,7 +19,7 @@ PLAYER_TANK_CLASSES.dahu = {
 PLAYER_TANK_CLASSES.assimilate = {
   name: "童话坦克",
   color: "#55d6c2",
-  mark: "同",
+  mark: "童",
   speed: 2.30,
   maxHp: 7,
   damage: 1,
