@@ -37,10 +37,8 @@ const DAHU_FORMS = {
 };
 const DAHU_FORM_ORDER = ["normal","giant","mini"];
 
-const ASSIMILATE_BLOCKED_TYPES = new Set(["boss6","boss10","leopard"]);
-const ASSIMILATE_SUICIDE_RANDOM_TYPES = [
-  "normal","fast","armor","firepower","elite","fortress","destroyer"
-];
+const ASSIMILATE_BLOCKED_TYPES = new Set(["boss6","boss10"]);
+const ASSIMILATE_SUICIDE_RANDOM_TYPES = ["omni","base"];
 
 let assimilatedAllies = [];
 globalThis.getAssimilatedAllies = () => assimilatedAllies;
@@ -103,9 +101,10 @@ function configureAssimilatedAllyFromType(tank,type){
   tank.maxHp=stats.hp;
   tank.hp=Math.max(1,stats.hp);
   tank.color=stats.color;
-  tank.fireChance=stats.fireChance;
+  tank.fireChance=0;
   tank.shotCooldown=stats.shotCooldown;
   tank.bulletSpeed=stats.bulletSpeed;
+  tank.damage=stats.damage||1;
   tank.scoreValue=0;
   tank.dropChance=0;
   tank.mark=stats.mark;
@@ -117,9 +116,31 @@ function configureAssimilatedAllyFromType(tank,type){
   tank.suicideHitFlash=0;
 }
 
+function configureSuicideAsPlayerAlly(tank,type){
+  const cfg=PLAYER_TANK_CLASSES[type] || PLAYER_TANK_CLASSES.base;
+  tank.type=type;
+  tank.assimilatedPlayerClass=type;
+  tank.baseSpeed=cfg.speed;
+  tank.maxHp=cfg.maxHp;
+  tank.hp=cfg.maxHp;
+  tank.color=cfg.color;
+  tank.fireChance=0;
+  tank.shotCooldown=cfg.shotCooldown;
+  tank.bulletSpeed=cfg.bulletSpeed;
+  tank.damage=cfg.damage||1;
+  tank.scoreValue=0;
+  tank.dropChance=0;
+  tank.mark=cfg.mark;
+  tank.cooldown=10;
+  tank.aiTimer=0;
+  tank.weakenOriginalBaseSpeed=null;
+  tank.weakenedByPlayer=false;
+  tank.suicideExploded=false;
+  tank.suicideHitFlash=0;
+}
+
 function randomFriendlyTypeForSuicide(){
-  const pool=ASSIMILATE_SUICIDE_RANDOM_TYPES.filter(type=>ENEMY_TYPES[type]);
-  return pool[Math.floor(rnd()*pool.length)] || "normal";
+  return ASSIMILATE_SUICIDE_RANDOM_TYPES[Math.floor(rnd()*ASSIMILATE_SUICIDE_RANDOM_TYPES.length)] || "base";
 }
 
 function assimilateEnemyToAlly(enemy){
@@ -128,7 +149,8 @@ function assimilateEnemyToAlly(enemy){
 
   const originalType=enemy.type;
   if(originalType==="suicide"){
-    configureAssimilatedAllyFromType(enemy,randomFriendlyTypeForSuicide());
+    const allyType=randomFriendlyTypeForSuicide();
+    configureSuicideAsPlayerAlly(enemy,allyType);
     enemy.assimilatedFromSuicide=true;
   }
 
@@ -246,7 +268,7 @@ function updateSpecialPlayerBullet(b,mode){
   for(const enemy of [...enemies]){
     if(!enemy.alive || !rectsOverlap(rect,enemy.rect())) continue;
 
-    if(mode==="assimilate" && !isAssimilationBlocked(enemy)){
+    if((mode==="assimilate" || mode==="energy") && !isAssimilationBlocked(enemy)){
       assimilateEnemyToAlly(enemy);
       b.alive=false;
       return;
@@ -288,7 +310,7 @@ function fireAssimilatedAlly(ally,target){
     ally.cy+v.y*(ally.size/2),
     dir,true,ally.bulletSpeed||5
   );
-  bullet.damage=Math.max(1,ENEMY_TYPES[ally.type]?.damage||1);
+  bullet.damage=Math.max(1,ally.damage||ENEMY_TYPES[ally.type]?.damage||1);
   bullet.friendlyAllyShot=true;
   bullets.push(bullet);
   ally.cooldown=Math.max(10,ally.shotCooldown||30);
@@ -401,7 +423,10 @@ function drawSpecialTankExtras(){
     ctx.fillStyle="#bfffe3";
     ctx.font="bold 9px sans-serif";
     ctx.textAlign="center";
-    ctx.fillText(ally.assimilatedFromSuicide?"随机友军":"我方队友",ally.cx,ally.y-5);
+    const allyLabel=ally.assimilatedFromSuicide
+      ? "队友·"+(PLAYER_TANK_CLASSES[ally.assimilatedPlayerClass]?.name||"友军")
+      : "我方队友";
+    ctx.fillText(allyLabel,ally.cx,ally.y-5);
     ctx.restore();
   }
 
