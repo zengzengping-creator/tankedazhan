@@ -9,7 +9,7 @@ let islandGameKeys = {};
 let islandGameState = null;
 
 function getOwnedIslandTankTypes() {
-  const all = ["normal", "fast", "armor", "elite", "base", "weaken", "flight", "evolution", "omni"];
+  const all = ["normal", "fast", "armor", "elite", "base", "weaken", "flight", "evolution", "omni", "dahu", "assimilate"];
   return all.filter((type) => typeof isTankUnlocked === "function" && isTankUnlocked(type));
 }
 
