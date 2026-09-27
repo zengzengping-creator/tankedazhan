@@ -21,7 +21,7 @@ const DAHU_FORMS = {
   mini:   { size: 24,       speed: 3.35, damage: 1, cooldown: 12, label:"迷你" },
 };
 const DAHU_FORM_ORDER = ["normal","giant","mini"];
-const DAHU_ASSIMILATE_BLOCKED = new Set(["boss6","boss10","suicide"]);
+const DAHU_ASSIMILATE_BLOCKED = new Set(["boss6","boss10"]);
 let dahuAllies = [];
 
 function dahuCfg(tank){
@@ -97,18 +97,59 @@ Tank.prototype.shoot=function(){
   return shootBeforeDahu.call(this);
 };
 
+function configureAssimilatedSuicideTank(enemy){
+  // 自爆坦克被同化后，不再保留自爆逻辑，而是随机重构为全能/基地友军。
+  const allyClass = rnd() < 0.5 ? "omni" : "base";
+  const cfg = PLAYER_TANK_CLASSES[allyClass] || PLAYER_TANK_CLASSES.base;
+  enemy.originalEnemyType = "suicide";
+  enemy.assimilatedPlayerClass = allyClass;
+  enemy.type = allyClass;
+  enemy.color = cfg.color;
+  enemy.mark = cfg.mark;
+  enemy.baseSpeed = cfg.speed;
+  enemy.maxHp = cfg.maxHp;
+  enemy.hp = cfg.maxHp;
+  enemy.damage = cfg.damage || 1;
+  enemy.shotCooldown = cfg.shotCooldown || 18;
+  enemy.bulletSpeed = cfg.bulletSpeed || 6;
+  enemy.fireChance = 0;
+  enemy.size = TILE - 6;
+  return allyClass;
+}
+
 function assimilateEnemyByDahu(enemy){
   if(!enemy || !enemy.alive || enemy.isPlayer || enemy.isAssimilated) return false;
   if(DAHU_ASSIMILATE_BLOCKED.has(enemy.type)) return false;
 
+  const originalType = enemy.type;
   const idx=enemies.indexOf(enemy);
   if(idx>=0) enemies.splice(idx,1);
+
   enemy.isAssimilated=true;
   enemy.assimilatedByDahu=true;
-  enemy.mark="同";
+  enemy.originalEnemyType=originalType;
   enemy.cooldown=20;
   enemy.aiTimer=0;
-  // 保留被同化前的类型/速度/血量/颜色。
+
+  if(originalType==="suicide"){
+    configureAssimilatedSuicideTank(enemy);
+  }else{
+    // 普通→普通、快速→快速、重甲→重甲……完全保留原敌军外形与属性。
+    const stats=ENEMY_TYPES[originalType];
+    if(stats){
+      enemy.type=originalType;
+      enemy.color=stats.color;
+      enemy.mark=stats.mark;
+      enemy.baseSpeed=stats.speed;
+      enemy.maxHp=stats.hp;
+      enemy.hp=Math.max(1,Math.min(enemy.hp,stats.hp));
+      enemy.damage=stats.damage||1;
+      enemy.shotCooldown=stats.shotCooldown;
+      enemy.bulletSpeed=stats.bulletSpeed;
+      enemy.fireChance=0;
+    }
+  }
+
   dahuAllies.push(enemy);
   score+=(enemy.scoreValue||0);
   if(typeof updateHUD==="function") updateHUD();
@@ -135,7 +176,7 @@ function updateDahuEnergyBullet(b){
       b.alive=false;
       return;
     }
-    // BOSS/自爆坦克不能被同化，能量炮按普通伤害处理。
+    // BOSS不能被同化，能量炮对BOSS按普通伤害处理。
     enemy.takeDamage(b.damage||1,true);
     b.alive=false;
     return;
@@ -220,7 +261,10 @@ function drawDahuExtras(){
     ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(ally.cx,ally.cy,ally.size/2+5,0,Math.PI*2);ctx.stroke();
     ctx.fillStyle="#bdfaff";ctx.font="bold 9px sans-serif";ctx.textAlign="center";
-    ctx.fillText("同化友军",ally.cx,ally.y-5);
+    const allyName=ally.assimilatedPlayerClass
+      ? (PLAYER_TANK_CLASSES[ally.assimilatedPlayerClass]?.name||"友军")
+      : (ENEMY_TYPES[ally.originalEnemyType]?.name||"友军坦克");
+    ctx.fillText("队友·"+allyName,ally.cx,ally.y-5);
     ctx.restore();
   }
 
