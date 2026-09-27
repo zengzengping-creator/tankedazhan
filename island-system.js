@@ -40,6 +40,7 @@ function islandDefaultData() {
     tankCoins: 0,
     midTankCoins: 0,
     highTankCoins: 0,
+    ultimateTankCoins: 0,
     unlocked: { normal: true, fast: true, armor: true },
   };
 }
@@ -59,6 +60,7 @@ function loadIslandData() {
   data.tankCoins = Number.isFinite(data.tankCoins) ? Math.max(0, Math.floor(data.tankCoins)) : 0;
   data.midTankCoins = Number.isFinite(data.midTankCoins) ? Math.max(0, Math.floor(data.midTankCoins)) : 0;
   data.highTankCoins = Number.isFinite(data.highTankCoins) ? Math.max(0, Math.floor(data.highTankCoins)) : 0;
+  data.ultimateTankCoins = Number.isFinite(data.ultimateTankCoins) ? Math.max(0, Math.floor(data.ultimateTankCoins)) : 0;
   data.unlocked = data.unlocked || {};
   for (const type of INITIAL_UNLOCKED_TANKS) data.unlocked[type] = true;
   for (const type of allShopTankTypes()) {
