@@ -562,9 +562,11 @@ function renderCurrencyWallet(title, body) {
 
     <div class="tank-currency-exchange">
       <div>
-        <span><b>🔷 ↔ 🪙 普通币双向兑换</b><small>1坦克币 → 10金币；12金币 → 1坦克币</small></span>
-        <button data-tank-to-gold="1" ${tank<1?"disabled":""}>1🔷 → 10🪙</button>
-        <button data-gold-to-tank="1" ${gold<12?"disabled":""}>12🪙 → 1🔷</button>
+        <span><b>🔷 ↔ 🪙 普通币双向等值兑换</b><small>1坦克币 = 5金币，可单次兑换，也可一键全部兑换</small></span>
+        <button data-tank-to-gold="1" ${tank<1?"disabled":""}>1🔷 → 5🪙</button>
+        <button data-gold-to-tank="1" ${gold<5?"disabled":""}>5🪙 → 1🔷</button>
+        <button data-tank-to-gold-all="1" ${tank<1?"disabled":""}>全部🔷→🪙</button>
+        <button data-gold-to-tank-all="1" ${gold<5?"disabled":""}>全部🪙→🔷</button>
       </div>
       <div>
         <span><b>5 🔷 → 1 🟣</b><small>中级坦克币：1个可抽1次中级盲盒</small></span>
@@ -584,7 +586,7 @@ function renderCurrencyWallet(title, body) {
     </div>
 
     <div class="meta-payment-warning">
-      金币兑换回坦克币需要12金币，坦克币换金币只得到10金币，避免反复兑换刷币；中级/高级按2:1等值互换。
+      普通金币与坦克币按 5金币 = 1坦克币 双向等值兑换；“全部兑换”会一次转换当前可兑换的全部余额。中级/高级按2:1等值互换。
     </div>
 
     <div class="tank-coin-uses">
@@ -614,18 +616,37 @@ function renderCurrencyWallet(title, body) {
     const count=Math.max(1,Number(btn.dataset.tankToGold)||1);
     if((islandData.tankCoins||0)<count){metaToast("坦克币不足");return;}
     islandData.tankCoins-=count;
-    islandData.coins=(islandData.coins||0)+count*10;
-    metaToast(`🪙 已兑换 ${count*10} 金币`);
+    islandData.coins=(islandData.coins||0)+count*5;
+    metaToast(`🪙 已兑换 ${count*5} 金币`);
     saveAndRefresh();
   });
 
   body.querySelectorAll("[data-gold-to-tank]").forEach(btn=>btn.onclick=()=>{
     const count=Math.max(1,Number(btn.dataset.goldToTank)||1);
-    const need=count*12;
+    const need=count*5;
     if((islandData.coins||0)<need){metaToast("金币不足");return;}
     islandData.coins-=need;
     islandData.tankCoins=(islandData.tankCoins||0)+count;
     metaToast(`🔷 已兑换普通坦克币 x${count}`);
+    saveAndRefresh();
+  });
+
+  body.querySelector("[data-tank-to-gold-all]")?.addEventListener("click",()=>{
+    const count=Math.floor(islandData.tankCoins||0);
+    if(count<1){metaToast("坦克币不足");return;}
+    islandData.tankCoins=0;
+    islandData.coins=(islandData.coins||0)+count*5;
+    metaToast(`🪙 一键兑换完成：${count}坦克币 → ${count*5}金币`);
+    saveAndRefresh();
+  });
+
+  body.querySelector("[data-gold-to-tank-all]")?.addEventListener("click",()=>{
+    const count=Math.floor((islandData.coins||0)/5);
+    if(count<1){metaToast("金币不足");return;}
+    const spent=count*5;
+    islandData.coins-=spent;
+    islandData.tankCoins=(islandData.tankCoins||0)+count;
+    metaToast(`🔷 一键兑换完成：${spent}金币 → ${count}坦克币`);
     saveAndRefresh();
   });
 
