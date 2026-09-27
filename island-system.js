@@ -10,6 +10,7 @@ const TANK_SHOP_PRICES = {
   flight: 500,
   evolution: 600,
   omni: 800,
+  dahu: 1000,
 };
 
 function islandDefaultData() {
