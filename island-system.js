@@ -1,5 +1,5 @@
-// 坦克岛：金币、坦克商店、娱乐区入口与技能时长强化
-// 初始免费坦克：普通 / 快速 / 重甲。其他坦克使用金币永久解锁。
+// 坦克岛：金币、坦克币、坦克商店、娱乐区入口与技能时长强化
+// 初始免费坦克：普通 / 快速 / 重甲。童话坦克与全能坦克只能用坦克币解锁。
 
 const TANK_ISLAND_STORAGE_KEY = "tankBattleIsland_v1";
 const INITIAL_UNLOCKED_TANKS = ["normal", "fast", "armor"];
@@ -9,10 +9,30 @@ const TANK_SHOP_PRICES = {
   weaken: 400,
   flight: 500,
   evolution: 600,
-  omni: 800,
   dahu: 1000,
-  assimilate: 1200,
 };
+
+const TANK_SHOP_TANK_COIN_PRICES = {
+  assimilate: 1200,
+  omni: 1800,
+};
+
+function allShopTankTypes() {
+  return [...new Set([
+    ...Object.keys(TANK_SHOP_PRICES),
+    ...Object.keys(TANK_SHOP_TANK_COIN_PRICES),
+  ])];
+}
+
+function getTankShopPriceInfo(type) {
+  if (TANK_SHOP_TANK_COIN_PRICES[type] != null) {
+    return { currency:"tankCoins", amount:TANK_SHOP_TANK_COIN_PRICES[type], icon:"🔷", name:"坦克币" };
+  }
+  if (TANK_SHOP_PRICES[type] != null) {
+    return { currency:"coins", amount:TANK_SHOP_PRICES[type], icon:"🪙", name:"金币" };
+  }
+  return null;
+}
 
 function islandDefaultData() {
   return {
@@ -41,7 +61,7 @@ function loadIslandData() {
   data.highTankCoins = Number.isFinite(data.highTankCoins) ? Math.max(0, Math.floor(data.highTankCoins)) : 0;
   data.unlocked = data.unlocked || {};
   for (const type of INITIAL_UNLOCKED_TANKS) data.unlocked[type] = true;
-  for (const type of Object.keys(TANK_SHOP_PRICES)) {
+  for (const type of allShopTankTypes()) {
     if (data.unlocked[type] == null) data.unlocked[type] = false;
   }
 
@@ -138,21 +158,24 @@ selectPlayerTank = function (type) {
 };
 
 function buyIslandTank(type) {
-  const basePrice = TANK_SHOP_PRICES[type];
-  if (basePrice == null || isTankUnlocked(type)) return;
+  const priceInfo = getTankShopPriceInfo(type);
+  if (!priceInfo || isTankUnlocked(type)) return;
+
+  const basePrice = priceInfo.amount;
   const price = typeof globalThis.getVipDiscountedPrice === "function"
     ? globalThis.getVipDiscountedPrice(basePrice,"shop")
     : basePrice;
+  const balance = islandData[priceInfo.currency] || 0;
 
-  if (islandData.coins < price) {
-    setIslandNotice(`金币不足：还差 ${price - islandData.coins} 金币。`);
+  if (balance < price) {
+    setIslandNotice(`${priceInfo.name}不足：还差 ${price - balance} ${priceInfo.name}。`);
     return;
   }
 
-  islandData.coins -= price;
+  islandData[priceInfo.currency] = balance - price;
   islandData.unlocked[type] = true;
   saveIslandData();
-  setIslandNotice(`✅ 已解锁 ${PLAYER_TANK_CLASSES[type]?.name || type}！`);
+  setIslandNotice(`✅ 已使用 ${priceInfo.icon}${price} ${priceInfo.name}解锁 ${PLAYER_TANK_CLASSES[type]?.name || type}！`);
   refreshTankLockUI();
   renderTankIsland();
   selectPlayerTank(type);
@@ -162,6 +185,7 @@ function buyIslandTank(type) {
 const islandButton = document.getElementById("island-btn");
 const islandPanel = document.getElementById("island-panel");
 const islandCoinText = document.getElementById("island-coins");
+const islandTankCoinText = document.getElementById("island-tank-coins");
 const islandNotice = document.getElementById("island-notice");
 const freeNote = document.querySelector(".free-note");
 
@@ -204,16 +228,20 @@ if (islandButton) {
 
 function renderTankIsland() {
   if (islandCoinText) islandCoinText.textContent = islandData.coins;
+  if (islandTankCoinText) islandTankCoinText.textContent = islandData.tankCoins || 0;
   refreshTankLockUI();
   if (!islandPanel) return;
 
-  const shopHtml = Object.entries(TANK_SHOP_PRICES).map(([type, basePrice]) => {
+  const shopHtml = allShopTankTypes().map((type) => {
     const cfg = PLAYER_TANK_CLASSES[type];
     const owned = isTankUnlocked(type);
+    const info = getTankShopPriceInfo(type);
+    const basePrice = info.amount;
     const price = typeof globalThis.getVipDiscountedPrice === "function"
       ? globalThis.getVipDiscountedPrice(basePrice,"shop")
       : basePrice;
-    return `<div class="island-shop-row"><span>${cfg?.name || type}<small>${owned ? "✅ 已拥有" : `${price} 金币${price<basePrice?" · VIP价":""}`}</small></span>${owned ? "" : `<button class="island-mini-btn" data-buy="${type}">购买</button>`}</div>`;
+    const paidOnly = info.currency === "tankCoins" ? " · 坦克币专属" : "";
+    return `<div class="island-shop-row"><span>${cfg?.name || type}<small>${owned ? "✅ 已拥有" : `${info.icon} ${price} ${info.name}${price<basePrice?" · VIP价":""}${paidOnly}`}</small></span>${owned ? "" : `<button class="island-mini-btn" data-buy="${type}">购买</button>`}</div>`;
   }).join("");
 
   islandPanel.innerHTML = `
@@ -224,7 +252,7 @@ function renderTankIsland() {
     </div>
     <div class="island-section">
       <h3>🛒 坦克商店</h3>
-      <div class="island-owned-note">初始可用：普通、快速、重甲</div>
+      <div class="island-owned-note">初始可用：普通、快速、重甲。🧸童话坦克和🟧全能坦克只能使用充值货币🔷坦克币购买。</div>
       ${shopHtml}
     </div>`;
 }
@@ -253,7 +281,8 @@ function refreshTankLockUI() {
     if (unlocked) {
       badge.textContent = INITIAL_UNLOCKED_TANKS.includes(type) ? "✅ 初始可用" : "✅ 已解锁";
     } else {
-      badge.textContent = `🔒 ${TANK_SHOP_PRICES[type] || 0}金币`;
+      const info = getTankShopPriceInfo(type);
+      badge.textContent = info ? `🔒 ${info.icon}${info.amount} ${info.name}` : "🔒 未解锁";
     }
   }
 }
