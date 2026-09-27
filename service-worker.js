@@ -1,4 +1,4 @@
-const CACHE_NAME = "tank-party-v29";
+const CACHE_NAME = "tank-party-v30";
 const CORE = [
   "./",
   "./index.html",
@@ -14,6 +14,7 @@ const CORE = [
   "./party-special-modes.js",
   "./task-rewards.js",
   "./battle-supplies.js",
+  "./dahu-tank.js",
   "./real-3d-engine.js",
   "./touch-controls.js",
   "./music.js"
