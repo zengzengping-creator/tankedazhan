@@ -359,7 +359,7 @@
       }
     }
 
-    // 被同化的坦克保持原敌军外观，只增加绿色友军识别环。
+    // 被同化的坦克使用初始界面我方坦克的颜色/样式，并增加绿色友军识别环。
     const liveAllies = new Set();
     const allies = typeof globalThis.getAssimilatedAllies === "function" ? globalThis.getAssimilatedAllies() : [];
     for (const ally of allies) {
