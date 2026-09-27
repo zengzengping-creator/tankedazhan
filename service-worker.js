@@ -1,4 +1,4 @@
-const CACHE_NAME = "tank-party-v31";
+const CACHE_NAME = "tank-party-v32";
 const CORE = [
   "./",
   "./index.html",
