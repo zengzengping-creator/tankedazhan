@@ -3718,3 +3718,40 @@ button:disabled {
   width: 100%;
   min-height: 30px;
 }
+
+
+/* 全服1000人活动 */
+.meta-server-event-top{
+  border-color:rgba(255,137,86,.62)!important;
+  background:linear-gradient(180deg,rgba(104,46,20,.94),rgba(57,27,14,.94))!important;
+  color:#ffd2a8!important;
+}
+.server-event-card{
+  padding:14px;
+  border:1px solid #714836;
+  border-radius:11px;
+  background:linear-gradient(135deg,rgba(105,50,25,.22),rgba(18,34,42,.9));
+  display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;
+}
+.server-event-card.unlocked{border-color:#e5b64a;box-shadow:0 0 18px rgba(229,182,74,.12) inset}
+.server-event-icon{font-size:34px}
+.server-event-card b{color:#ffe29a;font-size:15px}
+.server-event-card strong{color:#fff;font-size:18px}
+.server-event-card small{color:#adc0c8;font-size:9px}
+.server-event-rewards{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px;
+}
+.server-event-rewards>div{
+  min-height:66px;padding:7px;border:1px solid #3b5865;border-radius:8px;
+  background:rgba(255,255,255,.045);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;text-align:center;
+}
+.server-event-rewards strong{color:#ffe17a;font-size:11px}
+.server-event-rewards span{color:#a7bdc7;font-size:8px}
+.server-event-claim{
+  width:min(340px,100%);display:block;margin:9px auto 0;padding:9px;
+  border:1px solid #e0ad3f;border-radius:8px;background:#805b18;color:#fff4c4;
+  font-size:11px;font-weight:700;
+}
+.server-event-claim:disabled{opacity:.48}
+@media(max-width:540px){.server-event-rewards{grid-template-columns:1fr 1fr}}
