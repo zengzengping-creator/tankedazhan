@@ -207,6 +207,7 @@
   let lastMapSignature = "";
   let playerMesh = null;
   const enemyMeshes = new Map();
+  const allyMeshes = new Map();
   const bulletMeshes = new Map();
   const powerMeshes = new Map();
 
@@ -296,11 +297,16 @@
       mesh.rotation.z = 0;
     }
 
-    if (isPlayerTank && tank.shieldTimer > 0) {
-      mesh.scale.setScalar(1.04);
-    } else {
-      mesh.scale.setScalar(1);
+    let baseScale = 1;
+    if (isPlayerTank && tank.playerClass === "dahu") {
+      baseScale = Math.max(.68, Math.min(1.55, (tank.size || (TILE-6)) / (TILE-6)));
+    } else if (!isPlayerTank && tank.type === "boss10") {
+      baseScale = 1.55;
+    } else if (!isPlayerTank && tank.type === "boss6") {
+      baseScale = 1.35;
     }
+    if (isPlayerTank && tank.shieldTimer > 0) baseScale *= 1.04;
+    mesh.scale.setScalar(baseScale);
   }
 
   function followCameraWithTarget(setup, desiredTarget, prevTarget, smoothing = 0.16) {
@@ -353,18 +359,60 @@
       }
     }
 
+    // 被同化的坦克保持原敌军外观，只增加绿色友军识别环。
+    const liveAllies = new Set();
+    const allies = typeof getAssimilatedAllies === "function" ? getAssimilatedAllies() : [];
+    for (const ally of allies) {
+      if (!ally?.alive) continue;
+      liveAllies.add(ally);
+      let mesh = allyMeshes.get(ally);
+      if (!mesh) {
+        mesh = makeTankMesh(ally.color || "#55d6c2", 1);
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(.55,.045,8,28),
+          new THREE.MeshStandardMaterial({color:0x58f0a8,emissive:0x14633f,emissiveIntensity:.85})
+        );
+        ring.rotation.x = Math.PI/2;
+        ring.position.y = .08;
+        ring.userData.friendlyRing = true;
+        mesh.add(ring);
+        allyMeshes.set(ally,mesh);
+        dynamicGroup.add(mesh);
+      }
+      syncTankMesh(mesh,ally,false);
+      mesh.children.forEach((child,idx)=>{
+        if(idx===0&&child.material?.color)child.material.color.set(ally.color||"#55d6c2");
+      });
+      mesh.visible=true;
+    }
+    for (const [ally,mesh] of allyMeshes) {
+      if (!liveAllies.has(ally)) {
+        dynamicGroup.remove(mesh);
+        allyMeshes.delete(ally);
+      }
+    }
+
     const liveBullets = new Set();
     for (const b of bullets) {
       if (!b?.alive) continue;
       liveBullets.add(b);
       let mesh = bulletMeshes.get(b);
       if (!mesh) {
+        const bulletColor = b.assimilationShot ? 0x72ffd9
+          : b.tigerEnergy ? 0x7cecff
+          : b.friendlyAllyShot ? 0x66f0a0
+          : b.fromPlayer ? 0xfff1a8 : 0xff6d5f;
+        const bulletEmissive = b.assimilationShot ? 0x17664e
+          : b.tigerEnergy ? 0x15566a
+          : b.friendlyAllyShot ? 0x145c35
+          : b.fromPlayer ? 0x553e00 : 0x4a0900;
+        const radius = Math.max(.09, Math.min(.20,(b.size||6)/60));
         mesh = new THREE.Mesh(
-          new THREE.SphereGeometry(0.09, 10, 8),
+          new THREE.SphereGeometry(radius, 12, 9),
           new THREE.MeshStandardMaterial({
-            color: b.fromPlayer ? 0xfff1a8 : 0xff6d5f,
-            emissive: b.fromPlayer ? 0x553e00 : 0x4a0900,
-            emissiveIntensity: 0.7,
+            color: bulletColor,
+            emissive: bulletEmissive,
+            emissiveIntensity: 0.9,
           })
         );
         mesh.castShadow = true;
