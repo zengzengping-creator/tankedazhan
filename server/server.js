@@ -14,12 +14,12 @@ const PAYMENT_CHECKOUT_URL = String(process.env.PAYMENT_CHECKOUT_URL || "").trim
 const PAYMENT_WEBHOOK_SECRET = String(process.env.PAYMENT_WEBHOOK_SECRET || "").trim();
 
 const RECHARGE_PACKS = [
-  {id:"r1", yuan:1, baseTankCoins:100, bonusTankCoins:0},
-  {id:"r6", yuan:6, baseTankCoins:600, bonusTankCoins:0},
-  {id:"r18", yuan:18, baseTankCoins:1800, bonusTankCoins:0},
-  {id:"r30", yuan:30, baseTankCoins:3000, bonusTankCoins:300},
-  {id:"r68", yuan:68, baseTankCoins:6800, bonusTankCoins:1000},
-  {id:"r128", yuan:128, baseTankCoins:12800, bonusTankCoins:2500}
+  {id:"r1", yuan:1, baseTankCoins:2000, bonusTankCoins:0, baseCoins:10000, bonusCoins:0},
+  {id:"r6", yuan:6, baseTankCoins:12000, bonusTankCoins:0, baseCoins:60000, bonusCoins:0},
+  {id:"r18", yuan:18, baseTankCoins:36000, bonusTankCoins:0, baseCoins:180000, bonusCoins:0},
+  {id:"r30", yuan:30, baseTankCoins:60000, bonusTankCoins:6000, baseCoins:300000, bonusCoins:30000},
+  {id:"r68", yuan:68, baseTankCoins:136000, bonusTankCoins:20000, baseCoins:680000, bonusCoins:100000},
+  {id:"r128", yuan:128, baseTankCoins:256000, bonusTankCoins:50000, baseCoins:1280000, bonusCoins:250000}
 ];
 
 const VIP_CONFIG = {
@@ -111,13 +111,18 @@ function saveRechargeOrders(){
   }
 }
 function publicRechargeOrder(order){
-  const baseTankCoins=Number(order.baseTankCoins ?? order.coins ?? 0);
+  const baseTankCoins=Number(order.baseTankCoins ?? 0);
   const bonusTankCoins=Number(order.bonusTankCoins ?? 0);
   const totalTankCoins=Number(order.totalTankCoins ?? (baseTankCoins+bonusTankCoins));
+  const baseCoins=Number(order.baseCoins ?? 0);
+  const bonusCoins=Number(order.bonusCoins ?? 0);
+  const totalCoins=Number(order.totalCoins ?? (baseCoins+bonusCoins));
   return {
     id:order.id,playerId:order.playerId,playerName:order.playerName,
     kind:order.kind||"recharge",packId:order.packId,yuan:order.yuan,
+    rewardType:order.rewardType||"tankCoins",
     baseTankCoins,bonusTankCoins,totalTankCoins,
+    baseCoins,bonusCoins,totalCoins,
     highTankCoins:Number(order.highTankCoins||0),
     durationDays:Number(order.durationDays||0),
     expiresAt:order.expiresAt||"",
@@ -267,9 +272,9 @@ app.post("/api/vip/daily-claim",(req,res)=>{
 
 app.get("/api/recharge/config",(req,res)=>{
   res.json({
-    rate:"1元=100坦克币",
+    rate:"1元=2000坦克币 或 10000金币",
     exchange:{
-      coins:"1坦克币=10金币",
+      coins:"1坦克币=5金币，双向等值兑换",
       basicBox:"1坦克币=1次普通坦克盲盒",
       crewBox:"1坦克币=1次乘员盲盒",
       midBox:"1中级坦克币=1次中级盲盒",
@@ -285,15 +290,19 @@ app.post("/api/recharge/orders",(req,res)=>{
   const playerId=safeText(req.body?.playerId,100);
   const playerName=safeText(req.body?.playerName,24)||"车长";
   const pack=RECHARGE_PACKS.find(p=>p.id===safeText(req.body?.packId,20));
+  const rewardType=safeText(req.body?.rewardType,20)==="coins"?"coins":"tankCoins";
   if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
   if(!pack)return res.status(400).json({error:"充值套餐不存在"});
 
   const order={
     id:"ord-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9),
-    kind:"recharge",playerId,playerName,packId:pack.id,yuan:pack.yuan,
+    kind:"recharge",playerId,playerName,packId:pack.id,yuan:pack.yuan,rewardType,
     baseTankCoins:pack.baseTankCoins,
     bonusTankCoins:pack.bonusTankCoins,
     totalTankCoins:pack.baseTankCoins+pack.bonusTankCoins,
+    baseCoins:pack.baseCoins,
+    bonusCoins:pack.bonusCoins,
+    totalCoins:pack.baseCoins+pack.bonusCoins,
     firstDouble:false,
     status:"pending",createdAt:new Date().toISOString()
   };
@@ -331,7 +340,14 @@ app.post("/api/recharge/orders/:id/claim",(req,res)=>{
   order.status="claimed";
   order.claimedAt=new Date().toISOString();
   saveRechargeOrders();
-  res.json({ok:true,tankCoins:Number(order.totalTankCoins||0),order:publicRechargeOrder(order)});
+  const rewardType=order.rewardType||"tankCoins";
+  res.json({
+    ok:true,
+    rewardType,
+    tankCoins:rewardType==="tankCoins"?Number(order.totalTankCoins||0):0,
+    coins:rewardType==="coins"?Number(order.totalCoins||0):0,
+    order:publicRechargeOrder(order)
+  });
 });
 
 app.post("/api/recharge/webhook",(req,res)=>{
@@ -355,10 +371,13 @@ app.post("/api/recharge/webhook",(req,res)=>{
         o!==order && o.playerId===order.playerId && (o.kind||"recharge")==="recharge" &&
         (o.status==="paid"||o.status==="claimed")
       );
-      const base=Number(order.baseTankCoins ?? order.coins ?? 0);
-      const bonus=Number(order.bonusTankCoins ?? 0);
+      const baseTank=Number(order.baseTankCoins||0);
+      const bonusTank=Number(order.bonusTankCoins||0);
+      const baseGold=Number(order.baseCoins||0);
+      const bonusGold=Number(order.bonusCoins||0);
       order.firstDouble=!hadEarlierPaid;
-      order.totalTankCoins=base*(order.firstDouble?2:1)+bonus;
+      order.totalTankCoins=baseTank*(order.firstDouble?2:1)+bonusTank;
+      order.totalCoins=baseGold*(order.firstDouble?2:1)+bonusGold;
       order.status="paid";
       order.paidAt=new Date().toISOString();
     }
