@@ -38,6 +38,7 @@
 
           <div class="island-bar">
             <span class="coin-balance">🪙 金币：<b id="island-coins">0</b></span>
+            <span class="coin-balance tank-coin-balance">🔷 坦克币：<b id="island-tank-coins">0</b></span>
             <button type="button" id="island-btn" class="island-open-btn">🏝️ 进入坦克岛</button>
           </div>
           <div id="island-notice" class="island-notice"></div>
@@ -86,7 +87,7 @@
             <button type="button" class="tank-choice" data-player-tank="omni">
               <span class="tank-choice-title">🟧 全能坦克</span>
               <span>10滴血 · 基地10滴 · 5伤害</span>
-              <small>八能合一：原六能 + 飞行 + 进化连击</small>
+              <small>八能合一：原六能 + 飞行 + 进化连击 · 🔷坦克币购买</small>
             </button>
             <button type="button" class="tank-choice tank-choice-dahu" data-player-tank="dahu">
               <span class="tank-choice-title">🐯 虎式坦克·大虎</span>
@@ -96,14 +97,14 @@
             <button type="button" class="tank-choice tank-choice-assimilate" data-player-tank="assimilate">
               <span class="tank-choice-title">🧸 童话坦克</span>
               <span>7滴血 · 童化型</span>
-              <small>敌军随机变成初始界面的我方坦克；不会变成童话坦克；Boss/豹子免疫</small>
+              <small>敌军随机变成初始界面的我方坦克；不会变成童话坦克；Boss/豹子免疫 · 🔷坦克币购买</small>
             </button>
             <button type="button" id="enemy-guide-btn" class="enemy-guide-open">👾 敌方坦克图鉴 · 查看属性</button>
             <div id="enemy-guide-panel" class="enemy-guide-panel hidden"></div>
           </div>
 
           <div id="island-panel" class="island-panel hidden"></div>
-          <div class="free-note">初始仅普通、快速、重甲免费使用；其他坦克需在坦克岛用金币解锁。</div>
+          <div class="free-note">初始仅普通、快速、重甲免费；童话坦克和全能坦克必须用🔷坦克币购买，其他坦克在坦克岛用金币解锁。</div>
 
           <button type="button" id="start-btn">开始游戏</button>
         </div>
