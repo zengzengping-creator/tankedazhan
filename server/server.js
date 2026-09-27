@@ -9,6 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = process.env.MAPS_FILE || path.join(__dirname,"data","maps.json");
 const ORDERS_FILE = process.env.ORDERS_FILE || path.join(__dirname,"data","orders.json");
 const VIP_CLAIMS_FILE = process.env.VIP_CLAIMS_FILE || path.join(__dirname,"data","vip-claims.json");
+const SERVER_EVENT_FILE = process.env.SERVER_EVENT_FILE || path.join(__dirname,"data","server-event.json");
 const PORT = Number(process.env.PORT || 8787);
 const PAYMENT_CHECKOUT_URL = String(process.env.PAYMENT_CHECKOUT_URL || "").trim();
 const PAYMENT_WEBHOOK_SECRET = String(process.env.PAYMENT_WEBHOOK_SECRET || "").trim();
@@ -33,6 +34,18 @@ const VIP_CONFIG = {
   boxDiscount:0
 };
 const VIP_DAY_MS = 24*60*60*1000;
+
+const SERVER_EVENT_CONFIG = {
+  id:"players-1000-v1",
+  targetPlayers:1000,
+  reward:{
+    allSkins:true,
+    tankCoins:100000,
+    coins:200000,
+    ultimateTankCoins:100000,
+    highTankCoins:50000
+  }
+};
 
 const app = express();
 app.use(express.json({limit:"256kb"}));
@@ -213,9 +226,69 @@ function vipInfoForPlayer(playerId){
   };
 }
 
+
+let serverEventState={entrants:[],claims:[]};
+function loadServerEventState(){
+  try{
+    const parsed=JSON.parse(fs.readFileSync(SERVER_EVENT_FILE,"utf8"));
+    serverEventState={
+      entrants:Array.isArray(parsed?.entrants)?parsed.entrants:[],
+      claims:Array.isArray(parsed?.claims)?parsed.claims:[]
+    };
+  }catch(_){serverEventState={entrants:[],claims:[]};}
+}
+function saveServerEventState(){
+  try{
+    fs.mkdirSync(path.dirname(SERVER_EVENT_FILE),{recursive:true});
+    fs.writeFileSync(SERVER_EVENT_FILE,JSON.stringify(serverEventState,null,2));
+  }catch(err){console.warn("Server event persistence unavailable:",err.message);}
+}
+function serverEventStatus(playerId=""){
+  const count=serverEventState.entrants.length;
+  return {
+    id:SERVER_EVENT_CONFIG.id,
+    targetPlayers:SERVER_EVENT_CONFIG.targetPlayers,
+    entrants:count,
+    unlocked:count>=SERVER_EVENT_CONFIG.targetPlayers,
+    claimed:!!playerId&&serverEventState.claims.some(x=>x.playerId===playerId),
+    reward:SERVER_EVENT_CONFIG.reward
+  };
+}
+loadServerEventState();
+
+app.get("/api/event/server-milestone",(req,res)=>{
+  const playerId=safeText(req.query.playerId,100);
+  res.json({event:serverEventStatus(playerId)});
+});
+
+app.post("/api/event/server-milestone/enter",(req,res)=>{
+  const playerId=safeText(req.body?.playerId,100);
+  const playerName=safeText(req.body?.playerName,24)||"车长";
+  if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
+  if(!serverEventState.entrants.some(x=>x.playerId===playerId)){
+    serverEventState.entrants.push({playerId,playerName,firstSeenAt:new Date().toISOString()});
+    saveServerEventState();
+  }
+  res.json({ok:true,event:serverEventStatus(playerId)});
+});
+
+app.post("/api/event/server-milestone/claim",(req,res)=>{
+  const playerId=safeText(req.body?.playerId,100);
+  if(!playerId)return res.status(400).json({error:"缺少玩家ID"});
+  const status=serverEventStatus(playerId);
+  if(!status.unlocked)return res.status(403).json({error:"全服人数还没有达到1000人"});
+  if(status.claimed)return res.status(409).json({error:"该活动奖励已经领取"});
+  if(!serverEventState.entrants.some(x=>x.playerId===playerId)){
+    return res.status(403).json({error:"请先进入游戏登记活动资格"});
+  }
+  serverEventState.claims.push({playerId,claimedAt:new Date().toISOString()});
+  saveServerEventState();
+  res.json({ok:true,reward:SERVER_EVENT_CONFIG.reward,event:serverEventStatus(playerId)});
+});
+
 app.get("/api/health",(req,res)=>res.json({
   ok:true,maps:maps.length,teams:teams.size,now:new Date().toISOString(),
-  features:{teams:true,maps:true,recharge:true,vip:true,paymentConfigured:!!(PAYMENT_CHECKOUT_URL&&PAYMENT_WEBHOOK_SECRET)}
+  features:{teams:true,maps:true,recharge:true,vip:true,event:true,paymentConfigured:!!(PAYMENT_CHECKOUT_URL&&PAYMENT_WEBHOOK_SECRET)}
 }));
 
 app.get("/api/vip",(req,res)=>{
