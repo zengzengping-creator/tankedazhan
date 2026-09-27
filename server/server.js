@@ -278,7 +278,8 @@ app.get("/api/recharge/config",(req,res)=>{
       basicBox:"1坦克币=1次普通坦克盲盒",
       crewBox:"1坦克币=1次乘员盲盒",
       midBox:"1中级坦克币=1次中级盲盒",
-      highBox:"1高级坦克币=1次高级盲盒"
+      highBox:"1高级坦克币=1次高级盲盒",
+      midHigh:"2中级坦克币=1高级坦克币，1高级坦克币=2中级坦克币"
     },
     firstRechargeDouble:true,
     paymentConfigured:!!(PAYMENT_CHECKOUT_URL&&PAYMENT_WEBHOOK_SECRET),
