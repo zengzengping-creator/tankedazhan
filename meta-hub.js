@@ -915,7 +915,7 @@ async function renderRecharge(title, body) {
 
     <div class="recharge-first-banner ${firstDoubleAvailable?"active":"used"}">
       <strong>${firstDoubleAvailable?"🎉 首充双倍可用":"✅ 首充双倍已使用"}</strong>
-      <span>${firstDoubleAvailable?"第一次支付成功时，基础坦克币自动翻倍。":"后续充值按基础数量 + 档位赠送计算。"}</span>
+      <span>${firstDoubleAvailable?"第一次支付成功时，你选择的基础奖励自动翻倍。":"后续充值按基础数量 + 档位赠送计算。"}</span>
     </div>
 
     <div class="meta-recharge-server ${serverUrl&&!serverError?"ready":""}">
