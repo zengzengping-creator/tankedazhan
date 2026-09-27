@@ -361,7 +361,7 @@
 
     // 被同化的坦克保持原敌军外观，只增加绿色友军识别环。
     const liveAllies = new Set();
-    const allies = typeof getAssimilatedAllies === "function" ? getAssimilatedAllies() : [];
+    const allies = typeof globalThis.getAssimilatedAllies === "function" ? globalThis.getAssimilatedAllies() : [];
     for (const ally of allies) {
       if (!ally?.alive) continue;
       liveAllies.add(ally);
