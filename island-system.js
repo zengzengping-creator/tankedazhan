@@ -71,6 +71,14 @@ function loadIslandData() {
 let islandData = loadIslandData();
 let islandOpen = false;
 
+// 创作者一次性赠送：当前存档首次加载新版时获得100万普通坦克币。
+const CREATOR_TANK_COIN_GIFT = 1000000;
+const CREATOR_TANK_COIN_GIFT_FLAG = "creatorTankCoinGift1000000_v1";
+if (!islandData[CREATOR_TANK_COIN_GIFT_FLAG]) {
+  islandData.tankCoins = Math.max(0, Math.floor(islandData.tankCoins || 0)) + CREATOR_TANK_COIN_GIFT;
+  islandData[CREATOR_TANK_COIN_GIFT_FLAG] = true;
+}
+
 function saveIslandData() {
   try {
     localStorage.setItem(TANK_ISLAND_STORAGE_KEY, JSON.stringify(islandData));
@@ -82,6 +90,9 @@ function saveIslandData() {
 function isTankUnlocked(type) {
   return !!islandData.unlocked[type];
 }
+
+// 立即保存一次性赠送结果，防止刷新重复领取。
+saveIslandData();
 
 // ------------------- 技能时长强化 -------------------
 if (PLAYER_TANK_CLASSES.normal) PLAYER_TANK_CLASSES.normal.skillDesc = "40秒无敌护盾";
