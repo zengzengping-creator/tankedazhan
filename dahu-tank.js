@@ -1,8 +1,9 @@
-// 创造系坦克：大虎
-// 能力：Q切换正常/巨大/迷你形态；能量炮可同化普通敌军，被同化坦克成为友军。
+// 特殊玩家坦克：虎式坦克·大虎 / 同化坦克
+// 虎式：Q循环变大/缩小，发射能量炮。
+// 同化：同化弹把敌军转成我方队友；Boss不能同化；自爆坦克会随机转成正常友军坦克。
 
 PLAYER_TANK_CLASSES.dahu = {
-  name: "大虎",
+  name: "虎式坦克·大虎",
   color: "#f39c38",
   mark: "虎",
   speed: 2.45,
@@ -11,8 +12,22 @@ PLAYER_TANK_CLASSES.dahu = {
   shotCooldown: 18,
   bulletSpeed: 7.0,
   skillName: "虎形变换",
-  skillDesc: "Q循环：正常→巨大→迷你；能量炮同化敌军",
+  skillDesc: "Q循环：正常→巨大→迷你；发射高能炮弹",
   cooldown: 2 * 60,
+};
+
+PLAYER_TANK_CLASSES.assimilate = {
+  name: "同化坦克",
+  color: "#55d6c2",
+  mark: "同",
+  speed: 2.30,
+  maxHp: 7,
+  damage: 1,
+  shotCooldown: 22,
+  bulletSpeed: 6.2,
+  skillName: "同化脉冲",
+  skillDesc: "炮弹可把敌军变成队友；Q同化最近目标；Boss免疫",
+  cooldown: 12 * 60,
 };
 
 const DAHU_FORMS = {
@@ -21,8 +36,14 @@ const DAHU_FORMS = {
   mini:   { size: 24,       speed: 3.35, damage: 1, cooldown: 12, label:"迷你" },
 };
 const DAHU_FORM_ORDER = ["normal","giant","mini"];
-const DAHU_ASSIMILATE_BLOCKED = new Set(["boss6","boss10"]);
-let dahuAllies = [];
+
+const ASSIMILATE_BLOCKED_TYPES = new Set(["boss6","boss10","leopard"]);
+const ASSIMILATE_SUICIDE_RANDOM_TYPES = [
+  "normal","fast","armor","firepower","elite","fortress","destroyer"
+];
+
+let assimilatedAllies = [];
+globalThis.getAssimilatedAllies = () => assimilatedAllies;
 
 function dahuCfg(tank){
   return DAHU_FORMS[tank?.dahuForm] || DAHU_FORMS.normal;
@@ -44,10 +65,15 @@ function applyDahuForm(tank, form, silent=false){
   tank.damage=next.damage;
   tank.shotCooldown=next.cooldown;
 
-  // 放大后若压进墙或其他单位，就取消这次变化。
+  // 放大后若压进墙或其他单位，取消本次变化。
   if(typeof tank.collides==="function" && tank.collides(tank.x,tank.y)){
-    tank.dahuForm=prev.form;tank.size=prev.size;tank.baseSpeed=prev.baseSpeed;
-    tank.damage=prev.damage;tank.shotCooldown=prev.shotCooldown;tank.x=prev.x;tank.y=prev.y;
+    tank.dahuForm=prev.form;
+    tank.size=prev.size;
+    tank.baseSpeed=prev.baseSpeed;
+    tank.damage=prev.damage;
+    tank.shotCooldown=prev.shotCooldown;
+    tank.x=prev.x;
+    tank.y=prev.y;
     return false;
   }
   tank.skillActiveTimer=35;
@@ -55,108 +81,154 @@ function applyDahuForm(tank, form, silent=false){
   return true;
 }
 
-const createPlayerBeforeDahu=createPlayerAtSpawn;
+const createPlayerBeforeSpecialTanks=createPlayerAtSpawn;
 createPlayerAtSpawn=function(){
-  const t=createPlayerBeforeDahu();
+  const t=createPlayerBeforeSpecialTanks();
   if(t?.playerClass==="dahu") applyDahuForm(t,"normal",true);
   return t;
 };
 
-const activateSkillBeforeDahu=activatePlayerSkill;
-activatePlayerSkill=function(){
-  if(!player || player.playerClass!=="dahu") return activateSkillBeforeDahu();
-  if(state!=="playing" || !player.alive || player.skillCooldown>0) return;
-  const current=player.dahuForm||"normal";
-  const idx=DAHU_FORM_ORDER.indexOf(current);
-  const next=DAHU_FORM_ORDER[(idx+1)%DAHU_FORM_ORDER.length];
-  if(applyDahuForm(player,next)){
-    player.skillCooldown=PLAYER_TANK_CLASSES.dahu.cooldown;
+function isAssimilationBlocked(enemy){
+  if(!enemy || !enemy.alive || enemy.isPlayer) return true;
+  if(ASSIMILATE_BLOCKED_TYPES.has(enemy.type)) return true;
+  if(String(enemy.type||"").startsWith("boss")) return true;
+  if(enemy.bossConfigured || enemy.bossId) return true;
+  return false;
+}
+
+function configureAssimilatedAllyFromType(tank,type){
+  const stats=ENEMY_TYPES[type] || ENEMY_TYPES.normal;
+  tank.type=type;
+  tank.baseSpeed=stats.speed;
+  tank.maxHp=stats.hp;
+  tank.hp=Math.max(1,stats.hp);
+  tank.color=stats.color;
+  tank.fireChance=stats.fireChance;
+  tank.shotCooldown=stats.shotCooldown;
+  tank.bulletSpeed=stats.bulletSpeed;
+  tank.scoreValue=0;
+  tank.dropChance=0;
+  tank.mark=stats.mark;
+  tank.cooldown=10;
+  tank.aiTimer=0;
+  tank.weakenOriginalBaseSpeed=null;
+  tank.weakenedByPlayer=false;
+  tank.suicideExploded=false;
+  tank.suicideHitFlash=0;
+}
+
+function randomFriendlyTypeForSuicide(){
+  const pool=ASSIMILATE_SUICIDE_RANDOM_TYPES.filter(type=>ENEMY_TYPES[type]);
+  return pool[Math.floor(rnd()*pool.length)] || "normal";
+}
+
+function assimilateEnemyToAlly(enemy){
+  if(!enemy || !enemy.alive || enemy.isPlayer || enemy.isAssimilated) return false;
+  if(isAssimilationBlocked(enemy)) return false;
+
+  const originalType=enemy.type;
+  if(originalType==="suicide"){
+    configureAssimilatedAllyFromType(enemy,randomFriendlyTypeForSuicide());
+    enemy.assimilatedFromSuicide=true;
   }
+
+  const idx=enemies.indexOf(enemy);
+  if(idx>=0) enemies.splice(idx,1);
+
+  enemy.isAssimilated=true;
+  enemy.friendlyAlly=true;
+  enemy.assimilatedOriginalType=originalType;
+  enemy.cooldown=Math.min(enemy.cooldown||0,12);
+  enemy.aiTimer=0;
+  // 除自爆坦克外，不改type / color / mark / hp / speed，保持原来的样子与属性。
+  assimilatedAllies.push(enemy);
+
+  if(typeof updateHUD==="function") updateHUD();
+  return true;
+}
+globalThis.assimilateEnemyToAlly=assimilateEnemyToAlly;
+
+function nearestAssimilatableEnemy(origin,maxDistance=Infinity){
+  let best=null,bestD=maxDistance;
+  for(const e of enemies){
+    if(!e?.alive || isAssimilationBlocked(e)) continue;
+    const d=Math.hypot(e.cx-origin.cx,e.cy-origin.cy);
+    if(d<bestD){best=e;bestD=d;}
+  }
+  return best;
+}
+
+const activateSkillBeforeSpecialTanks=activatePlayerSkill;
+activatePlayerSkill=function(){
+  if(state!=="playing" || !player || !player.alive) return;
+  const type=player.playerClass;
+
+  if(type==="dahu"){
+    if(player.skillCooldown>0) return;
+    const current=player.dahuForm||"normal";
+    const idx=DAHU_FORM_ORDER.indexOf(current);
+    const next=DAHU_FORM_ORDER[(idx+1)%DAHU_FORM_ORDER.length];
+    if(applyDahuForm(player,next)){
+      player.skillCooldown=PLAYER_TANK_CLASSES.dahu.cooldown;
+    }
+    return;
+  }
+
+  if(type==="assimilate"){
+    if(player.skillCooldown>0) return;
+    const target=nearestAssimilatableEnemy(player,220);
+    if(!target) return;
+    if(assimilateEnemyToAlly(target)){
+      player.skillCooldown=PLAYER_TANK_CLASSES.assimilate.cooldown;
+      player.skillActiveTimer=40;
+    }
+    return;
+  }
+
+  return activateSkillBeforeSpecialTanks();
 };
 
-function createDahuEnergyBullet(tank){
+function createTigerEnergyBullet(tank){
   const v=DIR_VEC[tank.dir];
   const bx=tank.cx+v.x*(tank.size/2+5);
   const by=tank.cy+v.y*(tank.size/2+5);
   const bullet=new Bullet(bx,by,tank.dir,true,tank.bulletSpeed||7);
   bullet.damage=tank.damage||2;
   bullet.size=tank.dahuForm==="giant"?12:tank.dahuForm==="mini"?7:9;
-  bullet.dahuEnergy=true;
+  bullet.tigerEnergy=true;
   bullet.dahuForm=tank.dahuForm||"normal";
   bullets.push(bullet);
 }
 
-const shootBeforeDahu=Tank.prototype.shoot;
+function createAssimilationBullet(tank){
+  const v=DIR_VEC[tank.dir];
+  const bx=tank.cx+v.x*(tank.size/2+4);
+  const by=tank.cy+v.y*(tank.size/2+4);
+  const bullet=new Bullet(bx,by,tank.dir,true,tank.bulletSpeed||6.2);
+  bullet.damage=tank.damage||1;
+  bullet.size=9;
+  bullet.assimilationShot=true;
+  bullets.push(bullet);
+}
+
+const shootBeforeSpecialTanks=Tank.prototype.shoot;
 Tank.prototype.shoot=function(){
   if(this.isPlayer && this.playerClass==="dahu"){
     if(this.cooldown>0)return;
     this.cooldown=this.shotCooldown;
-    createDahuEnergyBullet(this);
+    createTigerEnergyBullet(this);
     return;
   }
-  return shootBeforeDahu.call(this);
+  if(this.isPlayer && this.playerClass==="assimilate"){
+    if(this.cooldown>0)return;
+    this.cooldown=this.shotCooldown;
+    createAssimilationBullet(this);
+    return;
+  }
+  return shootBeforeSpecialTanks.call(this);
 };
 
-function configureAssimilatedSuicideTank(enemy){
-  // 自爆坦克被同化后，不再保留自爆逻辑，而是随机重构为全能/基地友军。
-  const allyClass = rnd() < 0.5 ? "omni" : "base";
-  const cfg = PLAYER_TANK_CLASSES[allyClass] || PLAYER_TANK_CLASSES.base;
-  enemy.originalEnemyType = "suicide";
-  enemy.assimilatedPlayerClass = allyClass;
-  enemy.type = allyClass;
-  enemy.color = cfg.color;
-  enemy.mark = cfg.mark;
-  enemy.baseSpeed = cfg.speed;
-  enemy.maxHp = cfg.maxHp;
-  enemy.hp = cfg.maxHp;
-  enemy.damage = cfg.damage || 1;
-  enemy.shotCooldown = cfg.shotCooldown || 18;
-  enemy.bulletSpeed = cfg.bulletSpeed || 6;
-  enemy.fireChance = 0;
-  enemy.size = TILE - 6;
-  return allyClass;
-}
-
-function assimilateEnemyByDahu(enemy){
-  if(!enemy || !enemy.alive || enemy.isPlayer || enemy.isAssimilated) return false;
-  if(DAHU_ASSIMILATE_BLOCKED.has(enemy.type)) return false;
-
-  const originalType = enemy.type;
-  const idx=enemies.indexOf(enemy);
-  if(idx>=0) enemies.splice(idx,1);
-
-  enemy.isAssimilated=true;
-  enemy.assimilatedByDahu=true;
-  enemy.originalEnemyType=originalType;
-  enemy.cooldown=20;
-  enemy.aiTimer=0;
-
-  if(originalType==="suicide"){
-    configureAssimilatedSuicideTank(enemy);
-  }else{
-    // 普通→普通、快速→快速、重甲→重甲……完全保留原敌军外形与属性。
-    const stats=ENEMY_TYPES[originalType];
-    if(stats){
-      enemy.type=originalType;
-      enemy.color=stats.color;
-      enemy.mark=stats.mark;
-      enemy.baseSpeed=stats.speed;
-      enemy.maxHp=stats.hp;
-      enemy.hp=Math.max(1,Math.min(enemy.hp,stats.hp));
-      enemy.damage=stats.damage||1;
-      enemy.shotCooldown=stats.shotCooldown;
-      enemy.bulletSpeed=stats.bulletSpeed;
-      enemy.fireChance=0;
-    }
-  }
-
-  dahuAllies.push(enemy);
-  score+=(enemy.scoreValue||0);
-  if(typeof updateHUD==="function") updateHUD();
-  return true;
-}
-
-function updateDahuEnergyBullet(b){
+function updateSpecialPlayerBullet(b,mode){
   const v=DIR_VEC[b.dir];
   b.x+=v.x*b.speed;
   b.y+=v.y*b.speed;
@@ -166,17 +238,21 @@ function updateDahuEnergyBullet(b){
   if(r>=0&&r<GRID&&c>=0&&c<GRID){
     const tile=map[r][c];
     if(tile===T.BRICK){map[r][c]=T.EMPTY;b.alive=false;return;}
+    // 特殊友军炮弹不会误伤自己的基地。
     if(tile===T.STEEL||tile===T.BASE){b.alive=false;return;}
   }
 
   const rect={x:b.x-b.size/2,y:b.y-b.size/2,w:b.size,h:b.size};
-  for(const enemy of enemies){
+  for(const enemy of [...enemies]){
     if(!enemy.alive || !rectsOverlap(rect,enemy.rect())) continue;
-    if(assimilateEnemyByDahu(enemy)){
+
+    if(mode==="assimilate" && !isAssimilationBlocked(enemy)){
+      assimilateEnemyToAlly(enemy);
       b.alive=false;
       return;
     }
-    // BOSS不能被同化，能量炮对BOSS按普通伤害处理。
+
+    // Boss不可同化：同化炮命中Boss时只造成普通伤害。
     enemy.takeDamage(b.damage||1,true);
     b.alive=false;
     return;
@@ -189,13 +265,7 @@ function updateDahuEnergyBullet(b){
   }
 }
 
-const bulletUpdateBeforeDahu=Bullet.prototype.update;
-Bullet.prototype.update=function(){
-  if(this.dahuEnergy)return updateDahuEnergyBullet(this);
-  return bulletUpdateBeforeDahu.call(this);
-};
-
-function nearestEnemyForDahuAlly(ally){
+function nearestEnemyForAlly(ally){
   let best=null,bestD=Infinity;
   for(const e of enemies){
     if(!e?.alive)continue;
@@ -205,7 +275,7 @@ function nearestEnemyForDahuAlly(ally){
   return best;
 }
 
-function fireDahuAlly(ally,target){
+function fireAssimilatedAlly(ally,target){
   if(ally.cooldown>0||!target)return;
   const dx=target.cx-ally.cx,dy=target.cy-ally.cy;
   let dir;
@@ -213,58 +283,125 @@ function fireDahuAlly(ally,target){
   else dir=dy<0?DIR.UP:DIR.DOWN;
   ally.dir=dir;
   const v=DIR_VEC[dir];
-  const bullet=new Bullet(ally.cx+v.x*(ally.size/2),ally.cy+v.y*(ally.size/2),dir,true,ally.bulletSpeed||5);
-  bullet.damage=Math.max(1,ally.damage||ENEMY_TYPES[ally.type]?.damage||1);
-  bullet.dahuAllyShot=true;
+  const bullet=new Bullet(
+    ally.cx+v.x*(ally.size/2),
+    ally.cy+v.y*(ally.size/2),
+    dir,true,ally.bulletSpeed||5
+  );
+  bullet.damage=Math.max(1,ENEMY_TYPES[ally.type]?.damage||1);
+  bullet.friendlyAllyShot=true;
   bullets.push(bullet);
-  ally.cooldown=Math.max(16,ally.shotCooldown||30);
+  ally.cooldown=Math.max(10,ally.shotCooldown||30);
 }
 
-function updateDahuAllies(){
-  for(const ally of dahuAllies){
-    if(!ally.alive)continue;
+function updateFriendlyAllyBullet(b){
+  const v=DIR_VEC[b.dir];
+  b.x+=v.x*b.speed;
+  b.y+=v.y*b.speed;
+  if(b.x<0||b.y<0||b.x>W||b.y>W){b.alive=false;return;}
+
+  const c=Math.floor(b.x/TILE),r=Math.floor(b.y/TILE);
+  if(r>=0&&r<GRID&&c>=0&&c<GRID){
+    const tile=map[r][c];
+    if(tile===T.BRICK){map[r][c]=T.EMPTY;b.alive=false;return;}
+    if(tile===T.STEEL||tile===T.BASE){b.alive=false;return;}
+  }
+
+  const rect={x:b.x-b.size/2,y:b.y-b.size/2,w:b.size,h:b.size};
+  for(const e of enemies){
+    if(!e?.alive||!rectsOverlap(rect,e.rect()))continue;
+    e.takeDamage(b.damage||1,true);
+    b.alive=false;
+    return;
+  }
+
+  for(const other of bullets){
+    if(other===b||!other.alive||other.fromPlayer===b.fromPlayer)continue;
+    const ob={x:other.x-other.size/2,y:other.y-other.size/2,w:other.size,h:other.size};
+    if(rectsOverlap(rect,ob)){other.alive=false;b.alive=false;return;}
+  }
+}
+
+function damageFriendlyAllyFromEnemyBullet(b){
+  if(!b.alive || b.fromPlayer) return;
+  const rect={x:b.x-b.size/2,y:b.y-b.size/2,w:b.size,h:b.size};
+  for(const ally of assimilatedAllies){
+    if(!ally?.alive || !rectsOverlap(rect,ally.rect())) continue;
+    ally.hp=Math.max(0,(ally.hp||1)-1);
+    if(ally.hp<=0) ally.alive=false;
+    b.alive=false;
+    return;
+  }
+}
+
+const bulletUpdateBeforeSpecialTanks=Bullet.prototype.update;
+Bullet.prototype.update=function(){
+  if(this.tigerEnergy) return updateSpecialPlayerBullet(this,"energy");
+  if(this.assimilationShot) return updateSpecialPlayerBullet(this,"assimilate");
+  if(this.friendlyAllyShot) return updateFriendlyAllyBullet(this);
+
+  const wasEnemy=!this.fromPlayer;
+  bulletUpdateBeforeSpecialTanks.call(this);
+  if(wasEnemy && this.alive) damageFriendlyAllyFromEnemyBullet(this);
+};
+
+function updateAssimilatedAllies(){
+  for(const ally of assimilatedAllies){
+    if(!ally?.alive)continue;
     if(ally.cooldown>0)ally.cooldown--;
-    const target=nearestEnemyForDahuAlly(ally);
+
+    const target=nearestEnemyForAlly(ally);
     if(!target){ally.moving=false;continue;}
+
     const dx=target.cx-ally.cx,dy=target.cy-ally.cy;
     const dist=Math.hypot(dx,dy);
-    if(dist>75){
-      const dir=Math.abs(dx)>Math.abs(dy)?(dx<0?DIR.LEFT:DIR.RIGHT):(dy<0?DIR.UP:DIR.DOWN);
-      ally.tryMove(dir,0.72);
+
+    if(dist>72){
+      const primary=Math.abs(dx)>=Math.abs(dy)
+        ? (dx<0?DIR.LEFT:DIR.RIGHT)
+        : (dy<0?DIR.UP:DIR.DOWN);
+      const secondary=Math.abs(dx)>=Math.abs(dy)
+        ? (dy<0?DIR.UP:DIR.DOWN)
+        : (dx<0?DIR.LEFT:DIR.RIGHT);
+      ally.tryMove(primary,0.72);
+      if(!ally.moving) ally.tryMove(secondary,0.62);
     }else{
       ally.moving=false;
     }
-    if(dist<260 || Math.abs(dx)<28 || Math.abs(dy)<28) fireDahuAlly(ally,target);
+
+    if(dist<280 || Math.abs(dx)<32 || Math.abs(dy)<32){
+      fireAssimilatedAlly(ally,target);
+    }
   }
-  dahuAllies=dahuAllies.filter(a=>a&&a.alive);
+  assimilatedAllies=assimilatedAllies.filter(a=>a&&a.alive);
 }
 
-const updateBeforeDahu=update;
+const updateBeforeSpecialTanks=update;
 update=function(){
-  updateBeforeDahu();
-  if(state==="playing")updateDahuAllies();
+  updateBeforeSpecialTanks();
+  if(state==="playing")updateAssimilatedAllies();
 };
 
-const startLevelBeforeDahu=startLevel;
+const startLevelBeforeSpecialTanks=startLevel;
 startLevel=function(n){
-  dahuAllies=[];
-  startLevelBeforeDahu(n);
+  assimilatedAllies=[];
+  startLevelBeforeSpecialTanks(n);
   if(player?.playerClass==="dahu")applyDahuForm(player,"normal",true);
 };
 
-function drawDahuExtras(){
-  for(const ally of dahuAllies){
+function drawSpecialTankExtras(){
+  for(const ally of assimilatedAllies){
     if(!ally?.alive)continue;
+    // 仍按原来的type、颜色和mark画，只加友军光圈，不改变坦克本体。
     drawTank(ally,ally.color);
     ctx.save();
-    ctx.strokeStyle="#53f3ff";
+    ctx.strokeStyle="#52f1a9";
     ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(ally.cx,ally.cy,ally.size/2+5,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle="#bdfaff";ctx.font="bold 9px sans-serif";ctx.textAlign="center";
-    const allyName=ally.assimilatedPlayerClass
-      ? (PLAYER_TANK_CLASSES[ally.assimilatedPlayerClass]?.name||"友军")
-      : (ENEMY_TYPES[ally.originalEnemyType]?.name||"友军坦克");
-    ctx.fillText("队友·"+allyName,ally.cx,ally.y-5);
+    ctx.fillStyle="#bfffe3";
+    ctx.font="bold 9px sans-serif";
+    ctx.textAlign="center";
+    ctx.fillText(ally.assimilatedFromSuicide?"随机友军":"我方队友",ally.cx,ally.y-5);
     ctx.restore();
   }
 
@@ -274,22 +411,32 @@ function drawDahuExtras(){
     ctx.strokeStyle="#ffb13b";ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(player.cx,player.cy,player.size/2+6,0,Math.PI*2);ctx.stroke();
     ctx.fillStyle="#ffe0a1";ctx.font="bold 10px sans-serif";ctx.textAlign="center";
-    ctx.fillText("大虎·"+f.label,player.cx,player.y-7);
+    ctx.fillText("虎式·"+f.label,player.cx,player.y-7);
+    ctx.restore();
+  }
+
+  if(player?.alive&&player.playerClass==="assimilate"){
+    ctx.save();
+    ctx.strokeStyle="#55f2d5";ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(player.cx,player.cy,player.size/2+6,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle="#c9fff5";ctx.font="bold 10px sans-serif";ctx.textAlign="center";
+    ctx.fillText("同化坦克",player.cx,player.y-7);
     ctx.restore();
   }
 
   for(const b of bullets){
-    if(!b.alive||!b.dahuEnergy)continue;
+    if(!b.alive||(!b.tigerEnergy&&!b.assimilationShot))continue;
     ctx.save();
-    ctx.shadowBlur=12;ctx.shadowColor="#63efff";
-    ctx.fillStyle="#9ff7ff";
+    ctx.shadowBlur=12;
+    ctx.shadowColor=b.assimilationShot?"#55f2d5":"#63efff";
+    ctx.fillStyle=b.assimilationShot?"#a8ffec":"#9ff7ff";
     ctx.beginPath();ctx.arc(b.x,b.y,Math.max(5,b.size*.7),0,Math.PI*2);ctx.fill();
     ctx.restore();
   }
 }
 
-const drawBeforeDahu=draw;
+const drawBeforeSpecialTanks=draw;
 draw=function(){
-  drawBeforeDahu();
-  drawDahuExtras();
+  drawBeforeSpecialTanks();
+  drawSpecialTankExtras();
 };
